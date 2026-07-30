@@ -77,7 +77,7 @@ export default function Counter() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-4 pt-8 pb-24 md:py-6 flex flex-col font-ml min-h-screen select-none space-y-4" style={{ backgroundColor: '#F7F5EC', color: '#1A1A1A' }}>
+    <main className="max-w-xl mx-auto px-4 safe-top pb-24 md:py-6 flex flex-col font-ml min-h-screen select-none space-y-4" style={{ backgroundColor: '#F7F5EC', color: '#1A1A1A' }}>
       
       {/* Top Header Bar */}
       <div className="flex items-center justify-between shrink-0">

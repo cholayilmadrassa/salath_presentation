@@ -288,13 +288,13 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-base font-extrabold" style={{ color: '#1A1A1A' }}>{t.name}</h2>
                     <a
-                      href={`http://${t.slug}.localhost:5173`}
+                      href={`http://${t.slug}.salath.vercel.app`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1 hover:underline"
                       style={{ backgroundColor: '#E8EDE2', color: '#6E9B37' }}
                     >
-                      <span>{t.slug}.swalath.app</span>
+                      <span>{t.slug}.salath.vercel.app</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
                     <span

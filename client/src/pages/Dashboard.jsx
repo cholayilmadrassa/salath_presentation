@@ -61,7 +61,7 @@ export default function Dashboard() {
   const isTodaySelected = selectedDate === todayKey();
 
   return (
-    <main className="max-w-xl mx-auto px-4 pt-8 pb-20 md:py-6 space-y-5 font-ml bg-stone-50 min-h-screen">
+    <main className="max-w-xl mx-auto px-4 safe-top pb-20 md:py-6 space-y-5 font-ml bg-stone-50 min-h-screen">
       
       {/* Mobile Top App Header */}
       <div className="flex items-center justify-between">

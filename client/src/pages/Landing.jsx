@@ -77,7 +77,7 @@ export default function Landing() {
       <div className="min-h-screen flex flex-col pb-24 md:pb-0" style={{ backgroundColor: '#F7F5EC', color: '#1A1A1A' }}>
 
         {/* ──────── MOBILE APP HEADER ──────── */}
-        <header className="sticky top-0 z-30 px-4 pt-6 pb-3 backdrop-blur-lg md:hidden safe-bottom" style={{ backgroundColor: 'rgba(247, 245, 236, 0.95)', borderBottom: '1px solid #E8EDE2' }}>
+        <header className="sticky top-0 z-30 px-4 pb-3 backdrop-blur-lg md:hidden safe-top safe-bottom" style={{ backgroundColor: 'rgba(247, 245, 236, 0.95)', borderBottom: '1px solid #E8EDE2' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl text-white flex items-center justify-center text-lg shadow-md shrink-0 font-bold" style={{ backgroundColor: '#6E9B37' }}>
@@ -356,7 +356,7 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col pb-24 md:pb-0" style={{ backgroundColor: '#F7F5EC', color: '#1A1A1A' }}>
       
       {/* Platform Top Bar */}
-      <header className="sticky top-0 z-30 px-4 py-4 backdrop-blur-lg border-b" style={{ backgroundColor: 'rgba(247, 245, 236, 0.95)', borderColor: '#E8EDE2' }}>
+      <header className="sticky top-0 z-30 px-4 pb-4 backdrop-blur-lg border-b safe-top" style={{ backgroundColor: 'rgba(247, 245, 236, 0.95)', borderColor: '#E8EDE2' }}>
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl text-white flex items-center justify-center text-xl font-bold shadow-md" style={{ backgroundColor: '#6E9B37' }}>
@@ -565,7 +565,7 @@ export default function Landing() {
                 </div>
 
                 <a
-                  href={`http://${ev.slug}.localhost:5173`}
+                  href={`http://${ev.slug}.${PLATFORM_ROOT_DOMAIN}`}
                   className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 text-white shadow-sm transition active:scale-95"
                   style={{ backgroundColor: '#6E9B37' }}
                 >
@@ -574,7 +574,7 @@ export default function Landing() {
                 </a>
               </div>
             ))}
-          </div>
+          </div>  
         )}
       </section>
 

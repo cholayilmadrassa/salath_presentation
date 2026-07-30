@@ -94,7 +94,7 @@ export default function Signup() {
   };
 
   return (
-    <main className="max-w-lg mx-auto px-4 py-6 sm:py-10 font-ml" style={{ color: '#1A1A1A' }}>
+    <main className="max-w-lg mx-auto px-4 safe-top pb-6 sm:py-10 font-ml" style={{ color: '#1A1A1A' }}>
 
       {/* Header */}
       <div className="text-center mb-6">

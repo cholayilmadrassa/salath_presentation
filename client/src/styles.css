@@ -163,7 +163,21 @@
 .stagger-4 { animation-delay: 0.2s; }
 .stagger-5 { animation-delay: 0.25s; }
 
-/* Safe area padding for iOS */
+/* Safe area padding for iOS (Dynamic Island, Notch, Status Bar & Home Indicator) */
+.safe-top {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+}
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-top {
+    padding-top: calc(env(safe-area-inset-top) + 1rem);
+  }
+}
+
+.safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .safe-bottom {
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);

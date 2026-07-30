@@ -55,7 +55,7 @@ export default function Login() {
   };
 
   return (
-    <main className="max-w-md mx-auto px-4 py-8 sm:py-14 font-ml" style={{ color: '#1A1A1A' }}>
+    <main className="max-w-md mx-auto px-4 safe-top pb-8 sm:py-14 font-ml" style={{ color: '#1A1A1A' }}>
       <div className="text-center mb-6">
         <div className="w-12 h-12 rounded-2xl text-white flex items-center justify-center font-bold text-xl mx-auto mb-3 shadow-md" style={{ backgroundColor: '#6E9B37' }}>
           ☪
