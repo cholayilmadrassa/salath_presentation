@@ -1,39 +1,26 @@
 import { useState, useEffect } from "react";
-import { api } from "../api.js";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTenant } from "../context/TenantContext.jsx";
-import { useNavigate, Link } from "react-router-dom";
-import Card from "../components/Card.jsx";
-import { User, Phone, MapPin, UserPlus, LogIn, Building2, CheckCircle2, ShieldCheck } from "lucide-react";
+import { api } from "../api.js";
+import { User, Phone, MapPin, Building2, CheckCircle2, Lock, ArrowRight, Star } from "lucide-react";
 
 export default function Signup() {
+  const navigate = useNavigate();
   const { login } = useAuth();
   const { activeTenant } = useTenant();
-  const navigate = useNavigate();
-  const [activeStep, setActiveStep] = useState(1);
 
   const [approvedEvents, setApprovedEvents] = useState([]);
   const [selectedTenantSlug, setSelectedTenantSlug] = useState("");
-
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
-    whatsapp: "",
-    place: "",
-    mahallu: "",
-    panchayath: "",
-    district: "",
-    state: "",
-    country: "",
-  });
-  const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [place, setPlace] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!activeTenant) {
-      api('/events/public-approved')
+      api("/events/public-approved")
         .then((res) => {
           if (Array.isArray(res)) {
             setApprovedEvents(res);
@@ -46,37 +33,40 @@ export default function Signup() {
     }
   }, [activeTenant]);
 
-  const handleNumberChange = (field) => (e) => {
-    const value = e.target.value;
-    if (/^\d{0,10}$/.test(value)) {
-      const updatedPhone = field === 'phone' ? value : form.phone;
-      const updatedWhatsapp = field === 'whatsapp' ? value : form.whatsapp;
-
-      setForm((prev) => ({
-        ...prev,
-        [field]: value,
-        email: prev.email || `${updatedPhone || updatedWhatsapp || Date.now()}@member.salath`,
-        password: prev.password || `pass_${updatedPhone || '123456'}`,
-      }));
-    }
-  };
-
-  const submit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!name.trim()) {
+      setError("Please enter your full name");
+      return;
+    }
+    if (!mobile.trim() || mobile.trim().length < 10) {
+      setError("Please enter a valid 10-digit mobile number");
+      return;
+    }
+    if (!place.trim()) {
+      setError("Please enter your place / Mahallu");
+      return;
+    }
+
+    const targetSlug = activeTenant ? activeTenant.slug : selectedTenantSlug;
+    if (!targetSlug) {
+      setError("Please select an event portal to join");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const targetSlug = activeTenant ? activeTenant.slug : selectedTenantSlug;
-      if (!targetSlug) {
-        throw new Error("ദയവായി ഒരു ഈവന്റ് തിരഞ്ഞെടുക്കുക (Please select an approved event)");
-      }
-
-      const generatedEmail = form.email || `${form.phone || form.whatsapp || Date.now()}@member.salath`;
-      const generatedPassword = form.password || `pass_${form.phone || '123456'}`;
+      const sanitizedMobile = mobile.replace(/\D/g, "");
+      const generatedEmail = `${sanitizedMobile}.${targetSlug}@salath.app`;
+      const generatedPassword = `Salath@${sanitizedMobile.slice(-4) || '1234'}`;
 
       const payload = {
-        ...form,
+        name: name.trim(),
+        mobile: sanitizedMobile,
+        place: place.trim(),
         email: generatedEmail,
         password: generatedPassword,
         tenantSlug: targetSlug,
@@ -87,290 +77,155 @@ export default function Signup() {
 
       navigate("/dashboard");
     } catch (e) {
-      setError(e.message || "റജിസ്ട്രേഷൻ പരാജയപ്പെട്ടു. ദയവായി വീണ്ടും ശ്രമിക്കുക.");
+      setError(e.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const currentEventTitle = activeTenant ? activeTenant.name : (approvedEvents.find(e => e.slug === selectedTenantSlug)?.name || 'Event Registration');
+
   return (
-    <main className="max-w-lg mx-auto px-4 safe-top pb-6 sm:py-10 font-ml" style={{ color: '#1A1A1A' }}>
+    <main className="max-w-lg mx-auto px-4 safe-top pb-6 sm:py-10 font-ml" style={{ backgroundColor: '#DDF4E7', color: '#124170' }}>
 
       {/* Header */}
       <div className="text-center mb-6">
-        <div className="w-12 h-12 rounded-2xl text-white flex items-center justify-center font-bold text-xl mx-auto mb-3 shadow-md" style={{ backgroundColor: '#6E9B37' }}>
-          ☪
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#1A1A1A' }}>
-          {activeTenant ? `${activeTenant.name} - അംഗത്വം` : 'അംഗത്വ റജിസ്ട്രേഷൻ'}
+        <img
+          src="/logo.png"
+          alt="Swalath Portal"
+          className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3 shadow-md"
+        />
+        <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider" style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', color: '#26667F' }}>
+          {activeTenant ? activeTenant.slug : 'Member Registration'}
+        </span>
+        <h1 className="text-2xl font-extrabold mt-1" style={{ color: '#124170' }}>
+          Member Registration
         </h1>
-        <p className="text-xs font-medium mt-1" style={{ color: '#8C8C8C' }}>
-          {activeTenant ? `Register as a participant for ${activeTenant.name}` : 'അംഗീകൃത ഈവന്റിൽ പങ്കാളിയാകൂ'}
+        <p className="text-xs font-medium mt-1" style={{ color: '#26667F' }}>
+          Join {currentEventTitle} Portal
         </p>
       </div>
 
-      {/* Step Indicator */}
-      <div className="flex items-center justify-center gap-3 mb-5">
-        <button
-          type="button"
-          onClick={() => setActiveStep(1)}
-          className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full transition"
-          style={{
-            backgroundColor: activeStep === 1 ? '#6E9B37' : '#E8EDE2',
-            color: activeStep === 1 ? '#FFFFFF' : '#1A1A1A',
-          }}
-        >
-          <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px]" style={{ backgroundColor: activeStep === 1 ? '#FFC107' : '#FFFFFF', color: '#1A1A1A' }}>1</span>
-          <span>വ്യക്തിഗത വിവരങ്ങൾ</span>
-        </button>
-
-        <span className="text-xs" style={{ color: '#8C8C8C' }}>→</span>
-
-        <button
-          type="button"
-          onClick={() => setActiveStep(2)}
-          className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full transition"
-          style={{
-            backgroundColor: activeStep === 2 ? '#6E9B37' : '#E8EDE2',
-            color: activeStep === 2 ? '#FFFFFF' : '#1A1A1A',
-          }}
-        >
-          <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px]" style={{ backgroundColor: activeStep === 2 ? '#FFC107' : '#FFFFFF', color: '#1A1A1A' }}>2</span>
-          <span>സ്ഥലം / മഹല്ല്</span>
-        </button>
-      </div>
-
-      <Card className="!p-5 sm:!p-7 shadow-touch space-y-5" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8EDE2' }}>
+      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm space-y-5" style={{ border: '1px solid rgba(38, 102, 127, 0.15)' }}>
         {error && (
-          <div className="p-3.5 rounded-xl bg-red-50 text-red-700 text-xs font-semibold border border-red-200">
+          <div className="p-3.5 bg-red-50 text-red-700 text-xs rounded-2xl border border-red-200 font-bold leading-relaxed">
             {error}
           </div>
         )}
 
-        {/* Event Banner or Event Selection Dropdown */}
-        {activeTenant ? (
-          <div className="p-3 rounded-2xl flex items-center justify-between text-xs font-bold" style={{ backgroundColor: '#E8EDE2', color: '#6E9B37', border: '1px solid #6E9B37' }}>
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              <span>{activeTenant.name}</span>
+        <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* Event Selector Dropdown if on root platform */}
+          {!activeTenant && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-extrabold flex items-center gap-1.5" style={{ color: '#124170' }}>
+                <Building2 className="w-4 h-4" style={{ color: '#67C090' }} />
+                <span>Select Event:</span>
+              </label>
+
+              {approvedEvents.length === 0 ? (
+                <div className="p-3 rounded-2xl text-xs font-bold text-center" style={{ backgroundColor: '#DDF4E7', color: '#26667F' }}>
+                  Searching active approved events...
+                </div>
+              ) : (
+                <select
+                  value={selectedTenantSlug}
+                  onChange={(e) => setSelectedTenantSlug(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090] transition"
+                  style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
+                >
+                  {approvedEvents.map((ev) => (
+                    <option key={ev.slug} value={ev.slug}>
+                      {ev.name} ({ev.slug})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white text-emerald-800 border border-emerald-200">
-              {activeTenant.slug}
-            </span>
-          </div>
-        ) : (
+          )}
+
+          {/* Name Input */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold flex items-center gap-1.5" style={{ color: '#1A1A1A' }}>
-              <Building2 className="w-4 h-4" style={{ color: '#6E9B37' }} />
-              <span>ഈവന്റ് ടീം തിരഞ്ഞെടുക്കുക (Select Approved Event) *</span>
+            <label className="text-xs font-extrabold flex items-center gap-1.5" style={{ color: '#124170' }}>
+              <User className="w-4 h-4" style={{ color: '#67C090' }} />
+              <span>Full Name:</span>
             </label>
-            {approvedEvents.length === 0 ? (
-              <div className="p-3 rounded-xl bg-amber-50 text-amber-800 text-xs font-medium border border-amber-200">
-                ശ്രദ്ധിക്കുക: നിലവിൽ അംഗീകൃത ഈവന്റുകൾ ലഭ്യമല്ല. ആദ്യം Super Admin പുതിയ ഈവന്റ് അംഗീകരിക്കേണ്ടതാണ്.
-              </div>
-            ) : (
-              <select
-                className="input font-semibold"
-                value={selectedTenantSlug}
-                onChange={(e) => setSelectedTenantSlug(e.target.value)}
-                required
-              >
-                {approvedEvents.map((ev) => (
-                  <option key={ev.slug} value={ev.slug}>
-                    {ev.name} ({ev.slug})
-                  </option>
-                ))}
-              </select>
-            )}
+            <input
+              type="text"
+              required
+              placeholder="e.g. Muhammed Faisal"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090] transition"
+              style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
+            />
           </div>
-        )}
 
-        <form onSubmit={submit} className="space-y-4">
+          {/* Mobile Input */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-extrabold flex items-center gap-1.5" style={{ color: '#124170' }}>
+              <Phone className="w-4 h-4" style={{ color: '#67C090' }} />
+              <span>Mobile Number:</span>
+            </label>
+            <input
+              type="tel"
+              required
+              maxLength="10"
+              placeholder="10-digit mobile number"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090] transition"
+              style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
+            />
+          </div>
 
-          {/* Step 1: Personal Info */}
-          {activeStep === 1 && (
-            <div className="space-y-4 animate-slide-down">
-              <div>
-                <label className="block text-xs font-bold mb-1 flex items-center gap-1.5" style={{ color: '#1A1A1A' }}>
-                  <User className="w-3.5 h-3.5" style={{ color: '#6E9B37' }} />
-                  <span>നിങ്ങളുടെ പേര് (Name) *</span>
-                </label>
-                <input
-                  className="input font-medium"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="മുഴുവൻ പേര് രേഖപ്പെടുത്തുക"
-                  required
-                />
-              </div>
+          {/* Place Input */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-extrabold flex items-center gap-1.5" style={{ color: '#124170' }}>
+              <MapPin className="w-4 h-4" style={{ color: '#67C090' }} />
+              <span>Place / Mahallu:</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Padinjarathara"
+              value={place}
+              onChange={(e) => setPlace(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090] transition"
+              style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
+            />
+          </div>
 
-              <div>
-                <label className="block text-xs font-bold mb-1 flex items-center gap-1.5" style={{ color: '#1A1A1A' }}>
-                  <Phone className="w-3.5 h-3.5" style={{ color: '#6E9B37' }} />
-                  <span>ഫോൺ നമ്പർ (Phone No) *</span>
-                </label>
-                <input
-                  className="input font-medium"
-                  type="tel"
-                  inputMode="numeric"
-                  value={form.phone}
-                  onChange={handleNumberChange("phone")}
-                  minLength={10}
-                  maxLength={10}
-                  required
-                  placeholder="10 അക്ക ഫോൺ നമ്പർ"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold mb-1 flex items-center gap-1.5" style={{ color: '#1A1A1A' }}>
-                  <Phone className="w-3.5 h-3.5" style={{ color: '#6E9B37' }} />
-                  <span>വാട്സ്ആപ് നമ്പർ (WhatsApp No) *</span>
-                </label>
-                <input
-                  className="input font-medium"
-                  type="tel"
-                  inputMode="numeric"
-                  value={form.whatsapp}
-                  onChange={handleNumberChange("whatsapp")}
-                  minLength={10}
-                  maxLength={10}
-                  required
-                  placeholder="10 അക്ക വാട്സ്ആപ് നമ്പർ"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveStep(2)}
-                className="btn-primary w-full py-3.5 text-xs font-bold rounded-xl mt-2"
-                style={{ backgroundColor: '#6E9B37', color: '#FFFFFF' }}
-              >
-                അടുത്തത്: സ്ഥല വിവരങ്ങൾ →
-              </button>
-            </div>
-          )}
-
-          {/* Step 2: Location Details */}
-          {activeStep === 2 && (
-            <div className="space-y-3.5 animate-slide-down">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#1A1A1A' }}>
-                    സ്ഥലം (Place) *
-                  </label>
-                  <input
-                    className="input"
-                    value={form.place}
-                    onChange={(e) => setForm({ ...form, place: e.target.value })}
-                    placeholder="ഉദാ: പടിഞ്ഞാറത്തറ"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#1A1A1A' }}>
-                    മഹല്ല് (Mahallu) *
-                  </label>
-                  <input
-                    className="input"
-                    value={form.mahallu}
-                    onChange={(e) => setForm({ ...form, mahallu: e.target.value })}
-                    placeholder="മഹല്ല് പേര്"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#1A1A1A' }}>
-                    പഞ്ചായത്ത്‌ (Panchayath) *
-                  </label>
-                  <input
-                    className="input"
-                    value={form.panchayath}
-                    onChange={(e) => setForm({ ...form, panchayath: e.target.value })}
-                    placeholder="പഞ്ചായത്ത്"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#1A1A1A' }}>
-                    ജില്ല (District) *
-                  </label>
-                  <input
-                    className="input"
-                    value={form.district}
-                    onChange={(e) => setForm({ ...form, district: e.target.value })}
-                    placeholder="ഉദാ: വയനാട്"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#1A1A1A' }}>
-                    സംസ്ഥാനം (State) *
-                  </label>
-                  <input
-                    className="input"
-                    value={form.state}
-                    onChange={(e) => setForm({ ...form, state: e.target.value })}
-                    placeholder="ഉദാ: കേരളം"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#1A1A1A' }}>
-                    രാജ്യം (Country) *
-                  </label>
-                  <input
-                    className="input"
-                    value={form.country}
-                    onChange={(e) => setForm({ ...form, country: e.target.value })}
-                    placeholder="ഉദാ: ഇന്ത്യ"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveStep(1)}
-                  className="btn-secondary py-3.5 px-4 text-xs font-bold shrink-0 rounded-xl"
-                >
-                  ← തിരികെ
-                </button>
-                <button
-                  type="submit"
-                  className="w-full py-3.5 text-xs font-bold shadow-md rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95"
-                  style={{ backgroundColor: '#6E9B37', color: '#FFFFFF' }}
-                  disabled={loading}
-                >
-                  <UserPlus className="w-4 h-4 text-white" />
-                  <span>{loading ? "റജിസ്റ്റർ ചെയ്യുന്നു..." : "റജിസ്ട്രേഷൻ പൂർത്തിയാക്കൂ"}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 text-white font-extrabold text-sm rounded-2xl shadow-md transition active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+            style={{ backgroundColor: '#67C090' }}
+          >
+            {loading ? (
+              <span>Registering...</span>
+            ) : (
+              <>
+                <span>Complete Registration</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </form>
 
-        <div className="pt-4 border-t text-center" style={{ borderColor: '#E8EDE2' }}>
-          <p className="text-xs font-medium" style={{ color: '#8C8C8C' }}>
-            നേരത്തെ അക്കൗണ്ട് ഉണ്ടോ?{" "}
-            <Link to="/login" className="font-bold hover:underline inline-flex items-center gap-1" style={{ color: '#6E9B37' }}>
-              <span>ലോഗിൻ ചെയ്യൂ</span>
-              <LogIn className="w-3.5 h-3.5" />
-            </Link>
+        <div className="pt-3 border-t border-stone-100 text-center space-y-2">
+          <p className="text-xs font-medium" style={{ color: '#26667F' }}>
+            Already registered?
           </p>
+          <Link
+            to="/login"
+            className="inline-block text-xs font-extrabold hover:underline"
+            style={{ color: '#67C090' }}
+          >
+            Log In
+          </Link>
         </div>
-      </Card>
+      </div>
     </main>
   );
 }

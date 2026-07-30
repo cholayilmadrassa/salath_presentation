@@ -40,10 +40,9 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['"Sora"', '"Plus Jakarta Sans"', 'sans-serif'],
-        sora: ['"Sora"', 'sans-serif'],
-        ml: ['"Noto Serif Malayalam"', '"Noto Sans Malayalam"', 'serif'],
-        arabic: ['"Noto Kufi Arabic"', '"Noto Naskh Arabic"', 'serif'],
+        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+        ml: ['"Noto Serif Malayalam"', 'serif'],
+        arabic: ['"Noto Kufi Arabic"', 'serif'],
         cinzel: ['"Cinzel Decorative"', 'serif'],
       },
       boxShadow: {

@@ -29,8 +29,8 @@ function Footer() {
               href="tel:+919747785512"
               className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-[#00572e] border border-[#00703c] hover:bg-[#00703c] text-gold-300 font-semibold px-4 py-2.5 rounded-xl text-xs transition"
             >
-              <FaPhoneAlt className="text-gold-400" />
-              <span>വിളിക്കൂ</span>
+              <FaPhoneAlt style={{ color: '#67C090' }} />
+              <span>Call Us</span>
             </a>
 
             <a

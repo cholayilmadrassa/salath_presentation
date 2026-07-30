@@ -96,16 +96,16 @@ export function TenantProvider({ children }) {
   return (
     <TenantCtx.Provider value={{ activeTenant, loading, error, switchTenantSlug, reloadTenant: resolveCurrentTenant }}>
       {error ? (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#F7F5EC', color: '#1A1A1A' }}>
-          <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center space-y-5 shadow-2xl border" style={{ borderColor: '#E8EDE2' }}>
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#DDF4E7', color: '#124170' }}>
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center space-y-5 shadow-2xl border" style={{ borderColor: 'rgba(38, 102, 127, 0.2)' }}>
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold" style={{ backgroundColor: '#FEF2F2', color: '#DC2626' }}>
               ✕
             </div>
-            <h1 className="text-xl font-extrabold" style={{ color: '#1A1A1A' }}>Invalid or Pending Subdomain</h1>
-            <p className="text-xs p-3 rounded-xl font-mono leading-relaxed" style={{ backgroundColor: '#F7F5EC', color: '#8C8C8C', border: '1px solid #E8EDE2' }}>
+            <h1 className="text-xl font-extrabold" style={{ color: '#124170' }}>Invalid or Pending Subdomain</h1>
+            <p className="text-xs p-3 rounded-xl font-mono leading-relaxed" style={{ backgroundColor: '#DDF4E7', color: '#26667F', border: '1px solid rgba(38, 102, 127, 0.2)' }}>
               {error}
             </p>
-            <p className="text-xs font-medium" style={{ color: '#8C8C8C' }}>
+            <p className="text-xs font-medium" style={{ color: '#26667F' }}>
               If you just registered this event team, a Super Admin must approve it before member access is activated.
             </p>
 
@@ -115,7 +115,7 @@ export function TenantProvider({ children }) {
                   window.location.href = '/super-admin';
                 }}
                 className="w-full py-3 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95"
-                style={{ backgroundColor: '#FFC107', color: '#1A1A1A' }}
+                style={{ backgroundColor: '#67C090' }}
               >
                 Log In as Super Admin (Approve Subdomain)
               </button>
@@ -126,7 +126,7 @@ export function TenantProvider({ children }) {
                   window.location.href = '/';
                 }}
                 className="w-full py-3 font-bold text-xs rounded-xl border transition"
-                style={{ backgroundColor: '#E8EDE2', borderColor: '#E8EDE2', color: '#1A1A1A' }}
+                style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', borderColor: 'rgba(38, 102, 127, 0.2)', color: '#124170' }}
               >
                 Return to Platform Home
               </button>

@@ -6,22 +6,18 @@
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
-    font-family: 'Noto Serif Malayalam', 'Sora', serif;
+    font-family: 'Noto Serif Malayalam', serif;
     user-select: none;
   }
 
   body {
-    background-color: #F7F5EC;
-    color: #1A1A1A;
-    @apply antialiased selection:bg-[#E8EDE2] selection:text-[#6E9B37];
+    background-color: #DDF4E7;
+    color: #124170;
+    @apply antialiased selection:bg-[#67C090] selection:text-white;
   }
 }
 
 /* Font utilities */
-.font-sora {
-  font-family: 'Sora', sans-serif;
-}
-
 .font-arabic {
   font-family: 'Noto Kufi Arabic', serif;
 }
@@ -36,40 +32,40 @@
 }
 
 .btn-primary {
-  background-color: #6E9B37;
+  background-color: #67C090;
   color: #FFFFFF;
-  @apply btn hover:brightness-105 active:brightness-95 shadow-sm;
+  @apply btn hover:brightness-105 active:brightness-95 shadow-md;
 }
 
 .btn-gold {
-  background-color: #FFC107;
-  color: #1A1A1A;
-  @apply btn font-bold hover:brightness-105 active:brightness-95 border border-[#FFC107]/60 shadow-amber-500/20;
+  background-color: #26667F;
+  color: #FFFFFF;
+  @apply btn font-bold hover:brightness-105 active:brightness-95 shadow-md;
 }
 
 .btn-secondary {
-  background-color: #E8EDE2;
-  color: #1A1A1A;
-  border: 1px solid #E8EDE2;
-  @apply btn hover:bg-stone-200 active:bg-stone-300;
+  background-color: rgba(38, 102, 127, 0.12);
+  color: #124170;
+  border: 1px solid rgba(38, 102, 127, 0.3);
+  @apply btn hover:bg-[#26667F]/20 active:bg-[#26667F]/30;
 }
 
 .btn-outline {
-  border: 1px solid #6E9B37;
-  color: #6E9B37;
-  @apply btn bg-transparent hover:bg-[#E8EDE2]/50 active:bg-[#E8EDE2];
+  border: 1.5px solid #67C090;
+  color: #26667F;
+  @apply btn bg-transparent hover:bg-[#67C090]/15 active:bg-[#67C090]/25;
 }
 
 .input {
-  border: 1px solid #E8EDE2;
+  border: 1.5px solid rgba(38, 102, 127, 0.2);
   background-color: #FFFFFF;
-  color: #1A1A1A;
-  @apply w-full px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#6E9B37] focus:border-transparent text-base placeholder:text-[#8C8C8C] transition min-h-[48px];
+  color: #124170;
+  @apply w-full px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#67C090] focus:border-transparent text-base placeholder:text-[#26667F]/60 transition min-h-[48px];
 }
 
 .card {
   background-color: #FFFFFF;
-  border: 1px solid #E8EDE2;
+  border: 1px solid rgba(38, 102, 127, 0.15);
   @apply rounded-2xl shadow-touch p-5 transition-all;
 }
 

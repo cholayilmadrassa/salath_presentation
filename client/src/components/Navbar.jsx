@@ -32,12 +32,15 @@ export default function Navbar() {
             <img
               src={activeTenant.branding.logoUrl}
               alt={title}
-              className="w-9 h-9 rounded-xl object-cover border border-stone-200 shadow-sm shrink-0"
+              className="w-9 h-9 rounded-xl object-cover shadow-sm shrink-0"
+              style={{ border: '1px solid rgba(38, 102, 127, 0.2)' }}
             />
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-emerald-700 text-gold-300 flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
-              ☪
-            </div>
+            <img
+              src="/logo.png"
+              alt="Swalath Portal"
+              className="w-9 h-9 rounded-xl object-cover shadow-sm shrink-0"
+            />
           )}
           <div className="flex flex-col">
             <div className="flex items-center gap-2">

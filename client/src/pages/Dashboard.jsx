@@ -42,9 +42,9 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const num = Number(value);
-      if (Number.isNaN(num) || num <= 0) throw new Error('ദയവായി സാധുവായ ഒരു സംഖ്യ രേഖപ്പെടുത്തുക');
+      if (Number.isNaN(num) || num <= 0) throw new Error('Please enter a valid number');
       await api('/counts/me/today', { method: 'POST', token, body: { value: num } });
-      setSuccessMsg(`ഇന്നത്തെ കണക്കിലേക്ക് +${num.toLocaleString('en-IN')} സ്വലാത്ത് വിജയകരമായി കൂട്ടിച്ചേർത്തു!`);
+      setSuccessMsg(`Successfully added +${num.toLocaleString('en-IN')} Salath count for today!`);
       setValue('');
       setSelectedDate(todayKey());
       await load();
@@ -61,37 +61,38 @@ export default function Dashboard() {
   const isTodaySelected = selectedDate === todayKey();
 
   return (
-    <main className="max-w-xl mx-auto px-4 safe-top pb-20 md:py-6 space-y-5 font-ml bg-stone-50 min-h-screen">
+    <main className="max-w-xl mx-auto px-4 safe-top pb-20 md:py-6 space-y-5 font-ml min-h-screen" style={{ backgroundColor: '#DDF4E7', color: '#124170' }}>
       
       {/* Mobile Top App Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#00703c] text-white flex items-center justify-center font-bold text-base shadow-sm border border-emerald-600">
+          <div className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-base shadow-sm" style={{ backgroundColor: '#67C090' }}>
             ☪
           </div>
           <div>
-            <h1 className="font-extrabold text-sm text-stone-900 leading-tight">
-              അസ്സലാമു അലൈകും, {user?.name}
+            <h1 className="font-extrabold text-sm leading-tight" style={{ color: '#124170' }}>
+              Welcome, {user?.name}
             </h1>
-            <span className="text-[11px] text-stone-500 font-medium">
-              തീയതി: {selectedDate}
+            <span className="text-[11px] font-medium" style={{ color: '#26667F' }}>
+              Date: {selectedDate}
             </span>
           </div>
         </div>
 
         <button
-          className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-[#00703c] shadow-xs active:scale-95 transition"
+          className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs active:scale-95 transition"
+          style={{ border: '1px solid rgba(38, 102, 127, 0.2)', color: '#26667F' }}
           aria-label="Notifications"
         >
-          <Bell className="w-4.5 h-4.5" />
+          <Bell className="w-4.5 h-4.5" style={{ color: '#67C090' }} />
         </button>
       </div>
 
       {/* Date Picker Selector Bar */}
-      <section className="bg-white rounded-2xl p-3 border border-stone-200/90 shadow-sm flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-stone-700">
-          <Calendar className="w-4 h-4 text-[#00703c]" />
-          <span className="text-xs font-bold">തീയതി തിരഞ്ഞെടുക്കൂ:</span>
+      <section className="bg-white rounded-2xl p-3 shadow-sm flex items-center justify-between gap-3" style={{ border: '1px solid rgba(38, 102, 127, 0.15)' }}>
+        <div className="flex items-center gap-2" style={{ color: '#124170' }}>
+          <Calendar className="w-4 h-4" style={{ color: '#67C090' }} />
+          <span className="text-xs font-bold">Select Date:</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -99,188 +100,161 @@ export default function Dashboard() {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="text-xs font-bold bg-stone-100 text-stone-900 px-3 py-1.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#00703c]"
+            className="text-xs font-bold px-3 py-1.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#67C090]"
+            style={{ backgroundColor: '#DDF4E7', color: '#124170', borderColor: 'rgba(38, 102, 127, 0.2)' }}
           />
           {!isTodaySelected && (
             <button
               onClick={() => setSelectedDate(todayKey())}
-              className="text-[10px] font-bold px-2.5 py-1.5 bg-emerald-50 text-[#00703c] rounded-xl border border-emerald-200 hover:bg-emerald-100 transition"
+              className="text-[10px] font-bold px-2.5 py-1.5 text-white rounded-xl shadow-xs transition active:scale-95"
+              style={{ backgroundColor: '#67C090' }}
             >
-              ഇന്ന്
+              Today
             </button>
           )}
         </div>
       </section>
 
-      {/* Featured Green Summary Card for Selected Date */}
-      <section className="bg-[#00703c] text-white rounded-3xl p-5 shadow-lg shadow-[#00703c]/20 space-y-4">
+      {/* Featured Summary Card for Selected Date */}
+      <section className="text-white rounded-3xl p-5 shadow-lg space-y-4" style={{ background: 'linear-gradient(135deg, #124170, #26667F, #67C090)', boxShadow: '0 12px 30px rgba(38, 102, 127, 0.35)' }}>
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold px-3.5 py-1 bg-[#157a4a]/80 backdrop-blur-md rounded-full text-[#85e2b4]">
-            {isTodaySelected ? 'ഇന്നത്തെ സംഗ്രഹം' : `${selectedDate} ലെ വിവരങ്ങൾ`}
+          <span className="text-[11px] font-bold px-3.5 py-1 bg-black/20 backdrop-blur-md rounded-full" style={{ color: '#DDF4E7' }}>
+            {isTodaySelected ? "Today's Summary" : `Date: ${selectedDate}`}
           </span>
-          <div className="flex items-center gap-1 text-gold-300 text-xs font-bold bg-[#004826] px-3 py-1 rounded-full">
-            <Star className="w-3.5 h-3.5 fill-gold-300 text-gold-300" />
-            <span>{items.length} ദിനങ്ങൾ</span>
+          <div className="flex items-center gap-1 text-xs font-bold bg-black/20 px-3 py-1 rounded-full" style={{ color: '#67C090' }}>
+            <Star className="w-3.5 h-3.5 fill-[#67C090]" />
+            <span>{items.length} Days Active</span>
           </div>
         </div>
 
         {/* Dual Stats Display: Selected Date Count & Overall Total */}
         <div className="grid grid-cols-2 gap-3 pt-1">
-          <div className="bg-[#0e8048]/60 p-3 rounded-2xl border border-emerald-600/40">
-            <span className="text-[10px] text-[#a3e0bf] font-bold uppercase tracking-wider block">
-              {isTodaySelected ? 'ഇന്നത്തെ എണ്ണം' : 'ആ ദിവസത്തെ എണ്ണം'}
+          <div className="bg-black/20 p-3 rounded-2xl border border-white/10">
+            <span className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: '#DDF4E7' }}>
+              {isTodaySelected ? "Today's Count" : 'Selected Date Count'}
             </span>
             <span className="text-xl font-extrabold text-white tracking-tight">
               {selectedDateSum.toLocaleString('en-IN')}
             </span>
           </div>
 
-          <div className="bg-[#0e8048]/60 p-3 rounded-2xl border border-emerald-600/40">
-            <span className="text-[10px] text-[#a3e0bf] font-bold uppercase tracking-wider block">ആകെ തുക</span>
-            <span className="text-xl font-extrabold text-gold-300 tracking-tight">
+          <div className="bg-black/20 p-3 rounded-2xl border border-white/10">
+            <span className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: '#DDF4E7' }}>Total Count</span>
+            <span className="text-xl font-extrabold tracking-tight" style={{ color: '#67C090' }}>
               {totalCountSum.toLocaleString('en-IN')}
             </span>
           </div>
         </div>
       </section>
 
-      {/* Count Entry Form Card (Multiple Submissions Allowed Daily) */}
-      <Card className="!p-5 border-stone-200/90 shadow-touch space-y-4 rounded-3xl">
-        <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-          <div>
-            <h2 className="text-xs sm:text-sm font-extrabold text-stone-900 flex items-center gap-2">
-              <Save className="w-4 h-4 text-[#00703c]" />
-              <span>ഇന്നത്തെ സ്വലാത്ത് ചേർക്കൂ</span>
-            </h2>
-            <p className="text-[10px] text-stone-500 font-medium mt-0.5">
-              ഒരു ദിവസം എത്ര തവണ വേണമെങ്കിലും കൂടുതൽ സംഖ്യ കൂട്ടിച്ചേർക്കാം.
-            </p>
-          </div>
-          {selectedDateSum > 0 && (
-            <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-50 text-[#00703c] border border-emerald-200 rounded-full flex items-center gap-1 shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#00703c]" />
-              <span>{selectedDateSum.toLocaleString('en-IN')}</span>
-            </span>
-          )}
+      {/* Quick Add Salath Form */}
+      <Card className="p-5 bg-white space-y-4 shadow-sm" style={{ border: '1px solid rgba(38, 102, 127, 0.15)' }}>
+        <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+          <h2 className="text-sm font-extrabold flex items-center gap-2" style={{ color: '#124170' }}>
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#DDF4E7', color: '#26667F' }}>
+              <Plus className="w-4 h-4" />
+            </div>
+            <span>Record Salath Count</span>
+          </h2>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DDF4E7', color: '#26667F' }}>
+            Quick Add
+          </span>
         </div>
 
-        {error && <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-semibold">{error}</div>}
+        {error && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold">{error}</div>}
         {successMsg && (
-          <div className="p-3 rounded-xl bg-emerald-50 text-[#00703c] text-xs font-semibold flex items-center gap-2 border border-emerald-200">
-            <CheckCircle2 className="w-4 h-4 text-[#00703c] shrink-0" />
+          <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" style={{ color: '#67C090' }} />
             <span>{successMsg}</span>
           </div>
         )}
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-stone-600 mb-1.5">
-              വേഗത്തിൽ സംഖ്യ കൂട്ടിച്ചേർക്കാൻ:
+            <label className="text-xs font-extrabold block mb-1.5" style={{ color: '#124170' }}>
+              Enter Salath Count:
             </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[100, 500, 1000, 5000].map((amt) => (
+
+            {/* Fast Preset Increment Chips */}
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {[10, 50, 100, 500].map((amt) => (
                 <button
                   key={amt}
                   type="button"
                   onClick={() => addQuickCount(amt)}
-                  className="py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-xs font-bold text-[#00703c] flex items-center justify-center gap-0.5 active:scale-95 transition"
+                  className="py-2 rounded-xl text-xs font-bold transition active:scale-95 shadow-2xs"
+                  style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', color: '#26667F', border: '1px solid rgba(38, 102, 127, 0.2)' }}
                 >
-                  <Plus className="w-3 h-3 text-[#00703c]" />
-                  <span>{amt}</span>
+                  +{amt}
                 </button>
               ))}
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-stone-800">
-              ചേർക്കേണ്ട എണ്ണം (Count to Add):
-            </label>
-            <div className="flex gap-2">
+            <div className="relative">
               <input
-                className="input text-base font-bold rounded-2xl"
                 type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
                 min="1"
-                placeholder="എണ്ണം നൽകുക"
+                placeholder="e.g. 100"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                required
+                className="w-full px-4 py-3.5 rounded-2xl text-lg font-bold transition"
+                style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
               />
-              <button
-                className="btn-gold py-3 px-6 text-xs font-bold shrink-0 rounded-2xl"
-                disabled={loading}
-              >
-                {loading ? '...' : 'കൂട്ടിച്ചേർക്കൂ'}
-              </button>
             </div>
           </div>
+
+          <button
+            type="submit"
+            disabled={loading || !value}
+            className="w-full py-4 text-white text-sm font-extrabold rounded-2xl shadow-md transition active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ backgroundColor: '#67C090' }}
+          >
+            <Save className="w-4.5 h-4.5" />
+            <span>{loading ? 'Saving...' : 'Save Count'}</span>
+          </button>
         </form>
       </Card>
 
-      {/* Interactive Daily History List Section */}
+      {/* History List for User */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
-            <History className="w-4 h-4 text-[#00703c]" />
-            <span>ദിവസേനയുള്ള സമർപ്പണ ചരിത്രം (Daily History)</span>
+          <h2 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5" style={{ color: '#26667F' }}>
+            <History className="w-4 h-4" />
+            <span>Salath Count History</span>
           </h2>
-          <span className="text-xs text-stone-500 font-bold">{items.length} ദിനങ്ങൾ</span>
+          <span className="text-[10px] font-bold" style={{ color: '#26667F' }}>Total {items.length} Entries</span>
         </div>
 
-        <div className="space-y-2">
-          {items.length === 0 ? (
-            <div className="p-5 bg-white rounded-3xl border border-stone-200 text-center text-xs text-stone-400">
-              ഇതുവരെ സമർപ്പണം നടത്തിയിട്ടില്ല.
-            </div>
-          ) : (
-            items.map((it) => {
-              const isSelected = it.date === selectedDate;
-              return (
-                <div
-                  key={it._id || it.date}
-                  onClick={() => setSelectedDate(it.date)}
-                  className={`rounded-3xl p-3.5 border transition cursor-pointer flex items-center justify-between ${
-                    isSelected
-                      ? 'bg-[#f0f9f4] border-[#00703c] shadow-sm'
-                      : 'bg-white border-stone-200/90 hover:border-emerald-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border ${
-                      isSelected
-                        ? 'bg-[#00703c] text-white border-[#00703c]'
-                        : 'bg-emerald-50 text-[#00703c] border-emerald-200/80'
-                    }`}>
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-extrabold text-stone-900 block">{it.date}</span>
-                      <span className="text-[10px] text-stone-500 font-medium">
-                        {it.date === todayKey() ? 'ഇന്നത്തെ ദിനം' : 'മുൻ ദിനം'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <span className="font-extrabold text-base text-[#00703c] block">
-                        {Number(it.value).toLocaleString('en-IN')}
-                      </span>
-                      <span className="text-[10px] text-stone-400 font-medium">സ്വലാത്ത് എണ്ണം</span>
-                    </div>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                      isSelected ? 'bg-[#00703c] text-[#ffffff]' : 'bg-stone-100 text-stone-500'
-                    }`}>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
+        {items.length === 0 ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-xs font-medium space-y-1 shadow-sm" style={{ border: '1px solid rgba(38, 102, 127, 0.15)', color: '#26667F' }}>
+            <p className="font-bold" style={{ color: '#124170' }}>No entries recorded yet.</p>
+            <p>Enter your Salath count above and click Save Count.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map((item) => (
+              <div
+                key={item._id}
+                className="bg-white p-3.5 rounded-2xl flex items-center justify-between shadow-xs transition"
+                style={{
+                  border: item.date === selectedDate ? '1.5px solid #67C090' : '1px solid rgba(38, 102, 127, 0.15)',
+                }}
+              >
+                <div>
+                  <span className="text-xs font-extrabold block" style={{ color: '#124170' }}>{item.date}</span>
+                  <span className="text-[10px] font-medium" style={{ color: '#26667F' }}>
+                    {item.date === todayKey() ? 'Recorded Today' : 'Entry Recorded'}
+                  </span>
                 </div>
-              );
-            })
-          )}
-        </div>
+                <div className="text-right flex items-center gap-2">
+                  <span className="text-base font-extrabold" style={{ color: '#67C090' }}>
+                    +{Number(item.value).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
     </main>
