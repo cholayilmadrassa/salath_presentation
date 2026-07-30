@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useTenant } from '../context/TenantContext.jsx';
 import { Home, Plus, History, Settings, Disc } from 'lucide-react';
 import SettingsModal from './SettingsModal.jsx';
 
 export default function BottomNav() {
   const { user } = useAuth();
+  const { activeTenant } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Hide mobile bottom navigation bar on Landing page ("/")
-  if (location.pathname === '/') {
+  // Hide mobile bottom navigation bar ONLY on platform marketing landing page (when activeTenant is null and on "/")
+  // If activeTenant is present, show mobile navigation bar on event home page!
+  if (location.pathname === '/' && !activeTenant) {
     return null;
   }
 
@@ -25,11 +28,7 @@ export default function BottomNav() {
           {/* 1. Home Tab */}
           <NavLink
             to="/"
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 py-1 px-2.5 transition active:scale-95 font-bold ${
-                isActive ? '' : ''
-              }`
-            }
+            className="flex flex-col items-center gap-1 py-1 px-2.5 transition active:scale-95 font-bold"
           >
             {({ isActive }) => (
               <>
