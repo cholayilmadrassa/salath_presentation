@@ -565,7 +565,7 @@ export default function Landing() {
                 </div>
 
                 <a
-                  href={`http://${ev.slug}.${PLATFORM_ROOT_DOMAIN}`}
+                  href={`http://${ev.slug}.${import.meta.env.VITE_PLATFORM_ROOT_DOMAIN}`}
                   className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 text-white shadow-sm transition active:scale-95"
                   style={{ backgroundColor: '#6E9B37' }}
                 >
