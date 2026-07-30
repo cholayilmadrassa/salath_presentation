@@ -1,0 +1,25 @@
+{
+  "name": "സ്വലാത്ത് സമർപ്പണം | Ummul Qura Academy",
+  "short_name": "സ്വലാത്ത്",
+  "description": "ഉമ്മുൽ ഖുറാ അക്കാദമി പടിഞ്ഞാറത്തറ സ്വലാത്ത് സമർപ്പണം ഔദ്യോഗിക ആപ്പ്.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#2f643c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
