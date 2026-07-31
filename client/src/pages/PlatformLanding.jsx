@@ -22,7 +22,7 @@ export default function PlatformLanding() {
       .then((res) => {
         if (Array.isArray(res)) setApprovedEvents(res);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     api("/counts/leaderboard/all?limit=100")
       .then((allRows) => {
@@ -31,7 +31,7 @@ export default function PlatformLanding() {
           setTotalEventCount(sum);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN || 'salath.vercel.app';
@@ -98,7 +98,7 @@ export default function PlatformLanding() {
           <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-black/25 backdrop-blur-md p-4 rounded-2xl border border-white/15 mx-auto max-w-lg w-full justify-around">
             <div className="text-center">
               <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
-                Total Platform Salath Count
+                Total Platform Swalath Count
               </span>
               <span className="text-2xl sm:text-3xl font-black text-[#D4AF37]">
                 {Number(totalEventCount).toLocaleString('en-IN')}

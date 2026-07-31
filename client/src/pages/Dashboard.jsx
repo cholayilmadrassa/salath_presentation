@@ -53,7 +53,7 @@ export default function Dashboard() {
     setSuccessMsg('');
 
     if (!value || !String(value).trim()) {
-      setError('Please enter a Salath count number');
+      setError('Please enter a Swalath count number');
       return;
     }
 
@@ -77,12 +77,12 @@ export default function Dashboard() {
     setLoading(true);
     try {
       await api('/counts/me/today', { method: 'POST', token, body: { value: num } });
-      setSuccessMsg(`Successfully added +${num.toLocaleString('en-IN')} Salath count for today!`);
+      setSuccessMsg(`Successfully added +${num.toLocaleString('en-IN')} Swalath count for today!`);
       setValue('');
       setSelectedDate(todayKey());
       await load();
     } catch (e) {
-      setError(e.message || 'Salath count submission failed.');
+      setError(e.message || 'Swalath count submission failed.');
     } finally {
       setLoading(false);
     }
@@ -98,9 +98,11 @@ export default function Dashboard() {
       {/* Mobile Top App Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-base shadow-sm">
-            ☪
-          </div>
+          <img
+            src="/appLogo.svg"
+            alt="Swalath Portal"
+            className="w-10 h-10 rounded-full object-cover shadow-sm shrink-0 border border-primary/20"
+          />
           <div>
             <h1 className="font-extrabold text-sm leading-tight text-foreground">
               Welcome, {user?.name}
@@ -176,7 +178,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Quick Add Salath Form */}
+      {/* Quick Add SwalathForm */}
       <Card>
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
@@ -184,7 +186,7 @@ export default function Dashboard() {
               <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-primary/15 text-primary">
                 <Plus className="w-4 h-4" />
               </div>
-              <span>Record Salath Count</span>
+              <span>Record Swalath Count</span>
             </h2>
             <Badge variant="success">Quick Add</Badge>
           </div>
@@ -199,7 +201,7 @@ export default function Dashboard() {
           <form onSubmit={submit} className="space-y-4" noValidate>
             <div>
               <label className="text-xs font-extrabold block mb-1.5 text-foreground">
-                Enter Salath Count:
+                Enter Swalath Count:
               </label>
 
               {/* Fast Preset Increment Chips */}
@@ -258,7 +260,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 text-muted-foreground">
             <History className="w-4 h-4" />
-            <span>Salath Count History</span>
+            <span>Swalath Count History</span>
           </h2>
           <span className="text-[10px] font-bold text-muted-foreground">Total {items.length} Days</span>
         </div>
@@ -267,7 +269,7 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-6 text-center text-xs font-medium space-y-1">
               <p className="font-bold text-foreground">No entries recorded yet.</p>
-              <p className="text-muted-foreground">Enter your Salath count above and click Save Count.</p>
+              <p className="text-muted-foreground">Enter your Swalath count above and click Save Count.</p>
             </CardContent>
           </Card>
         ) : (

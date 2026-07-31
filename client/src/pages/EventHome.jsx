@@ -220,7 +220,7 @@ export default function EventHome() {
                   <Zap className="w-6 h-6" />
                 </div>
                 <p className="text-xs font-bold text-foreground">No entries recorded today yet</p>
-                <p className="text-[11px] text-muted-foreground">Be the first to record your Salath count today!</p>
+                <p className="text-[11px] text-muted-foreground">Be the first to record your Swalath count today!</p>
               </CardContent>
             </Card>
           ) : (

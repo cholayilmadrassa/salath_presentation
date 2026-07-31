@@ -290,7 +290,7 @@ export default function AdminPanel() {
         <TabsContent value="dashboard" className="space-y-6">
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Total Salath Collected</h2>
+              <h2 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Total SwalathCollected</h2>
               <p className="text-4xl font-extrabold text-primary mt-1">
                 {Number(totalAmount).toLocaleString('en-IN')}
               </p>
@@ -328,7 +328,7 @@ export default function AdminPanel() {
           {/* Analytics Chart */}
           <Card>
             <CardContent className="p-6 space-y-4">
-              <h2 className="text-sm font-extrabold text-foreground">Salath Submission Graph</h2>
+              <h2 className="text-sm font-extrabold text-foreground">Swalath Submission Graph</h2>
               <div className="h-64 w-full">
                 {chartData.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
@@ -482,7 +482,7 @@ export default function AdminPanel() {
             <CardContent className="p-6 space-y-4">
               <h2 className="text-base font-extrabold text-foreground">Connect Custom Domain</h2>
               <p className="text-xs text-muted-foreground">
-                Connect your own domain (e.g. <code>swalath.ummulquraacademy.online</code>) to this event portal.
+                Connect your own domain (e.g. <code>example.com</code>) to this event portal.
               </p>
 
               {saveSuccess && <Alert variant="success">{saveSuccess}</Alert>}
@@ -493,7 +493,7 @@ export default function AdminPanel() {
                   <Label>Custom Domain Name</Label>
                   <Input
                     type="text"
-                    placeholder="swalath.ummulquraacademy.online"
+                    placeholder="example.com"
                     value={domainInput}
                     onChange={(e) => setDomainInput(e.target.value)}
                     className={fieldErrors.domain ? 'border-destructive' : ''}

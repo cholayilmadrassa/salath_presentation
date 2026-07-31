@@ -66,7 +66,7 @@ export default function HistoryPage() {
   const loadAllHistory = () => {
     api('/counts/me', { token })
       .then(setAllEntries)
-      .catch(() => {});
+      .catch(() => { });
   };
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export default function HistoryPage() {
           </Button>
           <div>
             <h1 className="font-extrabold text-base text-foreground leading-tight">
-              Salath History
+              Swalath History
             </h1>
             <span className="text-[11px] text-muted-foreground font-medium">
               Select date to review daily submissions
@@ -142,11 +142,10 @@ export default function HistoryPage() {
                 <button
                   key={d.fullDate}
                   onClick={() => setSelectedDate(d.fullDate)}
-                  className={`flex flex-col items-center justify-center min-w-[44px] h-12 rounded-xl transition shrink-0 active:scale-95 ${
-                    isSelected
+                  className={`flex flex-col items-center justify-center min-w-[44px] h-12 rounded-xl transition shrink-0 active:scale-95 ${isSelected
                       ? 'bg-primary text-primary-foreground font-extrabold shadow-sm'
                       : 'bg-muted/10 text-muted-foreground hover:bg-muted/20 font-bold border border-border'
-                  }`}
+                    }`}
                 >
                   <span className="text-[9px] uppercase opacity-80">{d.dayName}</span>
                   <span className="text-xs font-extrabold">{d.dateNum}</span>
@@ -207,11 +206,11 @@ export default function HistoryPage() {
             <CardContent className="p-6 text-center space-y-2">
               <Calendar className="w-8 h-8 text-muted-foreground/40 mx-auto" />
               <p className="text-xs font-bold text-foreground">No entries recorded for this date.</p>
-              <p className="text-[11px] text-muted-foreground">Go to dashboard to record new Salath count!</p>
+              <p className="text-[11px] text-muted-foreground">Go to dashboard to record new Swalathcount!</p>
               <Button asChild size="sm" className="mt-2">
                 <Link to="/dashboard">
                   <Plus className="w-4 h-4 mr-1.5" />
-                  <span>Add Salath Count</span>
+                  <span>Add Swalath Count</span>
                 </Link>
               </Button>
             </CardContent>
@@ -271,7 +270,7 @@ export default function HistoryPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="w-5 h-5" />
-              <span>Delete Salath Entry?</span>
+              <span>Delete Swalath Entry?</span>
             </DialogTitle>
             <DialogDescription>
               Selected entry of <strong>(+{Number(deleteTarget?.value || 0).toLocaleString('en-IN')})</strong> will be removed. Are you sure?

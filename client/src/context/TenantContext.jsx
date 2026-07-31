@@ -98,7 +98,7 @@ export function TenantProvider({ children }) {
               <div className="absolute inset-0 rounded-2xl border-2 border-primary border-t-transparent animate-spin" />
             </div>
             <div className="text-center space-y-1">
-              <h2 className="text-sm font-extrabold text-foreground">സ്വലാത്ത് സമർപ്പണം</h2>
+              <h2 className="text-sm font-extrabold text-foreground">സ്വലാത്ത് ക്യാമ്പയിൻ</h2>
               <p className="text-xs text-muted-foreground font-medium animate-pulse">Checking event subdomain status...</p>
             </div>
           </div>

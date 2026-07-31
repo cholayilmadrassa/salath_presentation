@@ -13,7 +13,7 @@ export default function SalathEndMessage() {
         <Card className="text-center">
           <CardContent className="p-10 space-y-4">
             <h1 className="text-3xl md:text-4xl font-bold text-primary">
-              📿 സ്വലാത്ത് സമർപ്പണം അവസാനിച്ചു
+              📿 സ്വലാത്ത് ക്യാമ്പയിൻ അവസാനിച്ചു
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
               പങ്കെടുത്ത എല്ലാവർക്കും ഹൃദയം നിറഞ്ഞ നന്ദി!

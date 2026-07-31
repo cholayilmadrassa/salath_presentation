@@ -51,7 +51,7 @@ export default function BottomNav() {
             <button
               onClick={() => navigate(user ? '/dashboard' : '/login')}
               className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl border-4 border-card active:scale-90 transition-transform"
-              aria-label="Submit Salath Count"
+              aria-label="Submit Swalath Count"
             >
               <Plus className="w-8 h-8 stroke-[2.8]" />
             </button>

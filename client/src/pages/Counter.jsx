@@ -80,10 +80,10 @@ export default function Counter() {
         token,
         body: { value: count },
       });
-      setSuccessMsg(`+${count.toLocaleString('en-IN')} Salath submitted successfully!`);
+      setSuccessMsg(`+${count.toLocaleString('en-IN')} Swalath submitted successfully!`);
       setCount(0);
     } catch (e) {
-      setError(e.message || 'Salath submission failed.');
+      setError(e.message || 'Swalath submission failed.');
     } finally {
       setLoading(false);
     }
@@ -125,7 +125,7 @@ export default function Counter() {
           <span className="text-6xl sm:text-7xl font-bold tracking-tight text-white block font-mono">
             {count.toLocaleString('en-IN')}
           </span>
-          <span className="text-xs font-medium block mt-1 text-[#E6F4ED]">Salath Count</span>
+          <span className="text-xs font-medium block mt-1 text-[#E6F4ED]">Swalath Count</span>
         </div>
 
         {/* Reset & Save Buttons */}

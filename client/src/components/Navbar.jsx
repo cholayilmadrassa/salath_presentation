@@ -20,7 +20,7 @@ export default function Navbar() {
     navigate('/login');
   };
 
-  const title = activeTenant?.branding?.title || activeTenant?.name || 'സ്വലാത്ത് സമർപ്പണം';
+  const title = activeTenant?.branding?.title || activeTenant?.name || 'സ്വലാത്ത് ക്യാമ്പയിൻ';
   const tagline = activeTenant?.branding?.tagline || (activeTenant ? `Subdomain: ${activeTenant.slug}` : 'Multi-Tenant Event Platform');
 
   return (

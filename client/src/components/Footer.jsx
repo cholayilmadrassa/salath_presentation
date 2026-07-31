@@ -15,7 +15,7 @@ function Footer() {
             </div>
             <div>
               <h3 className="font-extrabold text-foreground text-base tracking-tight flex items-center justify-center sm:justify-start gap-1.5">
-                <span>സ്വലാത്ത് സമർപ്പണം</span>
+                <span>സ്വലാത്ത് ക്യാമ്പയിൻ</span>
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
               </h3>
               <p className="text-xs text-muted-foreground">ഉമ്മുൽ ഖുറാ അക്കാദമി പടിഞ്ഞാറത്തറ</p>
@@ -42,7 +42,7 @@ function Footer() {
 
         {/* Footer Bottom Note */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground text-center sm:text-left font-medium">
-          <p>© 2026 Ummul Qura Academy. All rights reserved.</p>
+          <p>© 2026 swalathcampain.online.</p>
           <p className="flex items-center gap-1">
             <span>മുത്തുനബി ﷺ സ്നേഹത്തോടെ സമർപ്പിക്കുന്നു</span>
             <Heart className="w-3.5 h-3.5 text-destructive fill-destructive" />

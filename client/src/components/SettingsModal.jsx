@@ -55,9 +55,11 @@ export default function SettingsModal({ isOpen, onClose }) {
         <DialogContent className="max-w-md font-sans">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
-                ⚙️
-              </span>
+              <img
+                src="/appLogo.svg"
+                alt="App Settings"
+                className="w-8 h-8 rounded-xl object-cover shadow-sm shrink-0 border border-primary/20"
+              />
               <div>
                 <span className="font-extrabold text-base block text-foreground">Settings</span>
                 <span className="text-[10px] text-muted-foreground font-medium block">Profile details and app configuration</span>
@@ -145,7 +147,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           ) : (
             <div className="space-y-4 py-2 text-center">
               <p className="text-xs text-muted-foreground font-medium">
-                Log in to submit Salath counts and track your personal history.
+                Log in to submit Swalath counts and track your personal history.
               </p>
               <div className="grid grid-cols-2 gap-2.5">
                 <Button asChild onClick={onClose} className="w-full text-xs">

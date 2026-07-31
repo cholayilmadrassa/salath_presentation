@@ -181,7 +181,7 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                     if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: null }));
                     setNewForm({ ...newForm, name: e.target.value });
                   }}
-                  placeholder="e.g. Noorul Islam Salath Event"
+                  placeholder="e.g. Noorul Islam Swalath Event"
                   className={fieldErrors.name ? 'border-destructive ring-2 ring-destructive/20' : ''}
                 />
                 <FieldError error={fieldErrors.name} />

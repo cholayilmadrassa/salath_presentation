@@ -70,15 +70,17 @@ export default function InstallPrompt() {
         <DialogContent className="max-w-md font-sans">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl shadow-md border border-primary/80 shrink-0">
-                ☪
-              </div>
+              <img
+                src="/appLogo.svg"
+                alt="Swalath App"
+                className="w-12 h-12 rounded-2xl object-cover shadow-md border border-primary/30 shrink-0"
+              />
               <div>
                 <span className="font-extrabold text-base block text-foreground leading-tight">
-                  Install Salath App
+                  Install Swalath App
                 </span>
                 <Badge variant="success" className="mt-0.5 text-[10px]">
-                  Ummul Qura Academy, Padinjarathara
+                 
                 </Badge>
               </div>
             </DialogTitle>

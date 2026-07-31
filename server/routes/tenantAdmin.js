@@ -102,7 +102,7 @@ router.patch('/me/tenant', async (req, res) => {
   }
 });
 
-// GET /api/admin/users - list users registered under tenant with total Salath count
+// GET /api/admin/users - list users registered under tenant with total Swalathcount
 router.get('/users', async (req, res) => {
   try {
     const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;

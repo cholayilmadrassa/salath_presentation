@@ -42,7 +42,7 @@ This document summarizes all available API endpoints, HTTP methods, required rol
 - **Request Body**:
   ```json
   {
-    "name": "Grand Salath Event Team",
+    "name": "Grand SwalathEvent Team",
     "slug": "grandsalath",
     "adminName": "Team Organizer",
     "email": "admin@grandsalath.org",
@@ -55,7 +55,7 @@ This document summarizes all available API endpoints, HTTP methods, required rol
     "message": "Event team registered successfully! Application submitted for Super Admin approval.",
     "tenant": {
       "id": "64f2...",
-      "name": "Grand Salath Event Team",
+      "name": "Grand SwalathEvent Team",
       "slug": "grandsalath",
       "status": "pending"
     },
@@ -95,7 +95,7 @@ This document summarizes all available API endpoints, HTTP methods, required rol
     },
     "tenant": {
       "id": "64f2...",
-      "name": "Grand Salath Event Team",
+      "name": "Grand SwalathEvent Team",
       "slug": "grandsalath",
       "status": "pending",
       "branding": { ... }
@@ -162,9 +162,9 @@ This document summarizes all available API endpoints, HTTP methods, required rol
 - **Request Body**:
   ```json
   {
-    "name": "Grand Salath 2026",
+    "name": "Grand Swalath2026",
     "branding": {
-      "title": "Grand Salath 2026 Event",
+      "title": "Grand Swalath2026 Event",
       "tagline": "Join our global campaign",
       "logoUrl": "https://example.com/logo.png",
       "themeColor": "#059669"

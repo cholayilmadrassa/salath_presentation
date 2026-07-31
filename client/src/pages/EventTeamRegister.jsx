@@ -157,7 +157,7 @@ export default function EventTeamRegister() {
                 <Input
                   type="text"
                   name="name"
-                  placeholder="e.g. Noorul Islam Salath Wing"
+                  placeholder="e.g. Noorul Islam Swalath Wing"
                   value={form.name}
                   onChange={handleChange}
                   className={fieldErrors.name ? 'border-destructive ring-2 ring-destructive/20' : ''}
