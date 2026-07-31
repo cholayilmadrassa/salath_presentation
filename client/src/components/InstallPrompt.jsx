@@ -10,7 +10,7 @@ import {
 import { Download, Smartphone, Share } from 'lucide-react';
 
 export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(window.deferredInstallPrompt || null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
@@ -21,8 +21,19 @@ export default function InstallPrompt() {
 
     const dismissed = sessionStorage.getItem('pwa_prompt_dismissed');
 
+    const handleAvailable = (e) => {
+      const promptEvent = e?.detail || window.deferredInstallPrompt;
+      if (promptEvent) {
+        setDeferredPrompt(promptEvent);
+      }
+      if (!isStandalone && !dismissed) {
+        setShowPrompt(true);
+      }
+    };
+
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
+      window.deferredInstallPrompt = e;
       setDeferredPrompt(e);
       if (!isStandalone && !dismissed) {
         setShowPrompt(true);
@@ -30,7 +41,9 @@ export default function InstallPrompt() {
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('pwa-install-available', handleAvailable);
 
+    // If not running as standalone app and prompt not dismissed, trigger popup after 1.5s delay
     if (!isStandalone && !dismissed) {
       const timer = setTimeout(() => {
         setShowPrompt(true);
@@ -40,6 +53,7 @@ export default function InstallPrompt() {
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('pwa-install-available', handleAvailable);
     };
   }, []);
 
@@ -49,18 +63,29 @@ export default function InstallPrompt() {
   };
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
+    const promptObj = deferredPrompt || window.deferredInstallPrompt;
+    if (!promptObj) {
+      // If native browser prompt is unavailable (e.g. iOS Safari), show guide modal
       setShowGuideModal(true);
       setShowPrompt(false);
       return;
     }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
+
+    try {
+      // Trigger native browser installation prompt automatically
+      await promptObj.prompt();
+      const { outcome } = await promptObj.userChoice;
+      if (outcome === 'accepted') {
+        setShowPrompt(false);
+        sessionStorage.setItem('pwa_prompt_dismissed', 'true');
+      }
+      window.deferredInstallPrompt = null;
+      setDeferredPrompt(null);
+    } catch (err) {
+      console.warn('Native install prompt failed, fallback to guide modal:', err);
+      setShowGuideModal(true);
       setShowPrompt(false);
-      sessionStorage.setItem('pwa_prompt_dismissed', 'true');
     }
-    setDeferredPrompt(null);
   };
 
   return (
@@ -71,7 +96,7 @@ export default function InstallPrompt() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <img
-                src="/appLogo.svg"
+                src="/appLogo.png"
                 alt="Swalath App"
                 className="w-12 h-12 rounded-2xl object-cover shadow-md border border-primary/30 shrink-0"
               />
@@ -80,7 +105,7 @@ export default function InstallPrompt() {
                   Install Swalath App
                 </span>
                 <Badge variant="success" className="mt-0.5 text-[10px]">
-                 
+                  Fast & Offline Accessible
                 </Badge>
               </div>
             </DialogTitle>

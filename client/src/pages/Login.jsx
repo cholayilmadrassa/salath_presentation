@@ -11,7 +11,7 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Phone, LogIn, Building2 } from 'lucide-react';
+import { Phone, LogIn, Building2, AlertTriangle, UserPlus } from 'lucide-react';
 import { loginSchema } from '../schemas/validationSchemas.js';
 
 export default function Login() {
@@ -23,6 +23,7 @@ export default function Login() {
   const [selectedTenantSlug, setSelectedTenantSlug] = useState('');
   const [form, setForm] = useState({ phone: '' });
   const [error, setError] = useState('');
+  const [notRegisteredError, setNotRegisteredError] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -62,6 +63,7 @@ export default function Login() {
   const submit = async (e) => {
     e.preventDefault();
     setError('');
+    setNotRegisteredError(false);
     setFieldErrors({});
 
     const targetSlug = activeTenant ? activeTenant.slug : selectedTenantSlug;
@@ -103,6 +105,9 @@ export default function Login() {
       navigate('/dashboard');
     } catch (e) {
       setError(e.message);
+      if (e.code === 'NOT_REGISTERED_IN_TENANT' || e.message?.toLowerCase().includes('not registered in event')) {
+        setNotRegisteredError(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -121,9 +126,9 @@ export default function Login() {
     <main className="max-w-md mx-auto px-4 safe-top pb-8 sm:py-14 font-sans">
       <div className="text-center mb-6">
         <img
-          src="/appLogo.svg"
+          src="/appLogo.png"
           alt="Swalath Portal"
-          className="w-12 h-12 rounded-2xl object-cover mx-auto mb-3 shadow-md"
+          className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3 shadow-md border border-primary/20"
         />
         <h1 className="text-2xl font-bold text-foreground">
           Log In
@@ -157,6 +162,7 @@ export default function Login() {
                   value={selectedTenantSlug}
                   onValueChange={(val) => {
                     setSelectedTenantSlug(val);
+                    setNotRegisteredError(false);
                     if (fieldErrors.tenantSlug) setFieldErrors((prev) => ({ ...prev, tenantSlug: null }));
                   }}
                 >
@@ -176,8 +182,24 @@ export default function Login() {
             )
           )}
 
-          {error && (
+          {error && !notRegisteredError && (
             <Alert variant="destructive">{error}</Alert>
+          )}
+
+          {notRegisteredError && (
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs space-y-2.5">
+              <div className="flex items-center gap-1.5 font-extrabold text-amber-700">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Event Registration Required</span>
+              </div>
+              <p className="text-muted-foreground leading-relaxed">{error}</p>
+              <Button asChild size="sm" className="w-full mt-1">
+                <Link to="/signup">
+                  <UserPlus className="w-4 h-4 mr-1.5" />
+                  <span>Register for this Event Portal</span>
+                </Link>
+              </Button>
+            </div>
           )}
 
           <form onSubmit={submit} className="space-y-4" noValidate>
@@ -210,7 +232,7 @@ export default function Login() {
           <Separator />
 
           <div className="text-center text-xs space-y-2">
-            <p className="font-normal text-muted-foreground">Don't have an account?</p>
+            <p className="font-normal text-muted-foreground">Don't have an account for this event?</p>
             <Link
               to="/signup"
               className="inline-block font-semibold text-primary hover:underline"

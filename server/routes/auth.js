@@ -10,13 +10,19 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Helper to sign JWT payload
-function generateToken(user) {
+// Helper to sign JWT payload with tenant scoping
+function generateToken(user, tenantIdOverride = null) {
+  const activeTenantId = tenantIdOverride
+    ? tenantIdOverride.toString()
+    : user.tenantId
+    ? user.tenantId.toString()
+    : null;
+
   return jwt.sign(
     {
       userId: user._id.toString(),
       role: user.role,
-      tenantId: user.tenantId ? user.tenantId.toString() : null,
+      tenantId: activeTenantId,
       name: user.name,
       email: user.email,
     },
@@ -51,7 +57,7 @@ router.post('/register', async (req, res) => {
         targetTenant = approvedTenants[0];
       } else if (approvedTenants.length > 1) {
         return res.status(400).json({
-          error: 'Please select an event or register at an event subdomain (e.g. noorulislam.swalath.app)',
+          error: 'Please select an event portal to register',
           code: 'TENANT_REQUIRED',
         });
       } else {
@@ -81,14 +87,6 @@ router.post('/register', async (req, res) => {
     });
 
     if (existingUser) {
-      if (existingUser.tenantId && existingUser.tenantId.toString() !== targetTenant._id.toString()) {
-        const assignedTenant = await Tenant.findById(existingUser.tenantId);
-        return res.status(409).json({
-          error: `An account with this phone/email is already registered under event "${assignedTenant?.name || 'another event'}". You can only log in at your assigned event URL: ${assignedTenant?.slug}.${PLATFORM_ROOT_DOMAIN}`,
-          assignedSlug: assignedTenant?.slug,
-        });
-      }
-
       if (!existingUser.tenantId) {
         existingUser.tenantId = targetTenant._id;
       }
@@ -101,22 +99,23 @@ router.post('/register', async (req, res) => {
       }
       await existingUser.save();
 
+      // Register membership record for targetTenant
       await Registration.findOneAndUpdate(
         { tenantId: targetTenant._id, userId: existingUser._id },
         { status: 'registered', data: req.body },
         { upsert: true }
-      ).catch(() => {});
+      );
 
-      const token = generateToken(existingUser);
+      const token = generateToken(existingUser, targetTenant._id);
       return res.status(200).json({
-        message: `Already registered. Logged in under "${targetTenant.name}".`,
+        message: `Registered successfully under "${targetTenant.name}"!`,
         token,
         user: {
           id: existingUser._id,
           name: existingUser.name,
           email: existingUser.email,
           role: existingUser.role,
-          tenantId: existingUser.tenantId,
+          tenantId: targetTenant._id,
           phone: existingUser.phone,
           address: existingUser.address || existingUser.place,
           place: existingUser.place || existingUser.address,
@@ -136,14 +135,15 @@ router.post('/register', async (req, res) => {
       place: cleanAddress,
     });
 
+    // Create Registration record
     await Registration.create({
       tenantId: targetTenant._id,
       userId: newUser._id,
       status: 'registered',
       data: req.body,
-    }).catch(() => {});
+    });
 
-    const token = generateToken(newUser);
+    const token = generateToken(newUser, targetTenant._id);
 
     res.status(201).json({
       message: `Account created successfully under "${targetTenant.name}"!`,
@@ -153,7 +153,7 @@ router.post('/register', async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        tenantId: newUser.tenantId,
+        tenantId: targetTenant._id,
         phone: newUser.phone,
         address: newUser.address || newUser.place,
         place: newUser.place || newUser.address,
@@ -168,7 +168,11 @@ router.post('/register', async (req, res) => {
 
 // POST /api/auth/register-tenant - Event Team Application (Requires Super Admin Approval)
 router.post('/register-tenant', async (req, res) => {
-  const { name: tenantName, slug, adminName, email, password } = req.body;
+  const tenantName = req.body.name || req.body.tenantName;
+  const slug = req.body.slug;
+  const adminName = req.body.adminName;
+  const email = req.body.email || req.body.adminEmail;
+  const password = req.body.password || req.body.adminPassword;
 
   if (!tenantName || !slug || !adminName || !email || !password) {
     return res.status(400).json({ error: 'All fields are required (tenant name, slug, admin name, email, password)' });
@@ -246,7 +250,7 @@ router.post('/register-tenant', async (req, res) => {
   }
 });
 
-// POST /api/auth/login - Subdomain and Event isolated login
+// POST /api/auth/login - Subdomain & Multi-Event login with Registration Verification
 router.post('/login', async (req, res) => {
   try {
     const { email, phone, mobile, password, tenantSlug } = req.body;
@@ -257,6 +261,14 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email or phone number is required' });
     }
 
+    // Resolve current tenant context first
+    let currentTenant = req.tenant;
+    const requestedSlug = (tenantSlug || req.body.tenantSlug || req.headers['x-tenant-slug'] || '').toString().trim().toLowerCase();
+    if (!currentTenant && requestedSlug) {
+      currentTenant = await Tenant.findOne({ slug: requestedSlug });
+    }
+
+    // Find target user
     const queryOr = [
       { email: rawIdentifier },
       ...(cleanPhone ? [{ phone: cleanPhone }] : []),
@@ -266,8 +278,14 @@ router.post('/login', async (req, res) => {
 
     const user = await User.findOne({ $or: queryOr });
 
+    // If user does not exist in the database at all:
     if (!user) {
-      return res.status(401).json({ error: 'Account not found. Please register first.' });
+      const eventName = currentTenant ? currentTenant.name : 'this event';
+      return res.status(403).json({
+        error: `You are not registered in event "${eventName}" yet. Please register first to join this event portal.`,
+        code: 'NOT_REGISTERED_IN_TENANT',
+        targetSlug: currentTenant ? currentTenant.slug : null,
+      });
     }
 
     if (password && !comparePassword(password, user.passwordHash) && user.role !== 'member') {
@@ -296,13 +314,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Resolve current tenant context (from hostname/header/body)
-    let currentTenant = req.tenant;
-    const requestedSlug = (tenantSlug || req.body.tenantSlug || req.headers['x-tenant-slug'] || '').toString().trim().toLowerCase();
-    if (!currentTenant && requestedSlug) {
-      currentTenant = await Tenant.findOne({ slug: requestedSlug });
-    }
-
     // Check if requested/current tenant context is pending approval
     if (currentTenant && currentTenant.status !== 'approved') {
       return res.status(403).json({
@@ -312,78 +323,35 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Check user's assigned tenant against current tenant context
-    if (user.tenantId) {
-      const assignedTenant = await Tenant.findById(user.tenantId);
+    // Determine target tenant for login
+    const targetTenant = currentTenant || (user.tenantId ? await Tenant.findById(user.tenantId) : null);
+    const targetTenantId = targetTenant ? targetTenant._id : user.tenantId;
 
-      if (!assignedTenant) {
-        return res.status(404).json({ error: 'Your assigned event tenant could not be found' });
-      }
-
-      if (assignedTenant.status !== 'approved') {
-        return res.status(403).json({
-          error: `Your event "${assignedTenant.name}" is currently ${assignedTenant.status.toUpperCase()}. Logging in is disabled until Super Admin approves the event.`,
-          code: 'TENANT_NOT_APPROVED',
-        });
-      }
-
-      // Strict Subdomain Match Verification
-      const targetSlug = currentTenant ? currentTenant.slug : requestedSlug;
-      if (targetSlug && targetSlug !== assignedTenant.slug) {
-        return res.status(403).json({
-          error: `Access Denied: You are attempting to log into event "${targetSlug}", but your account belongs to "${assignedTenant.name}". Please log in at your assigned event URL: ${assignedTenant.slug}.${PLATFORM_ROOT_DOMAIN}`,
-          assignedSlug: assignedTenant.slug,
-        });
-      }
-
-      const token = generateToken(user);
-      return res.json({
-        message: 'Login successful',
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          tenantId: user.tenantId,
-          phone: user.phone,
-          place: user.place,
-        },
-        tenant: {
-          id: assignedTenant._id,
-          name: assignedTenant.name,
-          slug: assignedTenant.slug,
-          subdomainUrl: `http://${assignedTenant.slug}.${PLATFORM_ROOT_DOMAIN}:5173`,
-          status: assignedTenant.status,
-          branding: assignedTenant.branding,
-        },
+    if (targetTenant && targetTenant.status !== 'approved' && user.role !== 'super_admin') {
+      return res.status(403).json({
+        error: `Event "${targetTenant.name}" is currently ${targetTenant.status.toUpperCase()}. Logging in is disabled until Super Admin approves the event.`,
+        code: 'TENANT_NOT_APPROVED',
       });
     }
 
-    // If user has no explicit tenantId yet but currentTenant is approved, bind them to currentTenant
-    if (currentTenant && currentTenant.status === 'approved') {
-      user.tenantId = currentTenant._id;
-      await user.save();
-
-      const token = generateToken(user);
-      return res.json({
-        message: 'Login successful',
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          tenantId: user.tenantId,
-          phone: user.phone,
-          place: user.place,
-        },
-        tenant: currentTenant,
+    // STRICT REGISTRATION CHECK: If user exists but is NOT registered for targetTenant:
+    if (targetTenant && user.role === 'member') {
+      const isRegistered = await Registration.findOne({
+        tenantId: targetTenant._id,
+        userId: user._id,
       });
+
+      if (!isRegistered) {
+        return res.status(403).json({
+          error: `You are not registered in event "${targetTenant.name}" yet. Please register first to join this event portal.`,
+          code: 'NOT_REGISTERED_IN_TENANT',
+          targetSlug: targetTenant.slug,
+        });
+      }
     }
 
-    const token = generateToken(user);
-    res.json({
+    const token = generateToken(user, targetTenantId);
+    return res.json({
       message: 'Login successful',
       token,
       user: {
@@ -391,10 +359,20 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        tenantId: null,
+        tenantId: targetTenantId,
         phone: user.phone,
         place: user.place,
       },
+      tenant: targetTenant
+        ? {
+            id: targetTenant._id,
+            name: targetTenant.name,
+            slug: targetTenant.slug,
+            subdomainUrl: `http://${targetTenant.slug}.${PLATFORM_ROOT_DOMAIN}:5173`,
+            status: targetTenant.status,
+            branding: targetTenant.branding,
+          }
+        : null,
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -411,7 +389,9 @@ router.get('/me', requireAuth, async (req, res) => {
     }
 
     let tenant = null;
-    if (user.tenantId) {
+    if (req.user.tenantId) {
+      tenant = await Tenant.findById(req.user.tenantId);
+    } else if (user.tenantId) {
       tenant = await Tenant.findById(user.tenantId);
     } else if (req.tenant) {
       tenant = req.tenant;
@@ -423,7 +403,7 @@ router.get('/me', requireAuth, async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        tenantId: user.tenantId,
+        tenantId: req.user.tenantId || user.tenantId,
         phone: user.phone,
         address: user.address || user.place,
         place: user.place || user.address,

@@ -134,9 +134,9 @@ export default function Signup() {
       {/* Header */}
       <div className="text-center mb-6">
         <img
-          src="/appLogo.svg"
+          src="/appLogo.png"
           alt="Swalath Portal"
-          className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3 shadow-md"
+          className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3 shadow-md border border-primary/20"
         />
         <Badge variant="muted" className="font-mono uppercase tracking-wider text-[10px]">
           {activeTenant ? activeTenant.slug : 'Member Registration'}

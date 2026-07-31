@@ -43,7 +43,7 @@ export default function PlatformLanding() {
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img
-              src="/appLogo.svg"
+              src="/appLogo.png"
               alt="Swalath Portal"
               className="w-10 h-10 rounded-2xl object-cover shadow-md shrink-0 border border-primary/20"
             />

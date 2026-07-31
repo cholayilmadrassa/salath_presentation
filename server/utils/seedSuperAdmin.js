@@ -1,13 +1,14 @@
 import User from '../models/User.js';
 import { hashPassword } from './hash.js';
+import { SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD } from '../config.js';
 
 /**
  * Ensures a valid Super Admin account exists and credentials are up to date.
  */
 export async function seedSuperAdmin() {
   try {
-    const email = (process.env.SUPER_ADMIN_EMAIL || 'superadmin@salath.org').toLowerCase().trim();
-    const password = process.env.SUPER_ADMIN_PASSWORD || 'admin123';
+    const email = SUPER_ADMIN_EMAIL.toLowerCase().trim();
+    const password = SUPER_ADMIN_PASSWORD;
     const name = 'Super Administrator';
 
     let admin = await User.findOne({ email });

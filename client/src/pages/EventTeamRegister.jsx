@@ -64,7 +64,11 @@ export default function EventTeamRegister() {
     try {
       const data = await api("/auth/register-tenant", {
         method: "POST",
-        body: form,
+        body: {
+          ...form,
+          email: form.adminEmail,
+          password: form.adminPassword,
+        },
       });
 
       setRegisteredTenant(data.tenant);
@@ -89,7 +93,7 @@ export default function EventTeamRegister() {
       {/* Header */}
       <div className="text-center mb-6 space-y-2">
         <img
-          src="/appLogo.svg"
+          src="/appLogo.png"
           alt="Swalath Portal"
           className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3 shadow-md"
         />

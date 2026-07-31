@@ -99,7 +99,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img
-            src="/appLogo.svg"
+            src="/appLogo.png"
             alt="Swalath Portal"
             className="w-10 h-10 rounded-full object-cover shadow-sm shrink-0 border border-primary/20"
           />

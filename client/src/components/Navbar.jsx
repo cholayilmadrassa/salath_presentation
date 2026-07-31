@@ -36,7 +36,7 @@ export default function Navbar() {
             />
           ) : (
             <img
-              src="/appLogo.svg"
+              src="/appLogo.png"
               alt="Swalath Portal"
               className="w-9 h-9 rounded-xl object-cover shadow-sm shrink-0 border border-white/30"
             />

@@ -38,11 +38,17 @@ export default function SettingsModal({ isOpen, onClose }) {
   };
 
   const handleInstallApp = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
+    const promptObj = deferredPrompt || window.deferredInstallPrompt;
+    if (promptObj) {
+      try {
+        await promptObj.prompt();
+        const { outcome } = await promptObj.userChoice;
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+          window.deferredInstallPrompt = null;
+        }
+      } catch (err) {
+        setShowGuide(true);
       }
     } else {
       setShowGuide(true);
@@ -56,7 +62,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <img
-                src="/appLogo.svg"
+                src="/appLogo.png"
                 alt="App Settings"
                 className="w-8 h-8 rounded-xl object-cover shadow-sm shrink-0 border border-primary/20"
               />
