@@ -37,9 +37,9 @@ export default function PlatformLanding() {
   const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN || 'salath.vercel.app';
 
   return (
-    <div className="min-h-screen flex flex-col pb-24 md:pb-0 font-ml">
+    <div className="min-h-screen flex flex-col pb-16 md:pb-0 font-ml">
       {/* Platform Top Bar */}
-      <header className="sticky top-0 z-30 px-4 pb-4 backdrop-blur-lg border-b border-border safe-top bg-background/95">
+      <header className="sticky top-0 z-30 px-4 py-2.5 backdrop-blur-lg border-b border-border safe-top bg-background/95">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img

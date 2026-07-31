@@ -55,9 +55,9 @@ export default function EventHome() {
   if (!activeTenant) return null;
 
   return (
-    <div className="min-h-screen flex flex-col pb-24 md:pb-0">
+    <div className="min-h-screen flex flex-col pb-16 md:pb-0">
       {/* ──────── MOBILE APP HEADER ──────── */}
-      <header className="sticky top-0 z-30 px-4 pb-3 backdrop-blur-lg md:hidden safe-top safe-bottom bg-background/95 border-b border-border">
+      <header className="sticky top-0 z-30 px-4 py-2.5 backdrop-blur-lg md:hidden safe-top bg-background/95 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img

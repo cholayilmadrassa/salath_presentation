@@ -25,7 +25,6 @@ const app = express();
 // Dynamic CORS configuration supporting subdomains & custom domains
 const corsOptions = {
   origin: async (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
 
     try {
@@ -33,7 +32,6 @@ const corsOptions = {
       const host = url.hostname.toLowerCase();
       const rootDomain = PLATFORM_ROOT_DOMAIN.toLowerCase();
 
-      // Standard dev / client origin match
       if (
         origin === CLIENT_ORIGIN ||
         host === 'localhost' ||
@@ -44,13 +42,12 @@ const corsOptions = {
         return callback(null, true);
       }
 
-      // Check verified custom domains
       const matchedTenant = await Tenant.findOne({ customDomain: host, customDomainVerified: true });
       if (matchedTenant) {
         return callback(null, true);
       }
 
-      return callback(null, true); // Permissive in dev to ensure smooth onboarding
+      return callback(null, true);
     } catch (e) {
       return callback(null, true);
     }
@@ -109,15 +106,20 @@ async function connectDatabase() {
   console.log('MongoDB connected successfully');
 }
 
-// Server Listener
-function startListener(port) {
-  const server = app.listen(port, () => {
-    console.log(`🚀 Multi-Tenant API Server active on http://localhost:${port}`);
+// Server Listener with automatic Port fallback
+function startListener(initialPort) {
+  const server = app.listen(initialPort, () => {
+    console.log(`🚀 Multi-Tenant API Server active on http://localhost:${initialPort}`);
   });
 
   server.on('error', (err) => {
-    console.error('[SERVER LISTEN ERROR]:', err);
-    process.exit(1);
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[PORT NOTICE]: Port ${initialPort} is in use. Trying port ${Number(initialPort) + 1}...`);
+      startListener(Number(initialPort) + 1);
+    } else {
+      console.error('[SERVER LISTEN ERROR]:', err);
+      process.exit(1);
+    }
   });
 
   // Graceful Shutdown

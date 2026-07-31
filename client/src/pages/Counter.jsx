@@ -90,7 +90,7 @@ export default function Counter() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-4 safe-top pb-24 md:py-6 flex flex-col font-sans min-h-screen select-none space-y-4">
+    <main className="max-w-xl mx-auto px-4 safe-top pb-16 md:py-6 flex flex-col font-sans min-h-screen select-none space-y-4">
       {/* Top Header Bar */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">

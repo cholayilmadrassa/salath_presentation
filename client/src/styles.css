@@ -151,12 +151,6 @@
 .animate-float { animation: float 3s ease-in-out infinite; }
 .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
 
-/* Safe area padding for iOS */
-.safe-top { padding-top: max(1.25rem, env(safe-area-inset-top)); }
-@supports (padding-top: env(safe-area-inset-top)) {
-  .safe-top { padding-top: calc(env(safe-area-inset-top) + 0.75rem); }
-}
-.safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
-}
+/* Compact Safe Area padding for Mobile */
+.safe-top { padding-top: max(0.5rem, env(safe-area-inset-top)); }
+.safe-bottom { padding-bottom: max(0.25rem, env(safe-area-inset-bottom)); }
