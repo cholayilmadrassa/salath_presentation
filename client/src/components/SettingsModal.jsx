@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate, Link } from 'react-router-dom';
-import { Settings, X, LogOut, MapPin, Phone, ShieldCheck, LogIn, UserPlus, Download, Share } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { LogOut, MapPin, Phone, ShieldCheck, LogIn, UserPlus, Download, Share } from 'lucide-react';
 
 export default function SettingsModal({ isOpen, onClose }) {
   const { user, logout } = useAuth();
@@ -23,8 +31,6 @@ export default function SettingsModal({ isOpen, onClose }) {
     };
   }, []);
 
-  if (!isOpen) return null;
-
   const handleLogout = () => {
     logout();
     onClose();
@@ -45,66 +51,53 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-end justify-center select-none font-ml">
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-stone-950/60 backdrop-blur-xs animate-fadeIn"
-          onClick={onClose}
-        />
-
-        {/* Slide-Up Drawer Container */}
-        <div className="relative z-10 w-full max-w-lg bg-white rounded-t-3xl p-6 shadow-2xl space-y-5 animate-slide-down border-t border-stone-200">
-          
-          {/* Modal Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-            <div className="flex items-center gap-2 text-stone-900">
-              <div className="w-8 h-8 rounded-xl bg-[#00703c] text-white flex items-center justify-center font-bold text-sm">
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-md font-ml">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
                 ⚙️
-              </div>
+              </span>
               <div>
-                <h3 className="font-extrabold text-base text-stone-900">സെറ്റിങ്സ് (Settings)</h3>
-                <p className="text-[10px] text-stone-500 font-medium">പ്രൊഫൈൽ വിവരങ്ങളും ക്രമീകരണങ്ങളും</p>
+                <span className="font-extrabold text-base block text-foreground">സെറ്റിങ്സ് (Settings)</span>
+                <span className="text-[10px] text-muted-foreground font-medium block">പ്രൊഫൈൽ വിവരങ്ങളും ക്രമീകരണങ്ങളും</span>
               </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 hover:text-stone-900"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+            </DialogTitle>
+          </DialogHeader>
 
           {/* User Profile Details */}
           {user ? (
-            <div className="space-y-3">
-              <div className="bg-[#f0f9f4] border border-[#b8e5cb] rounded-2xl p-4 space-y-3">
-                <div className="flex items-center gap-3 pb-3 border-b border-[#b8e5cb]/60">
-                  <div className="w-12 h-12 rounded-full bg-[#00703c] text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            <div className="space-y-3 pt-2">
+              <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-3 pb-3 border-b border-primary/20">
+                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-sm">
                     {user.name.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-stone-900 text-sm">{user.name}</h4>
-                    <span className="text-[11px] text-[#00703c] font-bold">അംഗത്വം (Registered Member)</span>
+                    <h4 className="font-extrabold text-foreground text-sm">{user.name}</h4>
+                    <Badge variant="success" className="mt-0.5">
+                      അംഗത്വം (Registered Member)
+                    </Badge>
                   </div>
                 </div>
 
                 {/* Profile Details List */}
-                <div className="grid grid-cols-2 gap-2 text-xs text-stone-700 font-medium">
+                <div className="grid grid-cols-2 gap-2 text-xs text-foreground font-medium">
                   <div className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-[#00703c]" />
+                    <Phone className="w-3.5 h-3.5 text-primary" />
                     <span>{user.phone}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#00703c]" />
+                    <MapPin className="w-3.5 h-3.5 text-primary" />
                     <span>{user.place}</span>
                   </div>
                   {user.mahallu && (
-                    <div className="col-span-2 text-[11px] text-stone-600">
+                    <div className="col-span-2 text-[11px] text-muted-foreground">
                       <span className="font-bold">മഹല്ല്:</span> {user.mahallu}
                     </div>
                   )}
                   {user.district && (
-                    <div className="col-span-2 text-[11px] text-stone-600">
+                    <div className="col-span-2 text-[11px] text-muted-foreground">
                       <span className="font-bold">ജില്ല:</span> {user.district}, {user.state}
                     </div>
                   )}
@@ -112,117 +105,104 @@ export default function SettingsModal({ isOpen, onClose }) {
               </div>
 
               {/* Install App Button */}
-              <button
+              <Button
+                variant="soft"
                 onClick={handleInstallApp}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-emerald-50 text-[#00703c] text-xs font-bold border border-emerald-200 active:scale-98 transition shadow-xs"
+                className="w-full text-xs font-bold"
               >
-                <Download className="w-4 h-4 text-[#00703c]" />
+                <Download className="w-4 h-4 mr-1.5 text-primary" />
                 <span>ആപ്പ് ഇൻസ്റ്റാൾ ചെയ്യൂ (Add as App)</span>
-              </button>
+              </Button>
 
               {isAdmin && (
-                <Link
-                  to="/admin/panel"
+                <Button
+                  variant="outline"
+                  asChild
                   onClick={onClose}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-amber-50 text-amber-900 text-xs font-bold border border-amber-200"
+                  className="w-full text-xs font-bold text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100"
                 >
-                  <ShieldCheck className="w-4 h-4 text-amber-700" />
-                  <span>അഡ്മിൻ പാനൽ (Admin Panel)</span>
-                </Link>
+                  <Link to="/admin/panel">
+                    <ShieldCheck className="w-4 h-4 mr-1.5 text-amber-700" />
+                    <span>അഡ്മിൻ പാനൽ (Admin Panel)</span>
+                  </Link>
+                </Button>
               )}
 
               {/* Red Log Out Button */}
-              <button
+              <Button
+                variant="destructive"
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-red-50 text-red-700 text-xs font-bold border border-red-200 active:scale-98 transition shadow-xs"
+                className="w-full text-xs font-bold"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 mr-1.5" />
                 <span>ലോഗ് ഔട്ട് (Log Out)</span>
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="space-y-4 py-2 text-center">
-              <p className="text-xs text-stone-600 font-medium">
+              <p className="text-xs text-muted-foreground font-medium">
                 സ്വലാത്ത് സമർപ്പിക്കാനും നിങ്ങളുടെ കണക്കുകൾ സൂക്ഷിക്കാനും ലോഗിൻ ചെയ്യൂ.
               </p>
               <div className="grid grid-cols-2 gap-2.5">
-                <Link
-                  to="/login"
-                  onClick={onClose}
-                  className="btn-primary py-3 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>ലോഗിൻ</span>
-                </Link>
-                <Link
-                  to="/signup"
-                  onClick={onClose}
-                  className="btn-secondary py-3 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>റജിസ്റ്റർ</span>
-                </Link>
+                <Button asChild onClick={onClose} className="w-full text-xs">
+                  <Link to="/login">
+                    <LogIn className="w-4 h-4 mr-1.5" />
+                    <span>ലോഗിൻ</span>
+                  </Link>
+                </Button>
+                <Button variant="soft" asChild onClick={onClose} className="w-full text-xs">
+                  <Link to="/signup">
+                    <UserPlus className="w-4 h-4 mr-1.5" />
+                    <span>റജിസ്റ്റർ</span>
+                  </Link>
+                </Button>
               </div>
 
               {/* Install App Button for guests */}
-              <button
+              <Button
+                variant="soft"
                 onClick={handleInstallApp}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-emerald-50 text-[#00703c] text-xs font-bold border border-emerald-200 active:scale-98 transition shadow-xs mt-2"
+                className="w-full text-xs font-bold mt-2"
               >
-                <Download className="w-4 h-4 text-[#00703c]" />
+                <Download className="w-4 h-4 mr-1.5 text-primary" />
                 <span>ആപ്പ് ഇൻസ്റ്റാൾ ചെയ്യൂ (Add as App)</span>
-              </button>
+              </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
 
-        </div>
-      </div>
-
-      {/* Mobile Custom Instruction Modal */}
-      {showGuide && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center select-none font-ml">
-          <div
-            className="absolute inset-0 bg-stone-950/60 backdrop-blur-xs animate-fadeIn"
-            onClick={() => setShowGuide(false)}
-          />
-
-          <div className="relative z-10 w-full max-w-lg bg-white rounded-t-3xl p-6 shadow-2xl space-y-4 animate-slide-down border-t border-stone-200">
-            <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-              <div className="flex items-center gap-2.5 text-[#00703c]">
-                <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-[#00703c]">
-                  <Share className="w-5 h-5" />
-                </div>
-                <h3 className="font-extrabold text-base text-stone-900">ഹോം സ്‌ക്രീനിലേക്ക് ചേർക്കാൻ:</h3>
+      {/* Custom Instruction Dialog */}
+      <Dialog open={showGuide} onOpenChange={setShowGuide}>
+        <DialogContent className="max-w-md font-ml">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <div className="w-9 h-9 rounded-2xl bg-primary/15 flex items-center justify-center">
+                <Share className="w-5 h-5 text-primary" />
               </div>
+              <span className="text-foreground">ഹോം സ്‌ക്രീനിലേക്ക് ചേർക്കാൻ:</span>
+            </DialogTitle>
+          </DialogHeader>
 
-              <button
-                onClick={() => setShowGuide(false)}
-                className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 hover:text-stone-900"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          <div className="space-y-3 bg-primary/10 border border-primary/30 p-4 rounded-2xl text-xs text-foreground font-medium">
+            <div className="flex items-start gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5">1</span>
+              <span>ഫോൺ ബ്രൗസർ മെനുവിലുള്ള <strong>Share (പങ്കുവെക്കുക)</strong> അല്ലെങ്കിൽ <strong>3 Dots (മൂന്ന് കുത്തുകൾ)</strong> ഐക്കൺ അമർത്തുക.</span>
             </div>
-
-            <div className="space-y-3 bg-[#f0f9f4] border border-[#b8e5cb] p-4 rounded-2xl text-xs text-stone-800 font-medium">
-              <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#00703c] text-white flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5">1</span>
-                <span>ഫോൺ ബ്രൗസർ മെനുവിലുള്ള <strong>Share (പങ്കുവെക്കുക)</strong> അല്ലെങ്കിൽ <strong>3 Dots (മൂന്ന് കുത്തുകൾ)</strong> ഐക്കൺ അമർത്തുക.</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#00703c] text-white flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5">2</span>
-                <span>വരുന്ന ഓപ്ഷനുകളിൽ നിന്ന് <strong>"Add to Home Screen"</strong> അല്ലെങ്കിൽ <strong>"Install App"</strong> എന്നത് തിരഞ്ഞെടുക്കുക.</span>
-              </div>
+            <div className="flex items-start gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5">2</span>
+              <span>വരുന്ന ഓപ്ഷനുകളിൽ നിന്ന് <strong>"Add to Home Screen"</strong> അല്ലെങ്കിൽ <strong>"Install App"</strong> എന്നത് തിരഞ്ഞെടുക്കുക.</span>
             </div>
-
-            <button
-              onClick={() => setShowGuide(false)}
-              className="w-full py-3.5 rounded-2xl bg-[#00703c] text-white text-xs font-extrabold shadow-md active:scale-95 transition"
-            >
-              മനസ്സിലായി (OK)
-            </button>
           </div>
-        </div>
-      )}
+
+          <Button
+            onClick={() => setShowGuide(false)}
+            className="w-full text-xs font-extrabold"
+          >
+            മനസ്സിലായി (OK)
+          </Button>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

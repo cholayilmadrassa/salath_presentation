@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Link } from "react-router-dom";
-import { Building2, Sparkles, User, Mail, ShieldCheck, CheckCircle2, Globe, Clock, ArrowRight } from "lucide-react";
-import Card from "../components/Card.jsx";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Clock, ArrowRight, AlertCircle } from "lucide-react";
+import { eventTeamRegisterSchema } from "../schemas/validationSchemas.js";
 
 export default function EventTeamRegister() {
   const [form, setForm] = useState({
@@ -17,10 +23,14 @@ export default function EventTeamRegister() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [registeredTenant, setRegisteredTenant] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: null }));
+    }
     if (name === "slug") {
       setForm((prev) => ({
         ...prev,
@@ -34,6 +44,21 @@ export default function EventTeamRegister() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
+
+    const validationResult = eventTeamRegisterSchema.safeParse(form);
+    if (!validationResult.success) {
+      const errMap = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errMap[err.path[0]] = err.message;
+        }
+      });
+      setFieldErrors(errMap);
+      setError("Please fix the highlighted field errors below.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -52,9 +77,15 @@ export default function EventTeamRegister() {
 
   const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN || "salath.vercel.app";
 
+  const FieldError = ({ error }) => error ? (
+    <p className="text-xs text-destructive font-bold mt-1 flex items-center gap-1 animate-slide-down">
+      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+      <span>{error}</span>
+    </p>
+  ) : null;
+
   return (
-    <main className="max-w-xl mx-auto px-4 safe-top pb-10 sm:py-10 font-ml min-h-screen" style={{ backgroundColor: '#DDF4E7', color: '#124170' }}>
-      
+    <main className="max-w-xl mx-auto px-4 safe-top pb-10 sm:py-10 font-ml min-h-screen">
       {/* Header */}
       <div className="text-center mb-6 space-y-2">
         <img
@@ -62,158 +93,150 @@ export default function EventTeamRegister() {
           alt="Swalath Portal"
           className="w-14 h-14 rounded-2xl object-cover mx-auto shadow-md"
         />
-        <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider" style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', color: '#26667F' }}>
+        <Badge variant="muted" className="uppercase font-mono text-[10px] tracking-wider">
           Organization Portal
-        </span>
-        <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#124170' }}>
+        </Badge>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground">
           Register Event Team
         </h1>
-        <p className="text-xs font-medium max-w-md mx-auto" style={{ color: '#26667F' }}>
+        <p className="text-xs font-medium max-w-md mx-auto text-muted-foreground">
           Create a dedicated subdomain portal for your organization, mahallu, or campaign team.
         </p>
       </div>
 
       {registeredTenant ? (
-        <Card className="!p-8 text-center space-y-5 bg-white shadow-xl" style={{ border: '1px solid rgba(38, 102, 127, 0.15)' }}>
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-md" style={{ backgroundColor: '#DDF4E7', color: '#67C090' }}>
-            <Clock className="w-8 h-8" />
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xl font-extrabold" style={{ color: '#124170' }}>
-              Application Submitted! (Pending Approval)
-            </h2>
-            <p className="text-xs font-medium leading-relaxed" style={{ color: '#26667F' }}>
-              Your application for <strong className="font-extrabold text-[#124170]">{registeredTenant.name}</strong> is under Super Admin review. Your portal will be activated upon approval.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl text-left space-y-2 text-xs font-mono" style={{ backgroundColor: '#DDF4E7', border: '1px solid rgba(38, 102, 127, 0.2)' }}>
-            <div className="flex items-center justify-between">
-              <span style={{ color: '#26667F' }}> Assigned Subdomain:</span>
-              <span className="font-bold" style={{ color: '#67C090' }}>{registeredTenant.slug}.{rootDomain}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span style={{ color: '#26667F' }}> Status:</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">
-                PENDING APPROVAL
-              </span>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-white text-xs font-bold shadow-md transition"
-              style={{ backgroundColor: '#67C090' }}
-            >
-              <span>Return to Home</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </Card>
-      ) : (
-        <Card className="!p-6 sm:!p-8 bg-white shadow-sm space-y-5" style={{ border: '1px solid rgba(38, 102, 127, 0.15)' }}>
-          {error && (
-            <div className="p-3.5 bg-red-50 text-red-700 text-xs rounded-2xl border border-red-200 font-bold leading-relaxed">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Event Name */}
-            <div className="space-y-1">
-              <label className="text-xs font-extrabold" style={{ color: '#124170' }}>Event / Organization Name:</label>
-              <input
-                type="text"
-                name="name"
-                required
-                placeholder="e.g. Noorul Islam Salath Wing"
-                value={form.name}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090]"
-                style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
-              />
+        <Card className="text-center">
+          <CardContent className="p-8 space-y-5">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-md bg-primary/15 text-primary">
+              <Clock className="w-8 h-8" />
             </div>
 
-            {/* Subdomain Slug */}
-            <div className="space-y-1">
-              <label className="text-xs font-extrabold" style={{ color: '#124170' }}>Subdomain Slug:</label>
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  name="slug"
-                  required
-                  placeholder="noorulislam"
-                  value={form.slug}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-2xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-[#67C090]"
-                  style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
-                />
-                <span className="absolute right-4 text-xs font-mono font-bold" style={{ color: '#26667F' }}>
-                  .{rootDomain}
-                </span>
+            <div className="space-y-2">
+              <h2 className="text-xl font-extrabold text-foreground">
+                Application Submitted! (Pending Approval)
+              </h2>
+              <p className="text-xs font-medium leading-relaxed text-muted-foreground">
+                Your application for <strong className="font-extrabold text-foreground">{registeredTenant.name}</strong> is under Super Admin review. Your portal will be activated upon approval.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl text-left space-y-2 text-xs font-mono bg-muted/10 border border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground"> Assigned Subdomain:</span>
+                <span className="font-bold text-primary">{registeredTenant.slug}.{rootDomain}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground"> Status:</span>
+                <Badge variant="warning">
+                  PENDING APPROVAL
+                </Badge>
               </div>
             </div>
 
-            {/* Admin Name */}
-            <div className="space-y-1">
-              <label className="text-xs font-extrabold" style={{ color: '#124170' }}>Admin Name:</label>
-              <input
-                type="text"
-                name="adminName"
-                required
-                placeholder="Event Admin Full Name"
-                value={form.adminName}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090]"
-                style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
-              />
+            <div className="pt-2">
+              <Button asChild>
+                <Link to="/">
+                  <span>Return to Home</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
             </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-6 sm:p-8 space-y-5">
+            {error && (
+              <Alert variant="destructive">{error}</Alert>
+            )}
 
-            {/* Admin Email */}
-            <div className="space-y-1">
-              <label className="text-xs font-extrabold" style={{ color: '#124170' }}>Admin Email:</label>
-              <input
-                type="email"
-                name="adminEmail"
-                required
-                placeholder="admin@noorulislam.com"
-                value={form.adminEmail}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090]"
-                style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              {/* Event Name */}
+              <div className="space-y-1.5">
+                <Label>Event / Organization Name:</Label>
+                <Input
+                  type="text"
+                  name="name"
+                  placeholder="e.g. Noorul Islam Salath Wing"
+                  value={form.name}
+                  onChange={handleChange}
+                  className={fieldErrors.name ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.name} />
+              </div>
 
-            {/* Admin Password */}
-            <div className="space-y-1">
-              <label className="text-xs font-extrabold" style={{ color: '#124170' }}>Admin Password:</label>
-              <input
-                type="password"
-                name="adminPassword"
-                required
-                placeholder="••••••••"
-                value={form.adminPassword}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090]"
-                style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
-              />
-            </div>
+              {/* Subdomain Slug */}
+              <div className="space-y-1.5">
+                <Label>Subdomain Slug:</Label>
+                <div className="relative flex items-center">
+                  <Input
+                    type="text"
+                    name="slug"
+                    placeholder="noorulislam"
+                    value={form.slug}
+                    onChange={handleChange}
+                    className={`font-mono pr-28 ${fieldErrors.slug ? 'border-destructive ring-2 ring-destructive/20' : ''}`}
+                  />
+                  <span className="absolute right-4 text-xs font-mono font-bold text-muted-foreground">
+                    .{rootDomain}
+                  </span>
+                </div>
+                <FieldError error={fieldErrors.slug} />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 text-white text-sm font-extrabold rounded-2xl shadow-md transition active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
-              style={{ backgroundColor: '#67C090' }}
-            >
-              {loading ? "Submitting..." : "Submit Event Application"}
-            </button>
-          </form>
+              {/* Admin Name */}
+              <div className="space-y-1.5">
+                <Label>Admin Name:</Label>
+                <Input
+                  type="text"
+                  name="adminName"
+                  placeholder="Event Admin Full Name"
+                  value={form.adminName}
+                  onChange={handleChange}
+                  className={fieldErrors.adminName ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.adminName} />
+              </div>
+
+              {/* Admin Email */}
+              <div className="space-y-1.5">
+                <Label>Admin Email:</Label>
+                <Input
+                  type="email"
+                  name="adminEmail"
+                  placeholder="admin@noorulislam.com"
+                  value={form.adminEmail}
+                  onChange={handleChange}
+                  className={fieldErrors.adminEmail ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.adminEmail} />
+              </div>
+
+              {/* Admin Password */}
+              <div className="space-y-1.5">
+                <Label>Admin Password:</Label>
+                <Input
+                  type="password"
+                  name="adminPassword"
+                  placeholder="••••••••"
+                  value={form.adminPassword}
+                  onChange={handleChange}
+                  className={fieldErrors.adminPassword ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.adminPassword} />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full mt-2"
+              >
+                {loading ? "Submitting..." : "Submit Event Application"}
+              </Button>
+            </form>
+          </CardContent>
         </Card>
       )}
-
     </main>
   );
 }

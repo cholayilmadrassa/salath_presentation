@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
-import { ShieldCheck, CheckCircle, PlusCircle, ExternalLink, RefreshCw, XCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { ShieldCheck, CheckCircle, PlusCircle, ExternalLink, AlertCircle } from 'lucide-react';
+import { superAdminTenantSchema } from '../schemas/validationSchemas.js';
 
 export default function SuperAdminDashboard({ token, onLogout }) {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [actionMessage, setActionMessage] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
@@ -70,8 +85,23 @@ export default function SuperAdminDashboard({ token, onLogout }) {
 
   const handleCreateTenant = async (e) => {
     e.preventDefault();
+    setError('');
+    setFieldErrors({});
+
+    const validationResult = superAdminTenantSchema.safeParse(newForm);
+    if (!validationResult.success) {
+      const errMap = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errMap[err.path[0]] = err.message;
+        }
+      });
+      setFieldErrors(errMap);
+      setError('Please fix the highlighted field errors below');
+      return;
+    }
+
     try {
-      setError('');
       await api('/super-admin/tenants/create-approved', {
         method: 'POST',
         token,
@@ -86,264 +116,263 @@ export default function SuperAdminDashboard({ token, onLogout }) {
     }
   };
 
+  const FieldError = ({ error }) => error ? (
+    <p className="text-[11px] font-bold mt-1 text-destructive flex items-center gap-1 animate-slide-down">
+      <AlertCircle className="w-3 h-3 shrink-0" />
+      <span>{error}</span>
+    </p>
+  ) : null;
+
   return (
-    <div className="min-h-screen p-4 sm:p-8 font-ml" style={{ backgroundColor: '#DDF4E7', color: '#124170' }}>
+    <div className="min-h-screen p-4 sm:p-8 font-ml">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b" style={{ borderColor: 'rgba(38, 102, 127, 0.2)' }}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border">
           <div>
-            <span className="inline-block px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full mb-2" style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', color: '#26667F' }}>
+            <Badge variant="muted" className="mb-2 tracking-wider uppercase">
               Platform Master Control
-            </span>
-            <h1 className="text-3xl font-extrabold flex items-center gap-2" style={{ color: '#124170' }}>
-              <ShieldCheck className="w-8 h-8" style={{ color: '#67C090' }} />
+            </Badge>
+            <h1 className="text-3xl font-extrabold flex items-center gap-2 text-foreground">
+              <ShieldCheck className="w-8 h-8 text-primary" />
               <span>Super Admin Dashboard</span>
             </h1>
-            <p className="text-xs font-medium mt-1" style={{ color: '#26667F' }}>
+            <p className="text-xs font-medium mt-1 text-muted-foreground">
               Approve pending event applications or create pre-approved subdomains
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md active:scale-95"
-              style={{ backgroundColor: '#67C090' }}
-            >
-              <PlusCircle className="w-4 h-4" />
+            <Button onClick={() => setShowCreateModal(true)} size="sm">
+              <PlusCircle className="w-4 h-4 mr-1.5" />
               <span>Create Event Subdomain</span>
-            </button>
+            </Button>
 
-            <button
-              onClick={onLogout}
-              className="px-4 py-2 bg-white text-stone-700 rounded-xl text-xs font-bold transition border"
-              style={{ borderColor: 'rgba(38, 102, 127, 0.2)' }}
-            >
+            <Button onClick={onLogout} variant="soft" size="sm">
               Logout
-            </button>
+            </Button>
           </div>
         </div>
 
         {actionMessage && (
-          <div className="p-4 rounded-xl text-xs font-bold flex items-center justify-between border" style={{ backgroundColor: '#FFFFFF', borderColor: '#67C090', color: '#67C090' }}>
+          <Alert variant="success" className="flex items-center justify-between">
             <span>{actionMessage}</span>
-            <button onClick={() => setActionMessage('')} className="font-bold text-base">&times;</button>
-          </div>
+            <button onClick={() => setActionMessage('')} className="font-bold text-base ml-2">&times;</button>
+          </Alert>
         )}
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-bold">
-            {error}
-          </div>
+          <Alert variant="destructive">{error}</Alert>
         )}
 
         {/* Modal for Direct Creation */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border" style={{ borderColor: 'rgba(38, 102, 127, 0.2)' }}>
-              <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'rgba(38, 102, 127, 0.2)' }}>
-                <h2 className="text-lg font-bold" style={{ color: '#124170' }}>Create Pre-Approved Subdomain</h2>
-                <button onClick={() => setShowCreateModal(false)} className="text-stone-400 hover:text-stone-700 text-xl font-bold">&times;</button>
+        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create Pre-Approved Subdomain</DialogTitle>
+            </DialogHeader>
+
+            <form onSubmit={handleCreateTenant} className="space-y-3" noValidate>
+              <div className="space-y-1">
+                <Label>Event Team Name</Label>
+                <Input
+                  type="text"
+                  value={newForm.name}
+                  onChange={(e) => {
+                    if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: null }));
+                    setNewForm({ ...newForm, name: e.target.value });
+                  }}
+                  placeholder="e.g. Noorul Islam Salath Event"
+                  className={fieldErrors.name ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.name} />
               </div>
 
-              <form onSubmit={handleCreateTenant} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#124170' }}>Event Team Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newForm.name}
-                    onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
-                    placeholder="e.g. Noorul Islam Salath Event"
-                    className="input font-semibold text-xs"
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label>Subdomain Slug</Label>
+                <Input
+                  type="text"
+                  value={newForm.slug}
+                  onChange={(e) => {
+                    if (fieldErrors.slug) setFieldErrors((prev) => ({ ...prev, slug: null }));
+                    setNewForm({ ...newForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') });
+                  }}
+                  placeholder="noorulislam"
+                  className={`font-mono ${fieldErrors.slug ? 'border-destructive ring-2 ring-destructive/20' : ''}`}
+                />
+                <FieldError error={fieldErrors.slug} />
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#124170' }}>Subdomain Slug</label>
-                  <input
-                    type="text"
-                    required
-                    value={newForm.slug}
-                    onChange={(e) => setNewForm({ ...newForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                    placeholder="noorulislam"
-                    className="input font-mono text-xs"
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label>Tenant Admin Name</Label>
+                <Input
+                  type="text"
+                  value={newForm.adminName}
+                  onChange={(e) => {
+                    if (fieldErrors.adminName) setFieldErrors((prev) => ({ ...prev, adminName: null }));
+                    setNewForm({ ...newForm, adminName: e.target.value });
+                  }}
+                  placeholder="Admin Full Name"
+                  className={fieldErrors.adminName ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.adminName} />
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#124170' }}>Tenant Admin Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newForm.adminName}
-                    onChange={(e) => setNewForm({ ...newForm, adminName: e.target.value })}
-                    placeholder="Admin Full Name"
-                    className="input font-semibold text-xs"
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label>Admin Email</Label>
+                <Input
+                  type="email"
+                  value={newForm.email}
+                  onChange={(e) => {
+                    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: null }));
+                    setNewForm({ ...newForm, email: e.target.value });
+                  }}
+                  placeholder="admin@noorulislam.org"
+                  className={fieldErrors.email ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.email} />
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#124170' }}>Admin Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={newForm.email}
-                    onChange={(e) => setNewForm({ ...newForm, email: e.target.value })}
-                    placeholder="admin@noorulislam.org"
-                    className="input font-semibold text-xs"
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  value={newForm.password}
+                  onChange={(e) => {
+                    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: null }));
+                    setNewForm({ ...newForm, password: e.target.value });
+                  }}
+                  placeholder="••••••••"
+                  className={fieldErrors.password ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.password} />
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold mb-1" style={{ color: '#124170' }}>Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={newForm.password}
-                    onChange={(e) => setNewForm({ ...newForm, password: e.target.value })}
-                    placeholder="••••••••"
-                    className="input font-semibold text-xs"
-                  />
-                </div>
-
-                <div className="pt-2 flex justify-end space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold"
-                    style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', color: '#124170' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-white text-xs font-bold rounded-xl shadow-md"
-                    style={{ backgroundColor: '#67C090' }}
-                  >
-                    Create & Approve Subdomain
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+              <DialogFooter className="pt-2 flex gap-2">
+                <Button
+                  type="button"
+                  variant="soft"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create & Approve Subdomain
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* Filter Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-xs border" style={{ borderColor: 'rgba(38, 102, 127, 0.15)' }}>
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold uppercase" style={{ color: '#26667F' }}>Filter Status:</span>
-            {['', 'pending', 'approved', 'rejected', 'suspended'].map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition"
-                style={{
-                  backgroundColor: statusFilter === st ? '#67C090' : 'rgba(38, 102, 127, 0.12)',
-                  color: statusFilter === st ? '#FFFFFF' : '#124170',
-                }}
-              >
-                {st === '' ? 'All Subdomains' : st}
-              </button>
-            ))}
-          </div>
-          <div className="text-xs font-semibold" style={{ color: '#26667F' }}>
-            Total Event Subdomains: <strong style={{ color: '#124170' }}>{tenants.length}</strong>
-          </div>
-        </div>
+        <Card>
+          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-bold uppercase text-muted-foreground">Filter Status:</span>
+              {['', 'pending', 'approved', 'rejected', 'suspended'].map((st) => (
+                <Button
+                  key={st}
+                  type="button"
+                  variant={statusFilter === st ? "default" : "soft"}
+                  size="sm"
+                  onClick={() => setStatusFilter(st)}
+                  className="capitalize h-8 text-xs px-3"
+                >
+                  {st === '' ? 'All Subdomains' : st}
+                </Button>
+              ))}
+            </div>
+            <div className="text-xs font-semibold text-muted-foreground">
+              Total Event Subdomains: <strong className="text-foreground">{tenants.length}</strong>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Tenants List */}
         {loading ? (
-          <div className="text-center py-16" style={{ color: '#26667F' }}>Loading event subdomains...</div>
+          <div className="text-center py-16 text-muted-foreground">Loading event subdomains...</div>
         ) : tenants.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border text-xs font-semibold shadow-xs" style={{ borderColor: 'rgba(38, 102, 127, 0.15)', color: '#26667F' }}>
-            No event subdomains found matching criteria.
-          </div>
+          <Card>
+            <CardContent className="text-center py-16 text-xs font-semibold text-muted-foreground">
+              No event subdomains found matching criteria.
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {tenants.map((t) => (
-              <div
-                key={t._id}
-                className="bg-white border rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs transition"
-                style={{ borderColor: 'rgba(38, 102, 127, 0.15)' }}
-              >
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-base font-extrabold" style={{ color: '#124170' }}>{t.name}</h2>
-                    <a
-                      href={`http://${t.slug}.salath.vercel.app`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1 hover:underline"
-                      style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', color: '#26667F' }}
-                    >
-                      <span>{t.slug}.salath.vercel.app</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                    <span
-                      className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border"
-                      style={{
-                        backgroundColor: t.status === 'approved' ? 'rgba(38, 102, 127, 0.12)' : t.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
-                        color: t.status === 'approved' ? '#67C090' : t.status === 'pending' ? '#D97706' : '#DC2626',
-                        borderColor: t.status === 'approved' ? '#67C090' : t.status === 'pending' ? '#67C090' : '#FCA5A5',
-                      }}
-                    >
-                      {t.status === 'pending' ? '⏳ Pending Approval' : t.status}
-                    </span>
+              <Card key={t._id}>
+                <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-base font-extrabold text-foreground">{t.name}</h2>
+                      <a
+                        href={`http://${t.slug}.salath.vercel.app`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1 hover:underline bg-muted/10 text-secondary"
+                      >
+                        <span>{t.slug}.salath.vercel.app</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <Badge
+                        variant={t.status === 'approved' ? 'success' : t.status === 'pending' ? 'warning' : 'destructive'}
+                        className="uppercase"
+                      >
+                        {t.status === 'pending' ? '⏳ Pending Approval' : t.status}
+                      </Badge>
+                    </div>
+
+                    <div className="text-xs space-x-4 pt-1 font-medium text-muted-foreground">
+                      <span>
+                        Admin: <strong className="text-foreground">{t.ownerId?.name || 'N/A'}</strong> ({t.ownerId?.email || 'N/A'})
+                      </span>
+                      <span>
+                        Registered: {new Date(t.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="text-xs space-x-4 pt-1 font-medium" style={{ color: '#26667F' }}>
-                    <span>
-                      Admin: <strong style={{ color: '#124170' }}>{t.ownerId?.name || 'N/A'}</strong> ({t.ownerId?.email || 'N/A'})
-                    </span>
-                    <span>
-                      Registered: {new Date(t.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
+                  {/* Actions */}
+                  <div className="flex items-center space-x-2 self-start md:self-auto">
+                    {t.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(t._id)}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          <span>Approve Subdomain</span>
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleReject(t._id)}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
 
-                {/* Actions */}
-                <div className="flex items-center space-x-2 self-start md:self-auto">
-                  {t.status === 'pending' && (
-                    <>
-                      <button
+                    {t.status === 'approved' && (
+                      <Button
+                        variant="soft"
+                        size="sm"
+                        onClick={() => handleSuspend(t._id)}
+                      >
+                        Suspend Subdomain
+                      </Button>
+                    )}
+
+                    {t.status === 'suspended' && (
+                      <Button
+                        size="sm"
                         onClick={() => handleApprove(t._id)}
-                        className="px-4 py-2 text-white text-xs font-extrabold rounded-xl transition shadow-md active:scale-95 flex items-center gap-1"
-                        style={{ backgroundColor: '#67C090' }}
                       >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Approve Subdomain</span>
-                      </button>
-                      <button
-                        onClick={() => handleReject(t._id)}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
-                      >
-                        Reject
-                      </button>
-                    </>
-                  )}
-
-                  {t.status === 'approved' && (
-                    <button
-                      onClick={() => handleSuspend(t._id)}
-                      className="px-3.5 py-2 text-xs font-bold rounded-xl transition"
-                      style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', color: '#124170' }}
-                    >
-                      Suspend Subdomain
-                    </button>
-                  )}
-
-                  {t.status === 'suspended' && (
-                    <button
-                      onClick={() => handleApprove(t._id)}
-                      className="px-3.5 py-2 text-white text-xs font-bold rounded-xl transition"
-                      style={{ backgroundColor: '#67C090' }}
-                    >
-                      Re-Approve Subdomain
-                    </button>
-                  )}
-                </div>
-              </div>
+                        Re-Approve Subdomain
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

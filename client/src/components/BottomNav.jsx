@@ -12,7 +12,6 @@ export default function BottomNav() {
   const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Hide mobile bottom navigation bar ONLY on platform marketing landing page (when activeTenant is null and on "/")
   if (location.pathname === '/' && !activeTenant) {
     return null;
   }
@@ -20,10 +19,7 @@ export default function BottomNav() {
   return (
     <>
       <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden pointer-events-none select-none">
-        
-        {/* Bottom Bar Container with Extra Comfort Touch Height */}
-        <div className="relative backdrop-blur-xl shadow-2xl px-2 py-2.5 pointer-events-auto flex items-center justify-around safe-bottom" style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderTop: '1px solid rgba(38, 102, 127, 0.15)' }}>
-          
+        <div className="relative backdrop-blur-xl shadow-2xl px-2 py-2.5 pointer-events-auto flex items-center justify-around safe-bottom bg-card/95 border-t border-border">
           {/* 1. Home Tab */}
           <NavLink
             to="/"
@@ -31,8 +27,8 @@ export default function BottomNav() {
           >
             {({ isActive }) => (
               <>
-                <Home className="w-6 h-6 stroke-[2.2]" style={{ color: isActive ? '#67C090' : '#26667F' }} />
-                <span className="text-[11px] font-bold tracking-tight" style={{ color: isActive ? '#67C090' : '#26667F' }}>Home</span>
+                <Home className={`w-6 h-6 stroke-[2.2] ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`text-[11px] font-bold tracking-tight ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>Home</span>
               </>
             )}
           </NavLink>
@@ -44,8 +40,8 @@ export default function BottomNav() {
           >
             {({ isActive }) => (
               <>
-                <Disc className="w-6 h-6 stroke-[2.2]" style={{ color: isActive ? '#67C090' : '#26667F' }} />
-                <span className="text-[11px] font-bold tracking-tight" style={{ color: isActive ? '#67C090' : '#26667F' }}>Counter</span>
+                <Disc className={`w-6 h-6 stroke-[2.2] ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`text-[11px] font-bold tracking-tight ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>Counter</span>
               </>
             )}
           </NavLink>
@@ -54,8 +50,7 @@ export default function BottomNav() {
           <div className="relative -top-6 flex flex-col items-center">
             <button
               onClick={() => navigate(user ? '/dashboard' : '/login')}
-              className="w-14 h-14 rounded-full text-white flex items-center justify-center shadow-xl border-4 border-white active:scale-90 transition-transform"
-              style={{ backgroundColor: '#67C090', boxShadow: '0 8px 24px rgba(103, 192, 144, 0.4)' }}
+              className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl border-4 border-card active:scale-90 transition-transform"
               aria-label="Submit Salath Count"
             >
               <Plus className="w-8 h-8 stroke-[2.8]" />
@@ -69,8 +64,8 @@ export default function BottomNav() {
           >
             {({ isActive }) => (
               <>
-                <History className="w-6 h-6 stroke-[2.2]" style={{ color: isActive ? '#67C090' : '#26667F' }} />
-                <span className="text-[11px] font-bold tracking-tight" style={{ color: isActive ? '#67C090' : '#26667F' }}>History</span>
+                <History className={`w-6 h-6 stroke-[2.2] ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`text-[11px] font-bold tracking-tight ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>History</span>
               </>
             )}
           </NavLink>
@@ -80,14 +75,12 @@ export default function BottomNav() {
             onClick={() => setSettingsOpen(true)}
             className="flex flex-col items-center gap-1 py-1 px-2.5 transition active:scale-95"
           >
-            <Settings className="w-6 h-6 stroke-[2.2]" style={{ color: settingsOpen ? '#67C090' : '#26667F' }} />
-            <span className="text-[11px] font-bold tracking-tight" style={{ color: settingsOpen ? '#67C090' : '#26667F' }}>Settings</span>
+            <Settings className={`w-6 h-6 stroke-[2.2] ${settingsOpen ? 'text-primary' : 'text-muted-foreground'}`} />
+            <span className={`text-[11px] font-bold tracking-tight ${settingsOpen ? 'text-primary' : 'text-muted-foreground'}`}>Settings</span>
           </button>
-
         </div>
       </div>
 
-      {/* Settings Modal Drawer */}
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );

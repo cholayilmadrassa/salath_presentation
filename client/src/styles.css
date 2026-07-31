@@ -3,6 +3,44 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Madinah Marble & Green Islamic Palette */
+    /* Background: Soft Madinah Marble Mint/Cream */
+    --background: 145 25% 95%;
+    /* Foreground: Deep Royal Forest Green */
+    --foreground: 155 70% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 155 70% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 155 70% 12%;
+
+    /* Authentic Madinah Green Dome (#0E7443) */
+    --primary: 152 68% 26%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Deep Mosque Shadow Green (#07351F) */
+    --secondary: 155 80% 14%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 152 20% 92%;
+    --muted-foreground: 155 40% 28%;
+
+    /* Madinah Minaret Gold (#D4AF37) */
+    --accent: 43 75% 52%;
+    --accent-foreground: 155 70% 12%;
+
+    --destructive: 0 80% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 152 25% 82%;
+    --input: 152 30% 75%;
+    --ring: 152 68% 26%;
+
+    --radius: 0.85rem;
+  }
+
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
@@ -11,9 +49,12 @@
   }
 
   body {
-    background-color: #DDF4E7;
-    color: #124170;
-    @apply antialiased selection:bg-[#67C090] selection:text-white;
+    @apply bg-background text-foreground antialiased;
+    @apply selection:bg-primary selection:text-primary-foreground;
+  }
+
+  * {
+    @apply border-border;
   }
 }
 
@@ -26,80 +67,58 @@
   font-family: 'Cinzel Decorative', serif;
 }
 
-/* Reusable Mobile App Component Styles based on requested color palette */
+/* Legacy class compatibility */
 .btn {
-  @apply inline-flex items-center justify-center px-4 py-3 rounded-2xl font-bold shadow-sm transition-all duration-150 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none min-h-[48px] touch-manipulation select-none;
+  @apply inline-flex items-center justify-center px-4 py-3 rounded-2xl font-extrabold tracking-wide transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none min-h-[48px] touch-manipulation select-none;
 }
 
 .btn-primary {
-  background-color: #67C090;
-  color: #FFFFFF;
-  @apply btn hover:brightness-105 active:brightness-95 shadow-md;
+  @apply btn bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.96] border border-primary-foreground/20 shadow-md shadow-primary/20;
 }
 
 .btn-gold {
-  background-color: #26667F;
-  color: #FFFFFF;
-  @apply btn font-bold hover:brightness-105 active:brightness-95 shadow-md;
+  @apply btn bg-[#D4AF37] text-[#07351F] hover:brightness-105 active:scale-[0.96] border border-[#B89428] shadow-md;
 }
 
 .btn-secondary {
-  background-color: rgba(38, 102, 127, 0.12);
-  color: #124170;
-  border: 1px solid rgba(38, 102, 127, 0.3);
-  @apply btn hover:bg-[#26667F]/20 active:bg-[#26667F]/30;
+  @apply btn bg-secondary text-secondary-foreground hover:brightness-110 active:scale-[0.96] border border-secondary-foreground/20 shadow-md;
 }
 
 .btn-outline {
-  border: 1.5px solid #67C090;
-  color: #26667F;
-  @apply btn bg-transparent hover:bg-[#67C090]/15 active:bg-[#67C090]/25;
+  @apply btn bg-card hover:bg-primary/10 active:bg-primary/20 text-primary border-2 border-primary shadow-sm;
 }
 
 .input {
-  border: 1.5px solid rgba(38, 102, 127, 0.2);
-  background-color: #FFFFFF;
-  color: #124170;
-  @apply w-full px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#67C090] focus:border-transparent text-base placeholder:text-[#26667F]/60 transition min-h-[48px];
+  @apply w-full px-4 py-3.5 rounded-2xl text-base font-bold bg-card text-foreground placeholder:text-muted-foreground/60 transition-all duration-200 min-h-[48px] focus:outline-none focus:ring-4 focus:ring-ring/20;
+  border: 1.5px solid hsl(var(--input));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.input:focus {
+  border-color: hsl(var(--ring));
 }
 
 .card {
-  background-color: #FFFFFF;
-  border: 1px solid rgba(38, 102, 127, 0.15);
-  @apply rounded-2xl shadow-touch p-5 transition-all;
+  @apply rounded-3xl p-6 bg-card text-card-foreground transition-all duration-200;
+  border: 1.5px solid hsl(var(--border));
+  box-shadow: 0 8px 24px rgba(7, 45, 27, 0.06);
 }
 
-/* Custom Scrollbar Hide for horizontal touch scrolling */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
+/* Custom Scrollbar Hide */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Micro-animations for native app feel */
+/* Micro-animations */
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
@@ -108,14 +127,8 @@
 }
 
 @keyframes countUp {
-  from {
-    opacity: 0;
-    transform: scale(0.8) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  from { opacity: 0; transform: scale(0.8) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @keyframes float {
@@ -128,54 +141,19 @@
   50% { opacity: 0.8; }
 }
 
-.animate-slide-down {
-  animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+.animate-slide-down { animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-up { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+.animate-count-up { animation: countUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
 
-.animate-slide-up {
-  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-.animate-count-up {
-  animation: countUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulseGlow 2s ease-in-out infinite;
-}
-
-/* Staggered delays for list items */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-
-/* Safe area padding for iOS (Dynamic Island, Notch, Status Bar & Home Indicator) */
-.safe-top {
-  padding-top: max(1.25rem, env(safe-area-inset-top));
-}
-
+/* Safe area padding for iOS */
+.safe-top { padding-top: max(1.25rem, env(safe-area-inset-top)); }
 @supports (padding-top: env(safe-area-inset-top)) {
-  .safe-top {
-    padding-top: calc(env(safe-area-inset-top) + 1rem);
-  }
+  .safe-top { padding-top: calc(env(safe-area-inset-top) + 0.75rem); }
 }
-
-.safe-bottom {
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
-}
-
+.safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-bottom {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
-  }
+  .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
 }

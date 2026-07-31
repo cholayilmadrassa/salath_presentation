@@ -28,10 +28,13 @@ function generateToken(user) {
 // POST /api/auth/register - Register member under an active approved event
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, phone, place, whatsapp, tenantSlug } = req.body;
+    const { name, email, password, phone, mobile, place, tenantSlug } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
+
+    const rawPhone = phone || mobile || '';
+    const cleanPhone = String(rawPhone).replace(/\D/g, '').trim();
 
     // Resolve target tenant
     let targetTenant = req.tenant;
@@ -66,7 +69,6 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const cleanPhone = phone ? String(phone).trim() : '';
     const cleanEmail = email ? email.toLowerCase().trim() : `${cleanPhone || Date.now()}@member.salath`;
     const cleanPassword = password || `pass_${cleanPhone || '123456'}`;
 
@@ -88,8 +90,14 @@ router.post('/register', async (req, res) => {
 
       if (!existingUser.tenantId) {
         existingUser.tenantId = targetTenant._id;
-        await existingUser.save();
       }
+      if (cleanPhone && !existingUser.phone) {
+        existingUser.phone = cleanPhone;
+      }
+      if (place && !existingUser.place) {
+        existingUser.place = String(place).trim();
+      }
+      await existingUser.save();
 
       await Registration.findOneAndUpdate(
         { tenantId: targetTenant._id, userId: existingUser._id },
@@ -107,6 +115,8 @@ router.post('/register', async (req, res) => {
           email: existingUser.email,
           role: existingUser.role,
           tenantId: existingUser.tenantId,
+          phone: existingUser.phone,
+          place: existingUser.place,
         },
         tenant: targetTenant,
       });
@@ -140,6 +150,8 @@ router.post('/register', async (req, res) => {
         email: newUser.email,
         role: newUser.role,
         tenantId: newUser.tenantId,
+        phone: newUser.phone,
+        place: newUser.place,
       },
       tenant: targetTenant,
     });
@@ -199,7 +211,7 @@ router.post('/register-tenant', async (req, res) => {
         title: tenantName.trim(),
         tagline: 'Event Organization Platform',
         logoUrl: '',
-        themeColor: '#6E9B37',
+        themeColor: '#0E7443',
       },
     });
 
@@ -232,23 +244,25 @@ router.post('/register-tenant', async (req, res) => {
 // POST /api/auth/login - Subdomain and Event isolated login
 router.post('/login', async (req, res) => {
   try {
-    const { email, phone, password, tenantSlug } = req.body;
-    const identifier = (email || phone || '').toString().trim().toLowerCase();
+    const { email, phone, mobile, password, tenantSlug } = req.body;
+    const rawIdentifier = (email || phone || mobile || '').toString().trim().toLowerCase();
+    const cleanPhone = rawIdentifier.replace(/\D/g, '');
 
-    if (!identifier) {
+    if (!rawIdentifier) {
       return res.status(400).json({ error: 'Email or phone number is required' });
     }
 
-    const user = await User.findOne({
-      $or: [
-        { email: identifier },
-        { phone: identifier },
-        { email: `${identifier}@member.salath` },
-      ],
-    });
+    const queryOr = [
+      { email: rawIdentifier },
+      ...(cleanPhone ? [{ phone: cleanPhone }] : []),
+      ...(cleanPhone ? [{ email: `${cleanPhone}@member.salath` }] : []),
+      ...(cleanPhone ? [{ email: new RegExp(`^${cleanPhone}\\.`, 'i') }] : []),
+    ];
+
+    const user = await User.findOne({ $or: queryOr });
 
     if (!user) {
-      return res.status(401).json({ error: 'User not found. Please register first.' });
+      return res.status(401).json({ error: 'Account not found. Please register first.' });
     }
 
     if (password && !comparePassword(password, user.passwordHash) && user.role !== 'member') {
@@ -265,7 +279,15 @@ router.post('/login', async (req, res) => {
       return res.json({
         message: 'Super Admin Login successful',
         token,
-        user: { id: user._id, name: user.name, email: user.email, role: user.role, tenantId: null },
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          tenantId: null,
+          phone: user.phone,
+          place: user.place,
+        },
       });
     }
 
@@ -319,6 +341,8 @@ router.post('/login', async (req, res) => {
           email: user.email,
           role: user.role,
           tenantId: user.tenantId,
+          phone: user.phone,
+          place: user.place,
         },
         tenant: {
           id: assignedTenant._id,
@@ -346,6 +370,8 @@ router.post('/login', async (req, res) => {
           email: user.email,
           role: user.role,
           tenantId: user.tenantId,
+          phone: user.phone,
+          place: user.place,
         },
         tenant: currentTenant,
       });
@@ -361,6 +387,8 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         tenantId: null,
+        phone: user.phone,
+        place: user.place,
       },
     });
   } catch (err) {
@@ -384,7 +412,18 @@ router.get('/me', requireAuth, async (req, res) => {
       tenant = req.tenant;
     }
 
-    res.json({ user, tenant });
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId,
+        phone: user.phone,
+        place: user.place,
+      },
+      tenant,
+    });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch current user profile' });
   }

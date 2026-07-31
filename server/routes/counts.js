@@ -18,7 +18,10 @@ router.post('/entry', auth, async (req, res) => {
     const { value, date, note } = req.body;
     const numValue = Number(value);
     if (Number.isNaN(numValue) || numValue <= 0) {
-      return res.status(400).json({ message: 'സാധുവായ ഒരു സംഖ്യ നൽകുക (Invalid number)' });
+      return res.status(400).json({ message: 'Invalid number' });
+    }
+    if (numValue > 100000) {
+      return res.status(400).json({ message: 'Single entry count cannot exceed 100,000 (1 Lakh)' });
     }
     const entryDate = date || todayKey();
     const newEntry = await Count.create({
@@ -41,6 +44,9 @@ router.post('/me/today', auth, async (req, res) => {
     const numValue = Number(value);
     if (Number.isNaN(numValue) || numValue <= 0) {
       return res.status(400).json({ message: 'Invalid value' });
+    }
+    if (numValue > 100000) {
+      return res.status(400).json({ message: 'Single entry count cannot exceed 100,000 (1 Lakh)' });
     }
     const date = todayKey();
     const newEntry = await Count.create({

@@ -84,28 +84,36 @@ export function TenantProvider({ children }) {
     }
   };
 
-  // Allow platform & admin routes to render without blocking error modal
-  if (error && isPlatformAdminRoute) {
-    return (
-      <TenantCtx.Provider value={{ activeTenant: null, loading, error, switchTenantSlug, reloadTenant: resolveCurrentTenant }}>
-        {children}
-      </TenantCtx.Provider>
-    );
-  }
-
   return (
     <TenantCtx.Provider value={{ activeTenant, loading, error, switchTenantSlug, reloadTenant: resolveCurrentTenant }}>
-      {error ? (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#DDF4E7', color: '#124170' }}>
-          <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center space-y-5 shadow-2xl border" style={{ borderColor: 'rgba(38, 102, 127, 0.2)' }}>
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold" style={{ backgroundColor: '#FEF2F2', color: '#DC2626' }}>
+      {loading ? (
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background text-foreground font-ml">
+          <div className="flex flex-col items-center space-y-4 animate-fade-in">
+            <div className="relative flex items-center justify-center">
+              <img
+                src="/logo.png"
+                alt="Swalath Portal"
+                className="w-16 h-16 rounded-2xl object-cover shadow-lg border border-border animate-pulse"
+              />
+              <div className="absolute inset-0 rounded-2xl border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+            <div className="text-center space-y-1">
+              <h2 className="text-sm font-extrabold text-foreground">സ്വലാത്ത് സമർപ്പണം</h2>
+              <p className="text-xs text-muted-foreground font-medium animate-pulse">Checking event subdomain status...</p>
+            </div>
+          </div>
+        </div>
+      ) : error && !isPlatformAdminRoute ? (
+        <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-ml">
+          <div className="max-w-md w-full bg-card rounded-3xl p-8 text-center space-y-5 shadow-2xl border border-border">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold bg-destructive/10 text-destructive border border-destructive/20">
               ✕
             </div>
-            <h1 className="text-xl font-extrabold" style={{ color: '#124170' }}>Invalid or Pending Subdomain</h1>
-            <p className="text-xs p-3 rounded-xl font-mono leading-relaxed" style={{ backgroundColor: '#DDF4E7', color: '#26667F', border: '1px solid rgba(38, 102, 127, 0.2)' }}>
+            <h1 className="text-xl font-extrabold text-foreground">Invalid or Pending Subdomain</h1>
+            <p className="text-xs p-3 rounded-xl font-mono leading-relaxed bg-muted/10 text-muted-foreground border border-border">
               {error}
             </p>
-            <p className="text-xs font-medium" style={{ color: '#26667F' }}>
+            <p className="text-xs font-medium text-muted-foreground">
               If you just registered this event team, a Super Admin must approve it before member access is activated.
             </p>
 
@@ -114,8 +122,7 @@ export function TenantProvider({ children }) {
                 onClick={() => {
                   window.location.href = '/super-admin';
                 }}
-                className="w-full py-3 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95"
-                style={{ backgroundColor: '#67C090' }}
+                className="w-full py-3 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md transition active:scale-95"
               >
                 Log In as Super Admin (Approve Subdomain)
               </button>
@@ -125,8 +132,7 @@ export function TenantProvider({ children }) {
                   localStorage.removeItem('activeTenantSlug');
                   window.location.href = '/';
                 }}
-                className="w-full py-3 font-bold text-xs rounded-xl border transition"
-                style={{ backgroundColor: 'rgba(38, 102, 127, 0.12)', borderColor: 'rgba(38, 102, 127, 0.2)', color: '#124170' }}
+                className="w-full py-3 font-bold text-xs rounded-xl border border-border bg-muted/10 text-foreground transition"
               >
                 Return to Platform Home
               </button>

@@ -3,8 +3,16 @@ import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTenant } from '../context/TenantContext.jsx';
 import { useNavigate, Link } from 'react-router-dom';
-import Card from '../components/Card.jsx';
-import { Phone, LogIn, Building2, AlertTriangle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Phone, LogIn, Building2, AlertCircle } from 'lucide-react';
+import { loginSchema } from '../schemas/validationSchemas.js';
 
 export default function Login() {
   const { login } = useAuth();
@@ -15,6 +23,7 @@ export default function Login() {
   const [selectedTenantSlug, setSelectedTenantSlug] = useState('');
   const [form, setForm] = useState({ phone: '' });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -35,12 +44,39 @@ export default function Login() {
   const submit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
+
+    const targetSlug = activeTenant ? activeTenant.slug : selectedTenantSlug;
+    const sanitizedPhone = form.phone.replace(/\D/g, '');
+
+    const validationResult = loginSchema.safeParse({
+      mobile: sanitizedPhone,
+      tenantSlug: targetSlug,
+    });
+
+    if (!validationResult.success) {
+      const errMap = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errMap[err.path[0]] = err.message;
+        }
+      });
+      setFieldErrors(errMap);
+      setError('Please fix the highlighted field errors below.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const targetSlug = activeTenant ? activeTenant.slug : selectedTenantSlug;
+      if (!targetSlug) {
+        setError('Please select an event portal to log in');
+        return;
+      }
       const payload = {
-        ...form,
+        phone: sanitizedPhone,
+        mobile: sanitizedPhone,
         tenantSlug: targetSlug,
       };
 
@@ -55,103 +91,110 @@ export default function Login() {
   };
 
   return (
-    <main className="max-w-md mx-auto px-4 safe-top pb-8 sm:py-14 font-ml" style={{ backgroundColor: '#DDF4E7', color: '#124170' }}>
+    <main className="max-w-md mx-auto px-4 safe-top pb-8 sm:py-14 font-ml">
       <div className="text-center mb-6">
         <img
           src="/logo.png"
           alt="Swalath Portal"
           className="w-12 h-12 rounded-2xl object-cover mx-auto mb-3 shadow-md"
         />
-        <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#124170' }}>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground">
           Log In
         </h1>
-        <p className="text-xs font-medium mt-1" style={{ color: '#26667F' }}>
+        <p className="text-xs font-medium mt-1 text-muted-foreground">
           {activeTenant ? `${activeTenant.name} Login` : 'Log into your event account'}
         </p>
       </div>
 
-      <Card className="!p-6 shadow-sm space-y-5" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(38, 102, 127, 0.15)' }}>
-        
-        {/* Active Tenant Banner or Event Selector */}
-        {activeTenant ? (
-          <div className="p-3 rounded-2xl flex items-center justify-between text-xs font-bold" style={{ backgroundColor: '#DDF4E7', color: '#26667F', border: '1px solid rgba(38, 102, 127, 0.2)' }}>
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4" style={{ color: '#67C090' }} />
-              <span>{activeTenant.name}</span>
+      <Card>
+        <CardContent className="p-6 space-y-5">
+          {/* Active Tenant Banner or Event Selector */}
+          {activeTenant ? (
+            <div className="p-3 rounded-2xl flex items-center justify-between text-xs font-bold bg-background text-secondary border border-secondary/20">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary" />
+                <span>{activeTenant.name}</span>
+              </div>
+              <Badge variant="muted" className="font-mono text-[10px]">
+                {activeTenant.slug}
+              </Badge>
             </div>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white text-emerald-800 border border-emerald-200">
-              {activeTenant.slug}
-            </span>
-          </div>
-        ) : (
-          approvedEvents.length > 0 && (
+          ) : (
+            approvedEvents.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  <span>Select Event</span>
+                </Label>
+                <Select value={selectedTenantSlug} onValueChange={setSelectedTenantSlug}>
+                  <SelectTrigger className={fieldErrors.tenantSlug ? 'border-destructive ring-2 ring-destructive/20' : ''}>
+                    <SelectValue placeholder="Select an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {approvedEvents.map((ev) => (
+                      <SelectItem key={ev.slug} value={ev.slug}>
+                        {ev.name} ({ev.slug})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldErrors.tenantSlug && (
+                  <p className="text-xs text-destructive font-bold mt-1 flex items-center gap-1 animate-slide-down">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{fieldErrors.tenantSlug}</span>
+                  </p>
+                )}
+              </div>
+            )
+          )}
+
+          {error && (
+            <Alert variant="destructive">{error}</Alert>
+          )}
+
+          <form onSubmit={submit} className="space-y-4" noValidate>
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold flex items-center gap-1.5" style={{ color: '#124170' }}>
-                <Building2 className="w-4 h-4" style={{ color: '#67C090' }} />
-                <span>Select Event</span>
-              </label>
-              <select
-                className="w-full px-4 py-3 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090]"
-                style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
-                value={selectedTenantSlug}
-                onChange={(e) => setSelectedTenantSlug(e.target.value)}
-              >
-                {approvedEvents.map((ev) => (
-                  <option key={ev.slug} value={ev.slug}>
-                    {ev.name} ({ev.slug})
-                  </option>
-                ))}
-              </select>
+              <Label className="flex items-center gap-1.5">
+                <Phone className="w-4 h-4 text-primary" />
+                <span>Registered Mobile Number</span>
+              </Label>
+              <Input
+                type="tel"
+                maxLength="10"
+                placeholder="10-digit mobile number"
+                value={form.phone}
+                onChange={(e) => {
+                  if (fieldErrors.mobile) setFieldErrors((prev) => ({ ...prev, mobile: null }));
+                  setForm({ ...form, phone: e.target.value });
+                }}
+                className={fieldErrors.mobile ? 'border-destructive ring-2 ring-destructive/20' : ''}
+              />
+              {fieldErrors.mobile && (
+                <p className="text-xs text-destructive font-bold mt-1 flex items-center gap-1 animate-slide-down">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.mobile}</span>
+                </p>
+              )}
             </div>
-          )
-        )}
 
-        {error && (
-          <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold flex items-center gap-2 leading-relaxed">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
-            <span>{error}</span>
+            <Button type="submit" disabled={loading} className="w-full mt-2">
+              <LogIn className="w-4.5 h-4.5 mr-2" />
+              <span>{loading ? 'Logging in...' : 'Log In'}</span>
+            </Button>
+          </form>
+
+          <Separator />
+
+          <div className="text-center text-xs space-y-2">
+            <p className="font-medium text-muted-foreground">Don't have an account?</p>
+            <Link
+              to="/signup"
+              className="inline-block font-extrabold text-primary hover:underline"
+            >
+              Register Member
+            </Link>
           </div>
-        )}
-
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold flex items-center gap-1.5" style={{ color: '#124170' }}>
-              <Phone className="w-4 h-4" style={{ color: '#67C090' }} />
-              <span>Registered Mobile Number</span>
-            </label>
-            <input
-              type="tel"
-              required
-              maxLength="10"
-              placeholder="10-digit mobile number"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="w-full px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#67C090]"
-              style={{ backgroundColor: '#DDF4E7', color: '#124170', border: '1.5px solid rgba(38, 102, 127, 0.2)' }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 text-white font-extrabold text-sm rounded-2xl shadow-md transition active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#67C090' }}
-          >
-            <LogIn className="w-4.5 h-4.5" />
-            <span>{loading ? 'Logging in...' : 'Log In'}</span>
-          </button>
-        </form>
-
-        <div className="pt-2 text-center text-xs space-y-2 border-t border-stone-100">
-          <p className="font-medium" style={{ color: '#26667F' }}>Don't have an account?</p>
-          <Link
-            to="/signup"
-            className="inline-block font-extrabold hover:underline"
-            style={{ color: '#67C090' }}
-          >
-            Register Member
-          </Link>
-        </div>
+        </CardContent>
       </Card>
     </main>
   );
