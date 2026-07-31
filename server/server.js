@@ -71,12 +71,12 @@ app.get('/', (req, res) => {
     rootDomain: PLATFORM_ROOT_DOMAIN,
     tenantResolved: req.tenant
       ? {
-          id: req.tenant._id,
-          name: req.tenant.name,
-          slug: req.tenant.slug,
-          status: req.tenant.status,
-          branding: req.tenant.branding,
-        }
+        id: req.tenant._id,
+        name: req.tenant.name,
+        slug: req.tenant.slug,
+        status: req.tenant.status,
+        branding: req.tenant.branding,
+      }
       : null,
     timestamp: new Date().toISOString(),
   });
