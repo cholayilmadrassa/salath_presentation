@@ -92,7 +92,7 @@ export default function HistoryPage() {
   const overallTotal = allEntries.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
 
   return (
-    <main className="max-w-xl mx-auto px-4 pt-8 pb-24 md:py-6 space-y-5 font-ml min-h-screen">
+    <main className="max-w-xl mx-auto px-4 pt-8 pb-24 md:py-6 space-y-5 font-sans min-h-screen">
       {/* Top Mobile Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -103,10 +103,10 @@ export default function HistoryPage() {
           </Button>
           <div>
             <h1 className="font-extrabold text-base text-foreground leading-tight">
-              സമർപ്പണ ചരിത്രം (History)
+              Salath History
             </h1>
             <span className="text-[11px] text-muted-foreground font-medium">
-              തീയതി തിരഞ്ഞെടുത്ത് ദിവസേനയുള്ള എണ്ണം പരിശോധിക്കൂ
+              Select date to review daily submissions
             </span>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function HistoryPage() {
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-primary" />
-              <span>ക്യാലണ്ടർ (Date Selector)</span>
+              <span>Date Selector</span>
             </span>
             <input
               type="date"
@@ -142,7 +142,7 @@ export default function HistoryPage() {
                 <button
                   key={d.fullDate}
                   onClick={() => setSelectedDate(d.fullDate)}
-                  className={`flex flex-col items-center justify-center min-w-[44px] h-12 rounded-2xl transition shrink-0 active:scale-95 ${
+                  className={`flex flex-col items-center justify-center min-w-[44px] h-12 rounded-xl transition shrink-0 active:scale-95 ${
                     isSelected
                       ? 'bg-primary text-primary-foreground font-extrabold shadow-sm'
                       : 'bg-muted/10 text-muted-foreground hover:bg-muted/20 font-bold border border-border'
@@ -157,28 +157,28 @@ export default function HistoryPage() {
         </CardContent>
       </Card>
 
-      {/* Selected Day's Summary Card (Madinah Palette) */}
-      <section className="text-white rounded-3xl p-5 shadow-lg space-y-4 bg-gradient-to-br from-[#07351F] via-[#0E7443] to-[#159C5A] border border-[#D4AF37]/30">
+      {/* Selected Day's Summary Card */}
+      <section className="text-white rounded-2xl p-5 shadow-lg space-y-4 bg-gradient-to-br from-[#296E37] via-[#468B3A] to-[#7EC242] border border-white/20">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold px-3.5 py-1 bg-black/25 backdrop-blur-md rounded-full text-[#F5E6B3]">
-            {selectedDate === todayKey() ? 'ഇന്നത്തെ സംഗ്രഹം' : `${selectedDate} തീയതിയിലെ സംഗ്രഹം`}
+            {selectedDate === todayKey() ? "Today's Summary" : `Date: ${selectedDate}`}
           </span>
           <div className="flex items-center gap-1 text-xs font-bold bg-black/25 px-3 py-1 rounded-full text-[#D4AF37]">
             <Star className="w-3.5 h-3.5 fill-[#D4AF37]" />
-            <span>{dayData.entries?.length || 0} രേഖപ്പെടുത്തലുകൾ</span>
+            <span>{dayData.entries?.length || 0} Entries</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-1">
-          <div className="bg-black/25 p-3 rounded-2xl border border-white/15">
-            <span className="text-[10px] text-[#E6F4ED] font-bold uppercase block">ഈ ദിവസത്തെ ആകെ</span>
+          <div className="bg-black/25 p-3 rounded-xl border border-white/15">
+            <span className="text-[10px] text-[#E6F4ED] font-bold uppercase block">Day Total</span>
             <span className="text-xl font-extrabold text-white tracking-tight">
               {dayData.dayTotal.toLocaleString('en-IN')}
             </span>
           </div>
 
-          <div className="bg-black/25 p-3 rounded-2xl border border-white/15">
-            <span className="text-[10px] text-[#E6F4ED] font-bold uppercase block">ആകെ തുക</span>
+          <div className="bg-black/25 p-3 rounded-xl border border-white/15">
+            <span className="text-[10px] text-[#E6F4ED] font-bold uppercase block">Overall Total</span>
             <span className="text-xl font-extrabold text-[#D4AF37] tracking-tight">
               {overallTotal.toLocaleString('en-IN')}
             </span>
@@ -191,27 +191,27 @@ export default function HistoryPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-xs sm:text-sm font-extrabold text-foreground flex items-center gap-2">
             <HistoryIcon className="w-4 h-4 text-primary" />
-            <span>{selectedDate} ലെ സ്വലാത്ത് വിവരങ്ങൾ (Entries)</span>
+            <span>Entries for {selectedDate}</span>
           </h2>
           <span className="text-xs text-muted-foreground font-bold">
-            {dayData.entries?.length || 0} എണ്ണം
+            {dayData.entries?.length || 0} Total
           </span>
         </div>
 
         {error && <Alert variant="destructive">{error}</Alert>}
 
         {loading ? (
-          <div className="py-6 text-center text-xs text-muted-foreground">വിവരങ്ങൾ പരിശോധിക്കുന്നു...</div>
+          <div className="py-6 text-center text-xs text-muted-foreground">Loading history entries...</div>
         ) : dayData.entries?.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center space-y-2">
               <Calendar className="w-8 h-8 text-muted-foreground/40 mx-auto" />
-              <p className="text-xs font-bold text-foreground">ഈ ദിവസത്തിൽ സ്വലാത്ത് വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല.</p>
-              <p className="text-[11px] text-muted-foreground">ഡാഷ്‌ബോർഡിൽ പോയി പുതിയ സ്വലാത്ത് സംഖ്യ ചേർക്കൂ!</p>
+              <p className="text-xs font-bold text-foreground">No entries recorded for this date.</p>
+              <p className="text-[11px] text-muted-foreground">Go to dashboard to record new Salath count!</p>
               <Button asChild size="sm" className="mt-2">
                 <Link to="/dashboard">
                   <Plus className="w-4 h-4 mr-1.5" />
-                  <span>സ്വലാത്ത് ചേർക്കൂ</span>
+                  <span>Add Salath Count</span>
                 </Link>
               </Button>
             </CardContent>
@@ -242,7 +242,7 @@ export default function HistoryPage() {
                           )}
                         </div>
                         <span className="text-[10px] text-muted-foreground font-medium block mt-0.5">
-                          സമയ മുദ്ര: {createdTime}
+                          Time: {createdTime}
                         </span>
                       </div>
                     </div>
@@ -253,7 +253,7 @@ export default function HistoryPage() {
                       onClick={() => setDeleteTarget(item)}
                       disabled={deletingId === item._id}
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
-                      title="നീക്കം ചെയ്യൂ"
+                      title="Delete Entry"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -267,22 +267,22 @@ export default function HistoryPage() {
 
       {/* Deletion Confirmation Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md font-sans">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="w-5 h-5" />
-              <span>സ്വലാത്ത് എണ്ണം നീക്കം ചെയ്യണോ?</span>
+              <span>Delete Salath Entry?</span>
             </DialogTitle>
             <DialogDescription>
-              തിരഞ്ഞെടുത്ത <strong>(+{Number(deleteTarget?.value || 0).toLocaleString('en-IN')})</strong> സ്വലാത്ത് വിവരങ്ങൾ പോർട്ടലിൽ നിന്ന് നീക്കം ചെയ്യപ്പെടും.
+              Selected entry of <strong>(+{Number(deleteTarget?.value || 0).toLocaleString('en-IN')})</strong> will be removed. Are you sure?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:gap-0">
             <Button variant="soft" onClick={() => setDeleteTarget(null)}>
-              റദ്ദാക്കുക (Cancel)
+              Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
-              അതെ, നീക്കം ചെയ്യൂ
+              Yes, Delete
             </Button>
           </DialogFooter>
         </DialogContent>

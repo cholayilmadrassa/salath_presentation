@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { ShieldCheck, Building2, Lock, Mail, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Building2, Lock, Mail } from 'lucide-react';
 import { adminLoginSchema } from '../schemas/validationSchemas.js';
 
 export default function AdminLogin({ onLoginSuccess }) {
@@ -30,10 +30,12 @@ export default function AdminLogin({ onLoginSuccess }) {
     const validationResult = adminLoginSchema.safeParse({ email, password });
     if (!validationResult.success) {
       const errMap = {};
-      validationResult.error.errors.forEach((err) => {
-        if (err.path[0]) errMap[err.path[0]] = err.message;
+      const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+      issues.forEach((err) => {
+        if (err.path && err.path[0]) errMap[err.path[0]] = err.message;
       });
       setFieldErrors(errMap);
+      setError('Please fix the highlighted field errors below.');
       return;
     }
 
@@ -45,7 +47,6 @@ export default function AdminLogin({ onLoginSuccess }) {
         body: { email, password },
       });
 
-      // Save token and user in AuthContext
       login(data.token, data.user);
 
       if (data.tenant) {
@@ -104,21 +105,23 @@ export default function AdminLogin({ onLoginSuccess }) {
     }
   };
 
-  const FieldError = ({ error }) => error ? (
-    <p className="text-[11px] font-bold mt-1.5 flex items-center gap-1 text-destructive animate-slide-down">
-      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-      <span>{error}</span>
-    </p>
-  ) : null;
+  const FieldError = ({ error }) => {
+    if (!error) return null;
+    return (
+      <p className="text-[11px] font-normal text-red-500 mt-1 animate-slide-down">
+        {error}
+      </p>
+    );
+  };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4">
+    <div className="min-h-[80vh] flex items-center justify-center p-4 font-sans">
       <Card className="max-w-md w-full shadow-xl">
         <CardHeader className="text-center pb-2">
           <div className="inline-flex p-3 rounded-full bg-primary/15 text-primary mx-auto mb-1">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <CardTitle className="text-2xl">Admin Login</CardTitle>
+          <CardTitle className="text-2xl font-bold">Subdomain Admin Login</CardTitle>
           <CardDescription>
             Sign in to manage your event team subdomain & event settings
           </CardDescription>
@@ -132,7 +135,7 @@ export default function AdminLogin({ onLoginSuccess }) {
           {statusNotice && (
             <Alert variant={statusNotice.type === 'pending' ? 'warning' : 'destructive'}>
               <div className="space-y-1">
-                <div className="font-bold text-sm">Event  Status</div>
+                <div className="font-bold text-sm">Event Subdomain Status</div>
                 <p>{statusNotice.message}</p>
                 {statusNotice.type === 'pending' && (
                   <p className="text-[11px] opacity-80">
@@ -145,7 +148,7 @@ export default function AdminLogin({ onLoginSuccess }) {
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-1.5">
-              <Label className="uppercase tracking-wide">Admin Email</Label>
+              <Label className="uppercase tracking-wide font-medium">Admin Email</Label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
@@ -156,14 +159,14 @@ export default function AdminLogin({ onLoginSuccess }) {
                     setEmail(e.target.value);
                   }}
                   placeholder="admin@example.com"
-                  className={`pl-9 ${fieldErrors.email ? 'border-destructive ring-2 ring-destructive/20' : ''}`}
+                  className={`pl-9 ${fieldErrors.email ? 'border-2 border-red-500 bg-red-50/20 ring-4 ring-red-500/15' : ''}`}
                 />
               </div>
               <FieldError error={fieldErrors.email} />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="uppercase tracking-wide">Password</Label>
+              <Label className="uppercase tracking-wide font-medium">Password</Label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
@@ -174,7 +177,7 @@ export default function AdminLogin({ onLoginSuccess }) {
                     setPassword(e.target.value);
                   }}
                   placeholder="••••••••"
-                  className={`pl-9 ${fieldErrors.password ? 'border-destructive ring-2 ring-destructive/20' : ''}`}
+                  className={`pl-9 ${fieldErrors.password ? 'border-2 border-red-500 bg-red-50/20 ring-4 ring-red-500/15' : ''}`}
                 />
               </div>
               <FieldError error={fieldErrors.password} />
@@ -188,11 +191,13 @@ export default function AdminLogin({ onLoginSuccess }) {
           <Separator />
 
           <div className="flex flex-col space-y-2 text-center text-xs">
-            <Link to="/register-team" className="text-primary hover:underline font-bold flex items-center justify-center gap-1">
+            <Link to="/register-team" className="text-primary hover:underline font-semibold flex items-center justify-center gap-1">
               <Building2 className="w-3.5 h-3.5" />
-              <span>Register New Event</span>
+              <span>Register New Event Subdomain Team</span>
             </Link>
-        
+            <span className="text-muted-foreground text-[11px]">
+              Super Admin Login: <code className="bg-muted/10 px-1 py-0.5 rounded font-mono">superadmin@salath.org</code> / <code className="bg-muted/10 px-1 py-0.5 rounded font-mono">admin123</code>
+            </span>
           </div>
         </CardContent>
       </Card>

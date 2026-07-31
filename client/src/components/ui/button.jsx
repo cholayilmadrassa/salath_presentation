@@ -4,29 +4,31 @@ import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-2xl text-sm font-extrabold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.96] touch-manipulation select-none tracking-wide shadow-sm',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] touch-manipulation select-none tracking-normal cursor-pointer',
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:brightness-105 active:brightness-95 border border-primary-foreground/20',
+          'bg-gradient-to-r from-[#468B3A] to-[#296E37] text-white shadow-sm hover:shadow-md hover:shadow-[#468B3A]/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-white/20',
         secondary:
-          'bg-secondary text-secondary-foreground shadow-md shadow-secondary/25 hover:brightness-110 active:brightness-95 border border-secondary-foreground/20',
+          'bg-gradient-to-r from-[#296E37] to-[#1E5229] text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-white/15',
+        gold:
+          'bg-gradient-to-r from-[#7EC242] via-[#6EB240] to-[#468B3A] text-white font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-white/30',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-md shadow-destructive/25 hover:brightness-110 active:brightness-95 border border-destructive-foreground/20',
+          'bg-gradient-to-r from-red-600 to-rose-700 text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-white/20',
         outline:
-          'border-2 border-primary bg-card text-primary font-black shadow-sm hover:bg-primary/10 active:bg-primary/20',
+          'border border-primary/80 bg-card text-primary shadow-sm hover:bg-primary/10 active:scale-[0.97]',
         soft:
-          'bg-primary/15 text-primary border border-primary/30 font-black hover:bg-primary/25 active:bg-primary/35',
+          'bg-primary/12 text-primary border border-primary/20 hover:bg-primary/20 active:scale-[0.97]',
         ghost:
-          'hover:bg-primary/10 hover:text-primary font-extrabold',
+          'hover:bg-primary/10 hover:text-primary shadow-none',
         link:
-          'text-primary underline-offset-4 hover:underline font-extrabold shadow-none',
+          'text-primary underline-offset-4 hover:underline shadow-none p-0 h-auto',
       },
       size: {
-        default: 'h-12 px-6 py-3',
-        sm: 'h-9 rounded-xl px-3.5 text-xs',
-        lg: 'h-14 rounded-2xl px-8 text-base font-black',
+        default: 'h-11 px-5 py-2.5',
+        sm: 'h-9 rounded-lg px-3.5 text-xs font-medium',
+        lg: 'h-12 rounded-xl px-6 text-sm font-semibold',
         icon: 'h-10 w-10 rounded-xl',
       },
     },

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Save, CheckCircle2, History, Plus, Bell, Star, Calendar, AlertCircle } from 'lucide-react';
+import { Save, History, Plus, Bell, Star, Calendar } from 'lucide-react';
 import { salathCountSchema } from '../schemas/validationSchemas.js';
 
 function todayKey() {
@@ -94,7 +94,7 @@ export default function Dashboard() {
   const isTodaySelected = selectedDate === todayKey();
 
   return (
-    <main className="max-w-xl mx-auto px-4 safe-top pb-20 md:py-6 space-y-5 font-ml min-h-screen">
+    <main className="max-w-xl mx-auto px-4 safe-top pb-20 md:py-6 space-y-5 font-sans min-h-screen">
       {/* Mobile Top App Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -121,7 +121,7 @@ export default function Dashboard() {
         <CardContent className="p-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-foreground">
             <Calendar className="w-4 h-4 text-primary" />
-            <span className="text-xs font-bold">Select Date:</span>
+            <span className="text-xs font-bold">Date:</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -129,13 +129,13 @@ export default function Dashboard() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="text-xs font-bold px-3 py-1.5 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
             {!isTodaySelected && (
               <Button
                 size="sm"
                 onClick={() => setSelectedDate(todayKey())}
-                className="h-7 text-[10px] px-2.5 rounded-xl"
+                className="h-7 text-[10px] px-2.5 rounded-lg font-bold"
               >
                 Today
               </Button>
@@ -144,8 +144,8 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Featured Summary Card for Selected Date (Madinah Palette) */}
-      <section className="text-white rounded-3xl p-5 shadow-lg space-y-4 bg-gradient-to-br from-[#07351F] via-[#0E7443] to-[#159C5A] border border-[#D4AF37]/30">
+      {/* Featured Summary Card for Selected Date */}
+      <section className="text-white rounded-2xl p-5 shadow-lg space-y-4 bg-gradient-to-br from-[#296E37] via-[#468B3A] to-[#7EC242] border border-white/20">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold px-3.5 py-1 bg-black/25 backdrop-blur-md rounded-full text-[#F5E6B3]">
             {isTodaySelected ? "Today's Summary" : `Date: ${selectedDate}`}
@@ -158,7 +158,7 @@ export default function Dashboard() {
 
         {/* Dual Stats Display: Selected Date Count & Overall Total */}
         <div className="grid grid-cols-2 gap-3 pt-1">
-          <div className="bg-black/25 p-3 rounded-2xl border border-white/15">
+          <div className="bg-black/25 p-3 rounded-xl border border-white/15">
             <span className="text-[10px] font-bold uppercase tracking-wider block text-[#E6F4ED]">
               {isTodaySelected ? "Today's Count" : 'Selected Date Count'}
             </span>
@@ -167,7 +167,7 @@ export default function Dashboard() {
             </span>
           </div>
 
-          <div className="bg-black/25 p-3 rounded-2xl border border-white/15">
+          <div className="bg-black/25 p-3 rounded-xl border border-white/15">
             <span className="text-[10px] font-bold uppercase tracking-wider block text-[#E6F4ED]">Total Count</span>
             <span className="text-xl font-extrabold tracking-tight text-[#D4AF37]">
               {totalCountSum.toLocaleString('en-IN')}
@@ -211,7 +211,7 @@ export default function Dashboard() {
                     variant="soft"
                     size="sm"
                     onClick={() => addQuickCount(amt)}
-                    className="h-9 font-bold"
+                    className="h-9 font-extrabold"
                   >
                     +{amt}
                   </Button>
@@ -222,7 +222,7 @@ export default function Dashboard() {
                 <Input
                   type="number"
                   maxLength="6"
-                  placeholder="e.g. 10000"
+                  placeholder="e.g. 1000"
                   value={value}
                   onInput={(e) => {
                     if (e.target.value.length > 6) {
@@ -236,7 +236,7 @@ export default function Dashboard() {
                       setValue(val);
                     }
                   }}
-                  className={`text-xl font-extrabold text-center tracking-wide h-14 ${error ? 'border-destructive ring-2 ring-destructive/20' : ''}`}
+                  className={`text-xl font-extrabold text-center tracking-wide h-14 ${error ? 'border-2 border-red-500 bg-red-50/20' : ''}`}
                 />
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function Dashboard() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full text-sm"
+              className="w-full text-sm font-black"
             >
               <Save className="w-4.5 h-4.5 mr-2" />
               <span>{loading ? 'Saving...' : 'Save Count'}</span>
@@ -260,7 +260,7 @@ export default function Dashboard() {
             <History className="w-4 h-4" />
             <span>Salath Count History</span>
           </h2>
-          <span className="text-[10px] font-bold text-muted-foreground">Total {items.length} Entries</span>
+          <span className="text-[10px] font-bold text-muted-foreground">Total {items.length} Days</span>
         </div>
 
         {items.length === 0 ? (
@@ -275,14 +275,13 @@ export default function Dashboard() {
             {items.map((item) => (
               <div
                 key={item._id}
-                className={`p-3.5 rounded-2xl flex items-center justify-between bg-card transition border ${
-                  item.date === selectedDate ? 'border-primary ring-1 ring-primary/30' : 'border-border'
-                }`}
+                className={`p-3.5 rounded-xl flex items-center justify-between bg-card transition border ${item.date === selectedDate ? 'border-primary ring-1 ring-primary/30' : 'border-border'
+                  }`}
               >
                 <div>
                   <span className="text-xs font-extrabold block text-foreground">{item.date}</span>
                   <span className="text-[10px] font-medium text-muted-foreground">
-                    {item.date === todayKey() ? 'Recorded Today' : 'Entry Recorded'}
+                    {item.date === todayKey() ? 'Recorded Today' : 'Recorded Count'}
                   </span>
                 </div>
                 <div className="text-right flex items-center gap-2">

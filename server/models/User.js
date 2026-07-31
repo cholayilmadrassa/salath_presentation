@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     // Optional contact details for member profile
     phone: { type: String, default: '', trim: true },
+    address: { type: String, default: '', trim: true },
     place: { type: String, default: '', trim: true },
   },
   { timestamps: true }
@@ -40,4 +41,5 @@ userSchema.pre('validate', function (next) {
   next();
 });
 
-export default mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+export default User;

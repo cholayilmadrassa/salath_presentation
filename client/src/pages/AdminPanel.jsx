@@ -36,7 +36,7 @@ export default function AdminPanel() {
     title: '',
     tagline: '',
     logoUrl: '',
-    themeColor: '#0E7443',
+    themeColor: '#468B3A',
   });
   const [domainInput, setDomainInput] = useState('');
   const [domainDnsInfo, setDomainDnsInfo] = useState(null);

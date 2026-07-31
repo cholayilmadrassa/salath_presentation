@@ -267,7 +267,7 @@ export default function SuperAdminDashboard({ token, onLogout }) {
         <Card>
           <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold uppercase text-muted-foreground">Filter Status:</span>
+              <span className="text-xs font-medium uppercase text-muted-foreground">Filter Status:</span>
               {['', 'pending', 'approved', 'rejected', 'suspended'].map((st) => (
                 <Button
                   key={st}
@@ -281,18 +281,18 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                 </Button>
               ))}
             </div>
-            <div className="text-xs font-semibold text-muted-foreground">
-              Total Event Subdomains: <strong className="text-foreground">{tenants.length}</strong>
+            <div className="text-xs font-medium text-muted-foreground">
+              Total Event Subdomains: <strong className="text-foreground font-semibold">{tenants.length}</strong>
             </div>
           </CardContent>
         </Card>
 
         {/* Tenants List */}
         {loading ? (
-          <div className="text-center py-16 text-muted-foreground">Loading event subdomains...</div>
+          <div className="text-center py-16 text-muted-foreground font-normal">Loading event subdomains...</div>
         ) : tenants.length === 0 ? (
           <Card>
-            <CardContent className="text-center py-16 text-xs font-semibold text-muted-foreground">
+            <CardContent className="text-center py-16 text-xs font-normal text-muted-foreground">
               No event subdomains found matching criteria.
             </CardContent>
           </Card>
@@ -303,7 +303,7 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                 <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-base font-extrabold text-foreground">{t.name}</h2>
+                      <h2 className="text-base font-bold text-foreground">{t.name}</h2>
                       <a
                         href={`http://${t.slug}.salath.vercel.app`}
                         target="_blank"

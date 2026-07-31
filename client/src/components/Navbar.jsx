@@ -36,9 +36,9 @@ export default function Navbar() {
             />
           ) : (
             <img
-              src="/logo.png"
+              src="/appLogo.svg"
               alt="Swalath Portal"
-              className="w-9 h-9 rounded-xl object-cover shadow-sm shrink-0"
+              className="w-9 h-9 rounded-xl object-cover shadow-sm shrink-0 border border-white/30"
             />
           )}
           <div className="flex flex-col">

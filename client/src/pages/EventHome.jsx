@@ -45,7 +45,7 @@ export default function EventHome() {
             setTotalEventCount(sum);
           }
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setLoading(false));
     }
   }, [activeTenant]);
@@ -61,7 +61,7 @@ export default function EventHome() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
-              src="/logo.png"
+              src="/appLogo.svg"
               alt="Swalath Portal"
               className="w-11 h-11 rounded-2xl object-cover shadow-md shrink-0 border border-primary/20"
             />
@@ -88,7 +88,7 @@ export default function EventHome() {
       {/* ──────── MADINAH HERO BANNER CARD ──────── */}
       <section className="px-4 py-2 max-w-xl mx-auto w-full animate-slide-up">
         <div
-          className="text-white rounded-[28px] p-5 sm:p-6 shadow-2xl relative overflow-hidden bg-gradient-to-br from-[#07351F] via-[#0E7443] to-[#159C5A] border border-[#D4AF37]/30"
+          className="text-white rounded-[28px] p-5 sm:p-6 shadow-2xl relative overflow-hidden bg-gradient-to-br from-[#296E37] via-[#468B3A] to-[#7EC242] border border-white/20"
         >
           <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full blur-3xl pointer-events-none animate-pulse-glow bg-[#D4AF37]/20" />
           <div className="absolute -bottom-16 -left-16 w-52 h-52 rounded-full blur-3xl pointer-events-none animate-pulse-glow bg-primary/20" style={{ animationDelay: '1s' }} />
@@ -228,16 +228,14 @@ export default function EventHome() {
               {leaders.map((row, idx) => (
                 <div
                   key={row.userId || idx}
-                  className={`bg-card rounded-2xl p-3.5 shadow-xs flex items-center justify-between transition active:scale-[0.98] animate-slide-up stagger-${idx + 1} border ${
-                    idx === 0 ? 'border-primary ring-1 ring-primary/30' : 'border-border'
-                  }`}
+                  className={`bg-card rounded-2xl p-3.5 shadow-xs flex items-center justify-between transition active:scale-[0.98] animate-slide-up stagger-${idx + 1} border ${idx === 0 ? 'border-primary ring-1 ring-primary/30' : 'border-border'
+                    }`}
                   style={{ animationFillMode: 'both' }}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-sm shrink-0 shadow-xs ${
-                        idx === 0 ? 'bg-primary text-primary-foreground' : idx < 3 ? 'bg-secondary text-secondary-foreground' : 'bg-primary/15 text-primary'
-                      }`}
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-sm shrink-0 shadow-xs ${idx === 0 ? 'bg-primary text-primary-foreground' : idx < 3 ? 'bg-secondary text-secondary-foreground' : 'bg-primary/15 text-primary'
+                        }`}
                     >
                       {idx < 3 ? medalEmoji[idx] : `#${idx + 1}`}
                     </div>
@@ -271,7 +269,7 @@ export default function EventHome() {
 
         {/* Virtues Section */}
         <section
-          className="text-white p-5 sm:p-6 rounded-[28px] space-y-4 shadow-xl relative overflow-hidden bg-gradient-to-br from-[#07351F] via-[#0E7443] to-[#159C5A] border border-[#D4AF37]/30"
+          className="text-white p-5 sm:p-6 rounded-[28px] space-y-4 shadow-xl relative overflow-hidden bg-gradient-to-br from-[#296E37] via-[#468B3A] to-[#7EC242] border border-white/20"
         >
           <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl pointer-events-none bg-[#D4AF37]/20" />
 

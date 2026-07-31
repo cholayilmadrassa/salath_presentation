@@ -28,13 +28,14 @@ function generateToken(user) {
 // POST /api/auth/register - Register member under an active approved event
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, phone, mobile, place, tenantSlug } = req.body;
+    const { name, email, password, phone, mobile, address, place, tenantSlug } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
 
     const rawPhone = phone || mobile || '';
     const cleanPhone = String(rawPhone).replace(/\D/g, '').trim();
+    const cleanAddress = (address || place || '').toString().trim();
 
     // Resolve target tenant
     let targetTenant = req.tenant;
@@ -94,8 +95,9 @@ router.post('/register', async (req, res) => {
       if (cleanPhone && !existingUser.phone) {
         existingUser.phone = cleanPhone;
       }
-      if (place && !existingUser.place) {
-        existingUser.place = String(place).trim();
+      if (cleanAddress) {
+        existingUser.address = cleanAddress;
+        existingUser.place = cleanAddress;
       }
       await existingUser.save();
 
@@ -116,7 +118,8 @@ router.post('/register', async (req, res) => {
           role: existingUser.role,
           tenantId: existingUser.tenantId,
           phone: existingUser.phone,
-          place: existingUser.place,
+          address: existingUser.address || existingUser.place,
+          place: existingUser.place || existingUser.address,
         },
         tenant: targetTenant,
       });
@@ -129,7 +132,8 @@ router.post('/register', async (req, res) => {
       role: 'member',
       tenantId: targetTenant._id,
       phone: cleanPhone,
-      place: place ? String(place).trim() : '',
+      address: cleanAddress,
+      place: cleanAddress,
     });
 
     await Registration.create({
@@ -151,7 +155,8 @@ router.post('/register', async (req, res) => {
         role: newUser.role,
         tenantId: newUser.tenantId,
         phone: newUser.phone,
-        place: newUser.place,
+        address: newUser.address || newUser.place,
+        place: newUser.place || newUser.address,
       },
       tenant: targetTenant,
     });
@@ -420,7 +425,8 @@ router.get('/me', requireAuth, async (req, res) => {
         role: user.role,
         tenantId: user.tenantId,
         phone: user.phone,
-        place: user.place,
+        address: user.address || user.place,
+        place: user.place || user.address,
       },
       tenant,
     });

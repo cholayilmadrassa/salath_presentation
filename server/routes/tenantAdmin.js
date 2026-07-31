@@ -2,7 +2,9 @@ import express from 'express';
 import dns from 'dns/promises';
 import crypto from 'crypto';
 import Tenant from '../models/Tenant.js';
+import User from '../models/User.js';
 import Registration from '../models/Registration.js';
+import Count from '../models/Count.js';
 import { requireAuth, requireRole, requireTenantMatch } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -30,7 +32,33 @@ router.get('/me/tenant', async (req, res) => {
   }
 });
 
-// PATCH /api/admin/me/tenant - update branding and settings only
+// PUT & PATCH /api/admin/me/tenant/branding - update tenant branding
+router.put('/me/tenant/branding', async (req, res) => {
+  try {
+    const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;
+    const tenant = await Tenant.findById(tenantId);
+    if (!tenant) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    const { title, tagline, logoUrl, themeColor } = req.body;
+    tenant.branding = {
+      ...tenant.branding,
+      title: title !== undefined ? title : tenant.branding.title,
+      tagline: tagline !== undefined ? tagline : tenant.branding.tagline,
+      logoUrl: logoUrl !== undefined ? logoUrl : tenant.branding.logoUrl,
+      themeColor: themeColor !== undefined ? themeColor : tenant.branding.themeColor,
+    };
+
+    await tenant.save();
+    res.json(tenant);
+  } catch (err) {
+    console.error('Update branding error:', err);
+    res.status(500).json({ error: 'Server error updating branding' });
+  }
+});
+
+// PATCH /api/admin/me/tenant - update branding and settings
 router.patch('/me/tenant', async (req, res) => {
   try {
     const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;
@@ -74,6 +102,47 @@ router.patch('/me/tenant', async (req, res) => {
   }
 });
 
+// GET /api/admin/users - list users registered under tenant with total Salath count
+router.get('/users', async (req, res) => {
+  try {
+    const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;
+    if (!tenantId) {
+      return res.status(404).json({ error: 'Tenant context missing' });
+    }
+
+    const users = await User.find({ tenantId, role: 'member' }).select('name email phone place address createdAt');
+
+    // Aggregate counts for members
+    const memberCounts = await Count.aggregate([
+      { $match: { tenantId } },
+      { $group: { _id: '$userId', total: { $sum: '$value' } } }
+    ]);
+
+    const countMap = {};
+    memberCounts.forEach(c => {
+      if (c._id) countMap[c._id.toString()] = c.total;
+    });
+
+    const result = users.map(u => ({
+      _id: u._id,
+      id: u._id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      place: u.place || u.address,
+      address: u.address || u.place,
+      totalCount: countMap[u._id.toString()] || 0,
+      amount: countMap[u._id.toString()] || 0,
+      createdAt: u.createdAt,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error('List users error:', err);
+    res.status(500).json({ error: 'Server error fetching tenant members' });
+  }
+});
+
 // GET /api/admin/registrations - list registrations for req.tenant._id only (paginated)
 router.get('/registrations', async (req, res) => {
   try {
@@ -93,7 +162,7 @@ router.get('/registrations', async (req, res) => {
 
     const total = await Registration.countDocuments(query);
     const registrations = await Registration.find(query)
-      .populate('userId', 'name email phone place')
+      .populate('userId', 'name email phone place address')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -220,7 +289,6 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
 
     try {
       const records = await dns.resolveTxt(recordHost);
-      // records is array of arrays: [ ['verify_xyz...'] ]
       const flatRecords = records.flat();
 
       if (flatRecords.includes(expectedToken)) {

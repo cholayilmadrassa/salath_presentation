@@ -89,9 +89,9 @@ export default function EventTeamRegister() {
       {/* Header */}
       <div className="text-center mb-6 space-y-2">
         <img
-          src="/logo.png"
+          src="/appLogo.svg"
           alt="Swalath Portal"
-          className="w-14 h-14 rounded-2xl object-cover mx-auto shadow-md"
+          className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3 shadow-md"
         />
         <Badge variant="muted" className="uppercase font-mono text-[10px] tracking-wider">
           Organization Portal

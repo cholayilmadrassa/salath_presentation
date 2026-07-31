@@ -91,7 +91,7 @@ export function TenantProvider({ children }) {
           <div className="flex flex-col items-center space-y-4 animate-fade-in">
             <div className="relative flex items-center justify-center">
               <img
-                src="/logo.png"
+                src="/appLogo.svg"
                 alt="Swalath Portal"
                 className="w-16 h-16 rounded-2xl object-cover shadow-lg border border-border animate-pulse"
               />

@@ -11,7 +11,7 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Phone, LogIn, Building2, AlertCircle } from 'lucide-react';
+import { Phone, LogIn, Building2 } from 'lucide-react';
 import { loginSchema } from '../schemas/validationSchemas.js';
 
 export default function Login() {
@@ -37,9 +37,27 @@ export default function Login() {
             }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [activeTenant]);
+
+  const validateField = (fieldName, value) => {
+    const targetSlug = activeTenant ? activeTenant.slug : selectedTenantSlug;
+    const sanitizedPhone = (fieldName === 'phone' ? value : form.phone).replace(/\D/g, '');
+
+    const result = loginSchema.safeParse({
+      mobile: sanitizedPhone,
+      tenantSlug: targetSlug,
+    });
+
+    if (!result.success) {
+      const issues = result.error?.issues || result.error?.errors || [];
+      const issue = issues.find((err) => err.path && err.path[0] === (fieldName === 'phone' ? 'mobile' : fieldName));
+      if (issue) {
+        setFieldErrors((prev) => ({ ...prev, [fieldName === 'phone' ? 'mobile' : fieldName]: issue.message }));
+      }
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -56,20 +74,20 @@ export default function Login() {
 
     if (!validationResult.success) {
       const errMap = {};
-      validationResult.error.errors.forEach((err) => {
-        if (err.path[0]) {
+      const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+      issues.forEach((err) => {
+        if (err.path && err.path[0]) {
           errMap[err.path[0]] = err.message;
         }
       });
       setFieldErrors(errMap);
-      setError('Please fix the highlighted field errors below.');
+      setError('Please fix the highlighted field errors below before logging in.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const targetSlug = activeTenant ? activeTenant.slug : selectedTenantSlug;
       if (!targetSlug) {
         setError('Please select an event portal to log in');
         return;
@@ -90,18 +108,27 @@ export default function Login() {
     }
   };
 
+  const FieldError = ({ error }) => {
+    if (!error) return null;
+    return (
+      <p className="text-[11px] font-normal text-red-500 mt-1 animate-slide-down">
+        {error}
+      </p>
+    );
+  };
+
   return (
-    <main className="max-w-md mx-auto px-4 safe-top pb-8 sm:py-14 font-ml">
+    <main className="max-w-md mx-auto px-4 safe-top pb-8 sm:py-14 font-sans">
       <div className="text-center mb-6">
         <img
-          src="/logo.png"
+          src="/appLogo.svg"
           alt="Swalath Portal"
           className="w-12 h-12 rounded-2xl object-cover mx-auto mb-3 shadow-md"
         />
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground">
+        <h1 className="text-2xl font-bold text-foreground">
           Log In
         </h1>
-        <p className="text-xs font-medium mt-1 text-muted-foreground">
+        <p className="text-xs font-normal mt-1 text-muted-foreground">
           {activeTenant ? `${activeTenant.name} Login` : 'Log into your event account'}
         </p>
       </div>
@@ -110,7 +137,7 @@ export default function Login() {
         <CardContent className="p-6 space-y-5">
           {/* Active Tenant Banner or Event Selector */}
           {activeTenant ? (
-            <div className="p-3 rounded-2xl flex items-center justify-between text-xs font-bold bg-background text-secondary border border-secondary/20">
+            <div className="p-3 rounded-xl flex items-center justify-between text-xs font-medium bg-background text-secondary border border-secondary/20">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary" />
                 <span>{activeTenant.name}</span>
@@ -122,12 +149,18 @@ export default function Login() {
           ) : (
             approvedEvents.length > 0 && (
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5">
+                <Label className="flex items-center gap-1.5 font-medium">
                   <Building2 className="w-4 h-4 text-primary" />
                   <span>Select Event</span>
                 </Label>
-                <Select value={selectedTenantSlug} onValueChange={setSelectedTenantSlug}>
-                  <SelectTrigger className={fieldErrors.tenantSlug ? 'border-destructive ring-2 ring-destructive/20' : ''}>
+                <Select
+                  value={selectedTenantSlug}
+                  onValueChange={(val) => {
+                    setSelectedTenantSlug(val);
+                    if (fieldErrors.tenantSlug) setFieldErrors((prev) => ({ ...prev, tenantSlug: null }));
+                  }}
+                >
+                  <SelectTrigger className={fieldErrors.tenantSlug ? 'border-2 border-red-500 bg-red-50/20 ring-4 ring-red-500/15' : ''}>
                     <SelectValue placeholder="Select an event" />
                   </SelectTrigger>
                   <SelectContent>
@@ -138,12 +171,7 @@ export default function Login() {
                     ))}
                   </SelectContent>
                 </Select>
-                {fieldErrors.tenantSlug && (
-                  <p className="text-xs text-destructive font-bold mt-1 flex items-center gap-1 animate-slide-down">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{fieldErrors.tenantSlug}</span>
-                  </p>
-                )}
+                <FieldError error={fieldErrors.tenantSlug} />
               </div>
             )
           )}
@@ -154,27 +182,23 @@ export default function Login() {
 
           <form onSubmit={submit} className="space-y-4" noValidate>
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5">
+              <Label className="flex items-center gap-1.5 font-medium">
                 <Phone className="w-4 h-4 text-primary" />
                 <span>Registered Mobile Number</span>
               </Label>
               <Input
                 type="tel"
                 maxLength="10"
-                placeholder="10-digit mobile number"
+                placeholder="10-digit mobile number (e.g. 9876543210)"
                 value={form.phone}
+                onBlur={() => validateField('phone', form.phone)}
                 onChange={(e) => {
                   if (fieldErrors.mobile) setFieldErrors((prev) => ({ ...prev, mobile: null }));
                   setForm({ ...form, phone: e.target.value });
                 }}
-                className={fieldErrors.mobile ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                className={fieldErrors.mobile ? 'border-2 border-red-500 bg-red-50/20 ring-4 ring-red-500/15' : ''}
               />
-              {fieldErrors.mobile && (
-                <p className="text-xs text-destructive font-bold mt-1 flex items-center gap-1 animate-slide-down">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{fieldErrors.mobile}</span>
-                </p>
-              )}
+              <FieldError error={fieldErrors.mobile} />
             </div>
 
             <Button type="submit" disabled={loading} className="w-full mt-2">
@@ -186,10 +210,10 @@ export default function Login() {
           <Separator />
 
           <div className="text-center text-xs space-y-2">
-            <p className="font-medium text-muted-foreground">Don't have an account?</p>
+            <p className="font-normal text-muted-foreground">Don't have an account?</p>
             <Link
               to="/signup"
-              className="inline-block font-extrabold text-primary hover:underline"
+              className="inline-block font-semibold text-primary hover:underline"
             >
               Register Member
             </Link>

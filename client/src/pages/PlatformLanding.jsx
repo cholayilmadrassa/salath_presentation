@@ -43,7 +43,7 @@ export default function PlatformLanding() {
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img
-              src="/logo.png"
+              src="/appLogo.svg"
               alt="Swalath Portal"
               className="w-10 h-10 rounded-2xl object-cover shadow-md shrink-0 border border-primary/20"
             />
@@ -74,7 +74,7 @@ export default function PlatformLanding() {
       {/* Main Marketing Hero Banner */}
       <section className="px-4 pt-8 pb-6 max-w-5xl mx-auto w-full">
         <div
-          className="text-white rounded-[32px] p-6 sm:p-10 shadow-2xl relative overflow-hidden text-center space-y-6 bg-gradient-to-br from-[#07351F] via-[#0E7443] to-[#159C5A] border border-[#D4AF37]/30"
+          className="text-white rounded-[32px] p-6 sm:p-10 shadow-2xl relative overflow-hidden text-center space-y-6 bg-gradient-to-br from-[#296E37] via-[#468B3A] to-[#7EC242] border border-white/20"
         >
           {/* Decorative glows */}
           <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl pointer-events-none bg-[#D4AF37]/20" />

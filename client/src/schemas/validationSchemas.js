@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const signupSchema = z.object({
   name: z.string().trim().min(3, { message: "Full name must be at least 3 characters" }),
   mobile: z.string().trim().regex(/^[6-9]\d{9}$/, { message: "Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9" }),
-  place: z.string().trim().min(2, { message: "Place / Mahallu must be at least 2 characters" }),
+  address: z.string().trim().min(3, { message: "Address must be at least 3 characters" }),
   tenantSlug: z.string().min(1, { message: "Please select an event portal" }),
 });
 

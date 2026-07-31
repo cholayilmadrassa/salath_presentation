@@ -4,52 +4,51 @@
 
 @layer base {
   :root {
-    /* Madinah Marble & Green Islamic Palette */
-    /* Background: Soft Madinah Marble Mint/Cream */
-    --background: 145 25% 95%;
-    /* Foreground: Deep Royal Forest Green */
-    --foreground: 155 70% 12%;
+    /* Brand Color Palette matching appLogo.svg */
+    --background: 110 20% 96%;
+    --foreground: 132 46% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 155 70% 12%;
+    --card-foreground: 132 46% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 155 70% 12%;
+    --popover-foreground: 132 46% 12%;
 
-    /* Authentic Madinah Green Dome (#0E7443) */
-    --primary: 152 68% 26%;
+    /* Brand Green (#468B3A) from appLogo.svg */
+    --primary: 111 41% 39%;
     --primary-foreground: 0 0% 100%;
 
-    /* Deep Mosque Shadow Green (#07351F) */
-    --secondary: 155 80% 14%;
+    /* Deep Forest Green (#296E37) from appLogo.svg */
+    --secondary: 132 46% 30%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 152 20% 92%;
-    --muted-foreground: 155 40% 28%;
+    --muted: 110 15% 92%;
+    --muted-foreground: 132 25% 32%;
 
-    /* Madinah Minaret Gold (#D4AF37) */
-    --accent: 43 75% 52%;
-    --accent-foreground: 155 70% 12%;
+    /* Vibrant Leaf Green (#7EC242) from appLogo.svg */
+    --accent: 92 51% 51%;
+    --accent-foreground: 132 46% 12%;
 
     --destructive: 0 80% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 152 25% 82%;
-    --input: 152 30% 75%;
-    --ring: 152 68% 26%;
+    --border: 111 20% 82%;
+    --input: 111 25% 75%;
+    --ring: 111 41% 39%;
 
-    --radius: 0.85rem;
+    /* Sleek radius for inputs and cards */
+    --radius: 0.5rem;
   }
 
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
-    font-family: 'Noto Serif Malayalam', serif;
+    font-family: 'Roboto', 'Noto Serif Malayalam', sans-serif;
     user-select: none;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans font-normal;
     @apply selection:bg-primary selection:text-primary-foreground;
   }
 
@@ -59,6 +58,10 @@
 }
 
 /* Font utilities */
+.font-roboto {
+  font-family: 'Roboto', sans-serif;
+}
+
 .font-arabic {
   font-family: 'Noto Kufi Arabic', serif;
 }
@@ -69,29 +72,29 @@
 
 /* Legacy class compatibility */
 .btn {
-  @apply inline-flex items-center justify-center px-4 py-3 rounded-2xl font-extrabold tracking-wide transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none min-h-[48px] touch-manipulation select-none;
+  @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-medium tracking-normal transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none min-h-[44px] touch-manipulation select-none cursor-pointer;
 }
 
 .btn-primary {
-  @apply btn bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.96] border border-primary-foreground/20 shadow-md shadow-primary/20;
+  @apply btn bg-gradient-to-r from-[#468B3A] to-[#296E37] text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.97] border border-white/20;
 }
 
 .btn-gold {
-  @apply btn bg-[#D4AF37] text-[#07351F] hover:brightness-105 active:scale-[0.96] border border-[#B89428] shadow-md;
+  @apply btn bg-gradient-to-r from-[#7EC242] via-[#6EB240] to-[#468B3A] text-white font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-white/30;
 }
 
 .btn-secondary {
-  @apply btn bg-secondary text-secondary-foreground hover:brightness-110 active:scale-[0.96] border border-secondary-foreground/20 shadow-md;
+  @apply btn bg-gradient-to-r from-[#296E37] to-[#1E5229] text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.97] border border-white/15;
 }
 
 .btn-outline {
-  @apply btn bg-card hover:bg-primary/10 active:bg-primary/20 text-primary border-2 border-primary shadow-sm;
+  @apply btn bg-card hover:bg-primary/10 active:bg-primary/20 text-primary border border-primary/80 shadow-sm;
 }
 
 .input {
-  @apply w-full px-4 py-3.5 rounded-2xl text-base font-bold bg-card text-foreground placeholder:text-muted-foreground/60 transition-all duration-200 min-h-[48px] focus:outline-none focus:ring-4 focus:ring-ring/20;
-  border: 1.5px solid hsl(var(--input));
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  @apply w-full px-3.5 py-2.5 rounded-xl text-sm font-normal bg-card text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring/20;
+  border: 1px solid hsl(var(--input));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .input:focus {
@@ -99,9 +102,9 @@
 }
 
 .card {
-  @apply rounded-3xl p-6 bg-card text-card-foreground transition-all duration-200;
-  border: 1.5px solid hsl(var(--border));
-  box-shadow: 0 8px 24px rgba(7, 45, 27, 0.06);
+  @apply rounded-2xl p-5 bg-card text-card-foreground transition-all duration-200;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 16px rgba(41, 110, 55, 0.05);
 }
 
 /* Custom Scrollbar Hide */
@@ -112,12 +115,12 @@
 
 /* Micro-animations */
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -127,7 +130,7 @@
 }
 
 @keyframes countUp {
-  from { opacity: 0; transform: scale(0.8) translateY(8px); }
+  from { opacity: 0; transform: scale(0.8) translateY(6px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -141,10 +144,10 @@
   50% { opacity: 0.8; }
 }
 
-.animate-slide-down { animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-up { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-.animate-count-up { animation: countUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-down { animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-up { animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
+.animate-count-up { animation: countUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
 

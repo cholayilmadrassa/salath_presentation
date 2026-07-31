@@ -18,6 +18,13 @@ export async function api(path, { method = 'GET', body, token } = {}) {
   });
 
   if (!res.ok) {
+    // If token is invalid or expired (401), automatically clear session
+    if (res.status === 401 && path !== '/auth/login' && path !== '/auth/register') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+    }
+
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(err.error || err.message || 'Request failed');
   }
