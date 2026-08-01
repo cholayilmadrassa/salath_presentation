@@ -97,22 +97,11 @@ export default function EventHome() {
         >
           <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full blur-3xl pointer-events-none animate-pulse-glow bg-[#D4AF37]/20" />
           <div className="absolute -bottom-16 -left-16 w-52 h-52 rounded-full blur-3xl pointer-events-none animate-pulse-glow bg-primary/20" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-4 right-6 pointer-events-none text-white/15">
-            <Sparkles className="w-24 h-24 animate-float text-[#D4AF37]" />
+          {/* Top Bar Tagline */}
+          <div className="flex w-fit relative z-10 mb-4 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15 text-center">
+            <span className="text-xs font-bold text-[#E6F4ED] tracking-wide">ഖൽബിലുണ്ട് എന്റെ നബി</span>
           </div>
 
-          {/* Top Bar: Tagline & Arabic Hijri Date */}
-          <div className="flex justify-between items-center gap-2">
-
-            <span className="text-xl font-bold w-[200px] text-[#E6F4ED]">ഖൽബിലുണ്ട് എന്റെ നബി</span>
-            <div className="flex items-center  relative z-10 mb-4 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
-              <div className="flex items-center gap-1.5 text-sm sm:text-base font-extrabold font-arabic text-[#F5E6B3]" dir="rtl">
-                <Calendar className="w-4 h-4 text-[#D4AF37]" />
-              <span>{hijri.formattedAr}</span>
-            </div>
-          </div>
-          </div>
-      
           <div className="space-y-1.5 relative z-10 mb-4 text-center">
             <h1 className="text-[22px] sm:text-3xl font-extrabold leading-tight text-white tracking-tight">
               {formatTitleCase(activeTenant?.branding?.title || activeTenant?.name) || 'സ്വലാത്തിലൂടെ ഹബീബിലണയാം'}
