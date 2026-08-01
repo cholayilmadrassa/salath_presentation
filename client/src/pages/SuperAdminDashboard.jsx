@@ -311,7 +311,7 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                         rel="noopener noreferrer"
                         className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1 hover:underline bg-muted/10 text-secondary"
                       >
-                        <span>{t.slug}.{import.meta.env}</span>
+                        <span>{t.slug}.{rootDomain}</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                       <Badge

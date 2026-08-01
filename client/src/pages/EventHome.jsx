@@ -103,11 +103,11 @@ export default function EventHome() {
 
           {/* Top Bar: Replaced Tenant Name & Live Campaign with Hijri Date */}
           <div className="flex items-center justify-between relative z-10 mb-4 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
+              <span className="text-xs font-bold text-[#E6F4ED]">ഖൽബിലുണ്ട് എന്റെ നബി </span>
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#D4AF37]" />
-              <span className="text-xs font-bold text-[#E6F4ED]">{hijri.formattedMl}</span>
             </div>
             <div className="text-sm sm:text-base font-extrabold font-arabic text-[#F5E6B3]" dir="rtl">
+              <Calendar className="w-4 h-4 text-[#D4AF37]" />
               {hijri.formattedAr}
             </div>
           </div>
@@ -188,10 +188,7 @@ export default function EventHome() {
               </div>
               <span>Today's Top Leaders</span>
             </h2>
-            <Link to="/dashboard" className="text-[11px] font-bold flex items-center gap-0.5 hover:underline text-muted-foreground">
-              <span>See All</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+    
           </div>
 
           {error && <Alert variant="destructive">{error}</Alert>}
@@ -243,7 +240,7 @@ export default function EventHome() {
                       <span className="font-extrabold text-sm sm:text-base block text-primary">
                         {Number(row.value).toLocaleString('en-IN')}
                       </span>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Salath</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Swalath</span>
                     </div>
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary/15 text-primary">
                       <ArrowUpRight className="w-4 h-4" />

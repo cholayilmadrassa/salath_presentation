@@ -121,9 +121,9 @@ export default function AdminLogin({ onLoginSuccess }) {
           <div className="inline-flex p-3 rounded-full bg-primary/15 text-primary mx-auto mb-1">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <CardTitle className="text-2xl font-bold">Subdomain Admin Login</CardTitle>
+          <CardTitle className="text-2xl font-bold"> Admin Login</CardTitle>
           <CardDescription>
-            Sign in to manage your event team subdomain & event settings
+            Sign in to manage your event team & event settings
           </CardDescription>
         </CardHeader>
 

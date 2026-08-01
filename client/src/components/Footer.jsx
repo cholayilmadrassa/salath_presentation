@@ -18,7 +18,7 @@ function Footer() {
                 <span>സ്വലാത്ത് ക്യാമ്പയിൻ</span>
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
               </h3>
-              <p className="text-xs text-muted-foreground">ഉമ്മുൽ ഖുറാ അക്കാദമി പടിഞ്ഞാറത്തറ</p>
+              <p className="text-xs text-muted-foreground">ഖൽബിലുണ്ട് എന്റെ നബി </p>
             </div>
           </div>
 
