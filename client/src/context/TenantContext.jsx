@@ -27,7 +27,7 @@ export function TenantProvider({ children }) {
 
       let slug = null;
 
-      // Extract subdomain if present (e.g. noorulislam.swalath.app or noorulislam.localhost:5173)
+      // Extract subdomain if present (e.g. noorulislam.swalath.online or noorulislam.localhost:5173)
       if (host.includes('.')) {
         const parts = host.split('.');
         if (parts.length > 1 && parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== '127') {

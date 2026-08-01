@@ -151,7 +151,7 @@ export default function PlatformLanding() {
             {
               icon: <Globe className="w-6 h-6 text-primary" />,
               title: 'സ്വന്തം സബ്ഡൊമൈൻ URL',
-              desc: 'നിങ്ങളുടെ സംഘടനയുടെ പേരിൽ ഉദാ: noorulislam.swalath.app പോലെ സബ്ഡൊമൈൻ ലഭിക്കുന്നു.',
+              desc: 'നിങ്ങളുടെ സംഘടനയുടെ പേരിൽ ഉദാ: noorulislam.swalath.online പോലെ സബ്ഡൊമൈൻ ലഭിക്കുന്നു.',
             },
             {
               icon: <Flame className="w-6 h-6 text-primary" />,

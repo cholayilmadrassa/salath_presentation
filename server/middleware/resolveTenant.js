@@ -29,7 +29,7 @@ export async function resolveTenant(req, res, next) {
     if (!tenant && host) {
       const rootDomain = PLATFORM_ROOT_DOMAIN.toLowerCase().trim();
 
-      // Check if host is a subdomain of root domain (e.g. noorulislam.localhost or team1.swalath.app)
+      // Check if host is a subdomain of root domain (e.g. noorulislam.localhost or team1.swalath.online)
       if (host !== rootDomain && host !== `www.${rootDomain}` && (host.endsWith(`.${rootDomain}`) || host.includes('.localhost'))) {
         const subdomainParts = host.split('.');
         const slug = subdomainParts[0];

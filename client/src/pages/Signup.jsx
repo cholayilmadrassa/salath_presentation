@@ -94,7 +94,7 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      const generatedEmail = `${sanitizedMobile}.${targetSlug}@salath.app`;
+      const generatedEmail = `${sanitizedMobile}.${targetSlug}@swalath.online`;
       const generatedPassword = `Salath@${sanitizedMobile.slice(-4) || '1234'}`;
 
       const payload = {
