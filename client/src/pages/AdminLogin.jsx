@@ -193,11 +193,8 @@ export default function AdminLogin({ onLoginSuccess }) {
           <div className="flex flex-col space-y-2 text-center text-xs">
             <Link to="/register-team" className="text-primary hover:underline font-semibold flex items-center justify-center gap-1">
               <Building2 className="w-3.5 h-3.5" />
-              <span>Register New Event Subdomain Team</span>
+              <span>Register New Event Team</span>
             </Link>
-            <span className="text-muted-foreground text-[11px]">
-              Super Admin Login: <code className="bg-muted/10 px-1 py-0.5 rounded font-mono">superadmin@salath.org</code> / <code className="bg-muted/10 px-1 py-0.5 rounded font-mono">admin123</code>
-            </span>
           </div>
         </CardContent>
       </Card>

@@ -79,7 +79,7 @@ export default function EventTeamRegister() {
     }
   };
 
-  const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN || "salath.vercel.app";
+  const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN 
 
   const FieldError = ({ error }) => error ? (
     <p className="text-xs text-destructive font-bold mt-1 flex items-center gap-1 animate-slide-down">

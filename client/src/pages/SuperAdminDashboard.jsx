@@ -305,12 +305,12 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-base font-bold text-foreground">{t.name}</h2>
                       <a
-                        href={`http://${t.slug}.salath.vercel.app`}
+                        href={`http://${t.slug}.${rootDomain}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1 hover:underline bg-muted/10 text-secondary"
                       >
-                        <span>{t.slug}.salath.vercel.app</span>
+                        <span>{t.slug}.{import.meta.env}</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                       <Badge

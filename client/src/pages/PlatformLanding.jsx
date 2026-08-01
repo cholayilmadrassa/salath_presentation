@@ -15,6 +15,7 @@ export default function PlatformLanding() {
   const [totalEventCount, setTotalEventCount] = useState(0);
   const [approvedEvents, setApprovedEvents] = useState([]);
 
+
   const hijri = getHijriDate();
 
   useEffect(() => {
@@ -34,7 +35,8 @@ export default function PlatformLanding() {
       .catch(() => { });
   }, []);
 
-  const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN || 'salath.vercel.app';
+  const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN 
+
 
   return (
     <div className="min-h-screen flex flex-col pb-16 md:pb-0 font-ml">
@@ -49,7 +51,7 @@ export default function PlatformLanding() {
             />
             <div>
               <h1 className="font-extrabold text-base leading-none text-foreground">
-                സ്വലാത്ത് സമർപ്പണ പോർട്ടൽ
+                സ്വലാത്ത് ക്യാമ്പയിൻ
               </h1>
               <span className="text-[10px] font-semibold text-muted-foreground">
                 Multi-Tenant Event Platform
