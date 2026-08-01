@@ -42,7 +42,7 @@ function Footer() {
 
         {/* Footer Bottom Note */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground text-center sm:text-left font-medium">
-          <p>© 2026 swalathcampain.online.</p>
+          <p>© 2026 swalath.online.</p>
           <p className="flex items-center gap-1">
             <span>മുത്തുനബി ﷺ സ്നേഹത്തോടെ സമർപ്പിക്കുന്നു</span>
             <Heart className="w-3.5 h-3.5 text-destructive fill-destructive" />

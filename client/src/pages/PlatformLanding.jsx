@@ -87,11 +87,9 @@ export default function PlatformLanding() {
 
           <div className="max-w-2xl mx-auto space-y-3">
             <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight text-white font-ml">
-              നിങ്ങളുടെ ഈവന്റിനായി സ്വന്തം സബ്ഡൊമൈൻ പോർട്ടൽ ആരംഭിക്കൂ
-            </h1>
+              നിങ്ങളുടെ സ്വന്തം നാട്ടിൽ ഒരു <span className="text-[#FFFF00]">സ്വലാത്ത് ക്യാമ്പയിൻ</span> നടത്തിയാലോ<span className="text-[#FFFF00]">?</span></h1>
             <p className="text-sm sm:text-base font-medium leading-relaxed text-[#E6F4ED]">
-              സംഘടനകൾ, മഹല്ല് സമിതികൾ, കാമ്പയിൻ ടീമുകൾ എന്നിവർക്ക് തത്സമയ കൗണ്ടർ, ലീഡർബോർഡ്, വ്യക്തിഗത വിവരശേഖരണം എന്നിവയോടെ സൗജന്യമായി പോർട്ടൽ സ്വന്തമാക്കാം.
-            </p>
+സംഘടനകൾക്കും മഹല്ല് കമ്മിറ്റികൾക്കും കാമ്പയിൻ ടീമുകൾക്കും അവരുടെ പ്രവർത്തനങ്ങൾ കൂടുതൽ എളുപ്പത്തിലും കാര്യക്ഷമമായും നടത്താൻ സ്വന്തം ഓൺലൈൻ പോർട്ടൽ — തത്സമയ കൗണ്ട് , ടോപ്പ് സ്കോർ , വിവരശേഖരണം തുടങ്ങി ആവശ്യമായ എല്ലാം ഒരിടത്ത്.            </p>
           </div>
 
           {/* Total Counter Summary */}
