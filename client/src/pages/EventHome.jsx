@@ -142,12 +142,12 @@ export default function EventHome() {
 
           <Button
             onClick={() => navigate(user || authUser ? '/counter' : '/signup')}
-            className="relative z-10 w-full text-sm font-extrabold py-3.5 px-6 rounded-2xl shadow-xl border border-[#F5E6B3]/60 bg-gradient-to-r from-[#F5E6B3] via-[#D4AF37] to-[#E2BE46] text-[#07351F] hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 h-auto"
+            className="relative z-10 w-full text-sm font-extrabold py-3.5 px-6 rounded-2xl shadow-xl border border-[#F5E6B3]/60 bg-[#F5E6B3] text-[#07351F] hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 h-auto"
           >
             <div className="w-7 h-7 rounded-full bg-[#07351F]/15 flex items-center justify-center shrink-0">
               <Plus className="w-4 h-4 stroke-[3] text-[#07351F]" />
             </div>
-            <span className="tracking-wide text-base">Submit Salath</span>
+            <span className="tracking-wide text-base">Submit Swalath</span>
           </Button>
         </div>
       </section>
