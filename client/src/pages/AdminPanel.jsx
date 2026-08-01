@@ -206,17 +206,23 @@ export default function AdminPanel() {
     return null;
   }
 
-  // Calculate total counts per user based on allUserCounts map from dashboard API
+  // Calculate total counts per user based on API response
   const userTotalMap = new Map();
   if (Array.isArray(allUserCounts)) {
     allUserCounts.forEach((item) => {
-      userTotalMap.set(String(item._id), Number(item.total) || 0);
+      const uid = String(item.userId || item._id || item.id);
+      const val = Number(item.total || item.totalCount || item.amount) || 0;
+      userTotalMap.set(uid, val);
     });
   }
 
   const filteredUsers = users
     .map((u) => {
-      const countSum = userTotalMap.get(String(u._id)) || 0;
+      const uid = String(u._id || u.id);
+      const backendCount = Number(u.totalCount ?? u.amount);
+      const countSum = !isNaN(backendCount) && backendCount > 0
+        ? backendCount
+        : (userTotalMap.get(uid) || 0);
       return { ...u, totalCount: countSum };
     })
     .filter((u) =>

@@ -35,7 +35,7 @@ export default function PlatformLanding() {
       .catch(() => { });
   }, []);
 
-  const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN 
+  const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN
 
 
   return (
@@ -91,20 +91,33 @@ export default function PlatformLanding() {
             <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight text-white font-ml">
               നിങ്ങളുടെ സ്വന്തം നാട്ടിൽ ഒരു <span className="text-[#FFFF00]">സ്വലാത്ത് ക്യാമ്പയിൻ</span> നടത്തിയാലോ<span className="text-[#FFFF00]">?</span></h1>
             <p className="text-sm sm:text-base font-medium leading-relaxed text-[#E6F4ED]">
-സംഘടനകൾക്കും മഹല്ല് കമ്മിറ്റികൾക്കും കാമ്പയിൻ ടീമുകൾക്കും അവരുടെ പ്രവർത്തനങ്ങൾ കൂടുതൽ എളുപ്പത്തിലും കാര്യക്ഷമമായും നടത്താൻ സ്വന്തം ഓൺലൈൻ പോർട്ടൽ — തത്സമയ കൗണ്ട് , ടോപ്പ് സ്കോർ , വിവരശേഖരണം തുടങ്ങി ആവശ്യമായ എല്ലാം ഒരിടത്ത്.            </p>
+              സംഘടനകൾക്കും മഹല്ല് കമ്മിറ്റികൾക്കും കാമ്പയിൻ ടീമുകൾക്കും അവരുടെ പ്രവർത്തനങ്ങൾ കൂടുതൽ എളുപ്പത്തിലും കാര്യക്ഷമമായും നടത്താൻ സ്വന്തം ഓൺലൈൻ പോർട്ടൽ — തത്സമയ കൗണ്ട് , ടോപ്പ് സ്കോർ , വിവരശേഖരണം തുടങ്ങി ആവശ്യമായ എല്ലാം ഒരിടത്ത്.            </p>
           </div>
 
           {/* Total Counter Summary */}
           <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-black/25 backdrop-blur-md p-4 rounded-2xl border border-white/15 mx-auto max-w-lg w-full justify-around">
             <div className="text-center">
               <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
-                Total Platform Swalath Count
+                Total Swalath Count
               </span>
               <span className="text-2xl sm:text-3xl font-black text-[#D4AF37]">
                 {Number(totalEventCount).toLocaleString('en-IN')}
               </span>
             </div>
+
             <div className="w-px h-8 bg-white/20 hidden sm:block" />
+
+            <div className="text-center">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
+                Registered Members
+              </span>
+              <span className="text-2xl sm:text-3xl font-black text-white">
+                {Number(totalMemberCount).toLocaleString('en-IN')}
+              </span>
+            </div>
+
+            <div className="w-px h-8 bg-white/20 hidden sm:block" />
+
             <div className="text-center">
               <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
                 Today's Hijri Date
@@ -138,15 +151,13 @@ export default function PlatformLanding() {
       {/* Feature Highlights Grid */}
       <section className="px-4 py-8 max-w-5xl mx-auto w-full space-y-6">
         <div className="text-center space-y-1">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-            Key Platform Features
-          </span>
-          <h2 className="text-xl sm:text-2xl font-black text-foreground">
-            ഡിജിറ്റൽ സ്വലാത്ത് പ്ലാറ്റ്‌ഫോം നൽകുന്ന സൗകര്യങ്ങൾ
+          <Badge variant="muted">Features</Badge>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            നിങ്ങൾക്ക് ലഭിക്കുന്ന പ്രധാന സേവനങ്ങൾ
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
               icon: <Globe className="w-6 h-6 text-primary" />,
@@ -155,30 +166,30 @@ export default function PlatformLanding() {
             },
             {
               icon: <Flame className="w-6 h-6 text-primary" />,
-              title: 'തത്സമയ ലൈവ് കൗണ്ടർ',
-              desc: 'മൊബൈൽ ഡിജിറ്റൽ തസ്ബീഹ് കൗണ്ടർ വഴി ഓരോ അംഗത്തിന്റെയും സ്വലാത്തുകൾ തത്സമയം കൂട്ടിച്ചേർക്കാം.',
+              title: 'തത്സമയ ലീഡർബോർഡ്',
+              desc: 'പ്രവർത്തകർ നൽകുന്ന സ്വലാത്തുകൾ തത്സമയം ടോപ്പ് സ്കോറർ പട്ടികയായി കാണാം.',
             },
             {
               icon: <ShieldCheck className="w-6 h-6 text-primary" />,
-              title: 'Super Admin അംഗീകാരം',
-              desc: 'സുരക്ഷിതമായ അഡ്മിൻ വേരിഫിക്കേഷന് ശേഷം മാത്രം ഈവന്റ് പ്രവേശനം ഉറപ്പുവരുത്തുന്നു.',
+              title: 'സുരക്ഷിത അഡ്മിൻ പാനൽ',
+              desc: 'പഞ്ചായത്ത്, മഹല്ല് തിരിച്ചുള്ള കണക്കുകളും വിവരങ്ങളും അഡ്മിന് ലഭ്യമാണ്.',
             },
           ].map((feat, i) => (
-            <Card key={i}>
-              <CardContent className="p-6 space-y-3">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-xs bg-primary/15 text-primary">
+            <Card key={i} className="bg-card">
+              <CardContent className="p-6 space-y-2">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 mb-2">
                   {feat.icon}
                 </div>
-                <h3 className="text-base font-extrabold text-foreground">{feat.title}</h3>
-                <p className="text-xs font-medium leading-relaxed text-muted-foreground">{feat.desc}</p>
+                <h3 className="font-bold text-base text-foreground">{feat.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{feat.desc}</p>
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
 
-      {/* Approved Events Directory */}
-      <section className="px-4 py-6 max-w-5xl mx-auto w-full space-y-4">
+      {/* Active Approved Portals List */}
+      <section className="px-4 py-8 max-w-5xl mx-auto w-full space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-extrabold text-foreground">

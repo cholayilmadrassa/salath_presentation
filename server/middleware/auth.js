@@ -45,15 +45,17 @@ export function requireTenantMatch(req, res, next) {
   }
 
   if (req.user.role === 'tenant_admin') {
-    if (!req.tenant) {
-      return res.status(404).json({ error: 'Tenant context missing' });
-    }
+    if (req.tenant) {
+      const userTenantId = req.user.tenantId ? req.user.tenantId.toString() : null;
+      const resolvedTenantId = req.tenant._id.toString();
 
-    const userTenantId = req.user.tenantId ? req.user.tenantId.toString() : null;
-    const resolvedTenantId = req.tenant._id.toString();
-
-    if (userTenantId !== resolvedTenantId) {
-      return res.status(403).json({ error: 'Forbidden: You do not have permission for this tenant' });
+      if (userTenantId !== resolvedTenantId) {
+        return res.status(403).json({ error: 'Forbidden: You do not have permission for this tenant' });
+      }
+    } else {
+      if (!req.user.tenantId) {
+        return res.status(404).json({ error: 'Tenant context missing' });
+      }
     }
 
     return next();

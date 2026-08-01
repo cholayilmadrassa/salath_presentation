@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { ShieldCheck, CheckCircle, PlusCircle, ExternalLink, AlertCircle } from 'lucide-react';
 import { superAdminTenantSchema } from '../schemas/validationSchemas.js';
+  const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN
 
 export default function SuperAdminDashboard({ token, onLogout }) {
   const [tenants, setTenants] = useState([]);

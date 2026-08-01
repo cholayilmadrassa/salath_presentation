@@ -102,7 +102,7 @@ router.patch('/me/tenant', async (req, res) => {
   }
 });
 
-// GET /api/admin/users - list users registered under tenant with total Swalathcount
+// GET /api/admin/users - list users registered under tenant with total Swalath count
 router.get('/users', async (req, res) => {
   try {
     const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;
@@ -110,30 +110,59 @@ router.get('/users', async (req, res) => {
       return res.status(404).json({ error: 'Tenant context missing' });
     }
 
-    const users = await User.find({ tenantId, role: 'member' }).select('name email phone place address createdAt');
+    // 1. Direct users matching user.tenantId
+    const directUsers = await User.find({ tenantId, role: 'member' }).select('name email phone place address createdAt');
 
-    // Aggregate counts for members
-    const memberCounts = await Count.aggregate([
-      { $match: { tenantId } },
-      { $group: { _id: '$userId', total: { $sum: '$value' } } }
-    ]);
+    // 2. Registrations under this tenantId
+    const registrations = await Registration.find({ tenantId }).populate('userId', 'name email phone place address createdAt role');
 
+    // 3. Counts recorded under this tenantId
+    const counts = await Count.find({ tenantId }).populate('user', 'name email phone place address createdAt role');
+
+    const userMap = {};
     const countMap = {};
-    memberCounts.forEach(c => {
-      if (c._id) countMap[c._id.toString()] = c.total;
+
+    // Calculate total count per user using exact "user" field reference
+    counts.forEach((c) => {
+      const val = Number(c.value) || 0;
+      if (c && c.user) {
+        const u = c.user;
+        const uid = u._id ? u._id.toString() : String(u);
+        countMap[uid] = (countMap[uid] || 0) + val;
+
+        if (typeof u === 'object' && u._id) {
+          userMap[uid] = u;
+        }
+      }
     });
 
-    const result = users.map(u => ({
+    directUsers.forEach((u) => {
+      if (u && u._id) {
+        const uid = u._id.toString();
+        userMap[uid] = userMap[uid] || u;
+      }
+    });
+
+    registrations.forEach((r) => {
+      if (r && r.userId && r.userId._id) {
+        const uid = r.userId._id.toString();
+        userMap[uid] = userMap[uid] || r.userId;
+      }
+    });
+
+    const allMembersList = Object.values(userMap);
+
+    const result = allMembersList.map(u => ({
       _id: u._id,
       id: u._id,
-      name: u.name,
-      email: u.email,
-      phone: u.phone,
-      place: u.place || u.address,
-      address: u.address || u.place,
+      name: u.name || 'Member',
+      email: u.email || '',
+      phone: u.phone || '',
+      place: u.place || u.address || '',
+      address: u.address || u.place || '',
       totalCount: countMap[u._id.toString()] || 0,
       amount: countMap[u._id.toString()] || 0,
-      createdAt: u.createdAt,
+      createdAt: u.createdAt || new Date(),
     }));
 
     res.json(result);
