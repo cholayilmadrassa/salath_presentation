@@ -43,7 +43,7 @@
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
-    font-family: 'Roboto', 'Noto Serif Malayalam', sans-serif;
+    font-family: 'DM Sans', 'Noto Serif Malayalam', sans-serif;
     user-select: none;
   }
 
@@ -58,8 +58,8 @@
 }
 
 /* Font utilities */
-.font-roboto {
-  font-family: 'Roboto', sans-serif;
+.font-dmsans {
+  font-family: 'DM Sans', sans-serif;
 }
 
 .font-arabic {

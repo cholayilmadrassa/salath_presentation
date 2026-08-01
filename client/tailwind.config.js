@@ -63,9 +63,9 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['"Roboto"', '"Noto Serif Malayalam"', 'sans-serif'],
-        roboto: ['"Roboto"', 'sans-serif'],
-        ml: ['"Roboto"', '"Noto Serif Malayalam"', 'serif'],
+        sans: ['"DM Sans"', '"Noto Serif Malayalam"', 'sans-serif'],
+        dmsans: ['"DM Sans"', 'sans-serif'],
+        ml: ['"DM Sans"', '"Noto Serif Malayalam"', 'serif'],
         arabic: ['"Noto Kufi Arabic"', 'serif'],
         cinzel: ['"Cinzel Decorative"', 'serif'],
       },
