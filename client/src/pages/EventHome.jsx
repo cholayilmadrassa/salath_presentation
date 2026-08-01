@@ -15,6 +15,11 @@ import {
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
 
+function formatTitleCase(str) {
+  if (!str) return '';
+  return String(str).toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function EventHome() {
   const { activeTenant } = useTenant();
   const { user: authUser } = useAuth();
@@ -96,70 +101,53 @@ export default function EventHome() {
             <Sparkles className="w-24 h-24 animate-float text-[#D4AF37]" />
           </div>
 
-          <div className="flex items-center justify-between relative z-10 mb-4">
-            <Badge variant="muted" className="bg-black/25 backdrop-blur-md border-[#D4AF37]/40 text-[#F5E6B3] flex items-center gap-1.5 uppercase tracking-wide">
-              <Target className="w-3 h-3 text-[#D4AF37]" />
-              <span>{activeTenant.name}</span>
-            </Badge>
-            <div className="flex items-center gap-1 text-[10px] font-bold bg-black/30 backdrop-blur-md px-2.5 py-1 rounded-full border border-[#D4AF37]/30 text-[#F5E6B3]">
-              <Flame className="w-3 h-3 animate-pulse text-[#D4AF37]" />
-              <span>Live Campaign</span>
+          {/* Top Bar: Replaced Tenant Name & Live Campaign with Hijri Date */}
+          <div className="flex items-center justify-between relative z-10 mb-4 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#D4AF37]" />
+              <span className="text-xs font-bold text-[#E6F4ED]">{hijri.formattedMl}</span>
+            </div>
+            <div className="text-sm sm:text-base font-extrabold font-arabic text-[#F5E6B3]" dir="rtl">
+              {hijri.formattedAr}
             </div>
           </div>
 
-          <div className="space-y-1.5 relative z-10 mb-5">
+          <div className="space-y-1.5 relative z-10 mb-4 text-center">
             <h1 className="text-[22px] sm:text-3xl font-extrabold leading-tight text-white tracking-tight">
-              {activeTenant?.branding?.title || 'സ്വലാത്തിലൂടെ ഹബീബിലണയാം'}
+              {formatTitleCase(activeTenant?.branding?.title || activeTenant?.name) || 'സ്വലാത്തിലൂടെ ഹബീബിലണയാം'}
             </h1>
             <p className="text-xs font-medium leading-relaxed text-[#E6F4ED]">
               {activeTenant?.branding?.tagline || 'ദിനേനയുള്ള സ്വലാത്തുകൾ കൃത്യമായി രേഖപ്പെടുത്തൂ'}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 relative z-10 mb-4">
-            <div className="bg-black/25 backdrop-blur-md rounded-2xl p-3.5 border border-white/15 space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#D4AF37]/25">
-                  <Award className="w-4 h-4 text-[#D4AF37]" />
-                </div>
-                <span className="text-[9px] font-extrabold uppercase tracking-wider leading-tight text-[#E6F4ED]">
-                  Total Salath
-                </span>
+          {/* Full Width Total Salath Count Card */}
+          <div className="bg-black/25 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-1.5 relative z-10 mb-4 text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#D4AF37]/25">
+                <Award className="w-4 h-4 text-[#D4AF37]" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black tracking-tight leading-none animate-count-up text-white">
-                {Number(totalEventCount).toLocaleString('en-IN')}
-              </div>
-              <div className="flex items-center gap-1 text-[9px] font-bold text-[#D4AF37]">
-                <TrendingUp className="w-3 h-3" />
-                <span>Verified Activity</span>
-              </div>
-            </div>
-
-            <div className="bg-black/25 backdrop-blur-md rounded-2xl p-3.5 border border-white/15 space-y-1.5 flex flex-col justify-between">
-              <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#D4AF37]/25">
-                  <Calendar className="w-4 h-4 text-[#D4AF37]" />
-                </div>
-                <span className="text-[9px] font-extrabold uppercase tracking-wider leading-tight text-[#E6F4ED]">
-                  Hijri Date
-                </span>
-              </div>
-              <div className="text-lg sm:text-xl font-extrabold font-arabic leading-tight text-[#F5E6B3]" dir="rtl">
-                {hijri.formattedAr}
-              </div>
-              <span className="text-[9px] font-bold text-[#E6F4ED]">
-                {hijri.formattedMl}
+              <span className="text-xs font-extrabold  tracking-wider text-[#E6F4ED]">
+                Total Swalath
               </span>
+            </div>
+            <div className="text-3xl sm:text-5xl font-black tracking-tight leading-none animate-count-up text-white py-1">
+              {Number(totalEventCount).toLocaleString('en-IN')}
+            </div>
+            <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-[#D4AF37]">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Verified Activity</span>
             </div>
           </div>
 
           <Button
             onClick={() => navigate(user || authUser ? '/counter' : '/signup')}
-            className="relative z-10 w-full text-sm font-extrabold py-3.5 shadow-lg border border-[#D4AF37]/50 h-auto bg-[#D4AF37] text-[#07351F] hover:bg-[#E2BE46]"
+            className="relative z-10 w-full text-sm font-extrabold py-3.5 px-6 rounded-2xl shadow-xl border border-[#F5E6B3]/60 bg-gradient-to-r from-[#F5E6B3] via-[#D4AF37] to-[#E2BE46] text-[#07351F] hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 h-auto"
           >
-            <Plus className="w-5 h-5 stroke-[2.8] mr-1 text-[#07351F]" />
-            <span>Submit Salath</span>
-            <ChevronRight className="w-4 h-4 opacity-80 ml-auto" />
+            <div className="w-7 h-7 rounded-full bg-[#07351F]/15 flex items-center justify-center shrink-0">
+              <Plus className="w-4 h-4 stroke-[3] text-[#07351F]" />
+            </div>
+            <span className="tracking-wide text-base">Submit Salath</span>
           </Button>
         </div>
       </section>

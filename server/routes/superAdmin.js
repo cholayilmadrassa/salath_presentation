@@ -57,7 +57,7 @@ router.post('/tenants', async (req, res) => {
       ownerId: createdUser._id,
       branding: {
         title: name.trim(),
-        tagline: 'Event Organization Platform',
+        tagline: 'Organization',
         logoUrl: '',
         themeColor: '#4f46e5',
       },
