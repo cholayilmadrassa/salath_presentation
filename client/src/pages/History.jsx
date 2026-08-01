@@ -110,12 +110,6 @@ export default function HistoryPage() {
             </span>
           </div>
         </div>
-
-        <Button size="icon" asChild className="rounded-full">
-          <Link to="/dashboard">
-            <Plus className="w-5 h-5" />
-          </Link>
-        </Button>
       </div>
 
       {/* Horizontal Scrollable Calendar Date Bar */}

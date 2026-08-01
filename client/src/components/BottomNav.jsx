@@ -19,7 +19,7 @@ export default function BottomNav() {
   return (
     <>
       <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden pointer-events-none select-none">
-        <div className="relative backdrop-blur-xl shadow-2xl px-2 py-2.5 pointer-events-auto flex items-center justify-around safe-bottom bg-card/95 border-t border-border">
+        <div className="relative backdrop-blur-xl shadow-2xl px-2 pt-2 pb-1 pointer-events-auto flex items-center justify-around safe-bottom bg-card/95 border-t border-border">
           {/* 1. Home Tab */}
           <NavLink
             to="/"
