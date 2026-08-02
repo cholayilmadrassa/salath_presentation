@@ -215,6 +215,18 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </div>
                 )}
 
+                {pushState.permission === 'denied' && (
+                  <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg p-2.5 text-[11px] font-medium space-y-1">
+                    <div className="flex items-center gap-1 font-bold">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-destructive" />
+                      <span>Notification Permission Blocked</span>
+                    </div>
+                    <p className="leading-snug">
+                      ഈ ഡൊമെയ്‌നിൽ ബ്രൗസർ നോട്ടിഫിക്കേഷൻ ബ്ലോക്ക് ചെയ്തിരിക്കുകയാണ്. വിലാസപ്പട്ടയിലെ Lock/Tune ഐക്കൺ ക്ലിക്ക് ചെയ്ത് Notifications എന്നത് <b>Allow</b> ആക്കുക.
+                    </p>
+                  </div>
+                )}
+
                 {pushError && (
                   <div className="text-[11px] text-destructive font-medium bg-destructive/10 p-2 rounded-lg">
                     {pushError}

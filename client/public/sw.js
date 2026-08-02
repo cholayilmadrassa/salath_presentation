@@ -115,9 +115,19 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
-      .then(() => console.log('[SW NOTIFICATION SHOWN]:', title))
-      .catch((err) => console.error('[SW SHOW NOTIFICATION ERROR]:', err))
+    (async () => {
+      // Verify notification permission on the active origin
+      if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+        console.warn('[SW PUSH BLOCKED]: Notification permission is not granted on origin (' + Notification.permission + ')');
+        return;
+      }
+      try {
+        await self.registration.showNotification(title, options);
+        console.log('[SW NOTIFICATION SHOWN]:', title);
+      } catch (err) {
+        console.error('[SW SHOW NOTIFICATION ERROR]:', err.message || err);
+      }
+    })()
   );
 });
 
