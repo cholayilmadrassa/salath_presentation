@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { TenantProvider } from './context/TenantContext.jsx';
 import Navbar from './components/Navbar.jsx';
@@ -18,6 +18,17 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 
 import './styles.css';
+
+// Automatically scroll to the top of the view on every route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+}
 
 // Protected Route Component for Admin Pages (Tenant Admin & Super Admin)
 function AdminProtectedRoute({ children }) {
@@ -105,6 +116,7 @@ function SuperAdminWrapper() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <TenantProvider>
         <AuthProvider>
           <div className="min-h-screen pb-16 md:pb-0 bg-background text-foreground font-ml">

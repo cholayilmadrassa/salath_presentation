@@ -18,6 +18,8 @@ function generateToken(user, tenantIdOverride = null) {
     ? user.tenantId.toString()
     : null;
 
+  const isMember = user.role === 'member' || Boolean(user.isRegisteredMember);
+
   return jwt.sign(
     {
       userId: user._id.toString(),
@@ -25,6 +27,7 @@ function generateToken(user, tenantIdOverride = null) {
       tenantId: activeTenantId,
       name: user.name,
       email: user.email,
+      isRegisteredMember: isMember,
     },
     JWT_SECRET,
     { expiresIn: '7d' }
@@ -97,6 +100,7 @@ router.post('/register', async (req, res) => {
         existingUser.address = cleanAddress;
         existingUser.place = cleanAddress;
       }
+      existingUser.isRegisteredMember = true;
       await existingUser.save();
 
       // Register membership record for targetTenant
@@ -382,6 +386,47 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// POST /api/auth/enroll-member - Allow admin user to register as a campaign member
+router.post('/enroll-member', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.isRegisteredMember = true;
+    await user.save();
+
+    const targetTenantId = req.user.tenantId || user.tenantId;
+    if (targetTenantId) {
+      await Registration.findOneAndUpdate(
+        { tenantId: targetTenantId, userId: user._id },
+        { status: 'registered', data: { name: user.name, email: user.email } },
+        { upsert: true }
+      );
+    }
+
+    const token = generateToken(user, targetTenantId);
+
+    res.json({
+      message: 'Successfully registered as a campaign member!',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tenantId: targetTenantId,
+        phone: user.phone,
+        isRegisteredMember: true,
+      },
+    });
+  } catch (err) {
+    console.error('[ENROLL MEMBER ERROR]:', err);
+    res.status(500).json({ error: 'Failed to enroll as member' });
+  }
+});
+
 // GET /api/auth/me - Current user profile
 router.get('/me', requireAuth, async (req, res) => {
   try {
@@ -399,6 +444,8 @@ router.get('/me', requireAuth, async (req, res) => {
       tenant = req.tenant;
     }
 
+    const isMember = user.role === 'member' || Boolean(user.isRegisteredMember);
+
     res.json({
       user: {
         id: user._id,
@@ -409,6 +456,7 @@ router.get('/me', requireAuth, async (req, res) => {
         phone: user.phone,
         address: user.address || user.place,
         place: user.place || user.address,
+        isRegisteredMember: isMember,
       },
       tenant,
     });

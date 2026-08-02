@@ -174,4 +174,4 @@
 
 /* Mobile Safe Area Padding for notch & bottom home bar */
 .safe-top { padding-top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem)); }
-.safe-bottom { padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem)); }
+.safe-bottom { padding-bottom: max(1.25rem); }

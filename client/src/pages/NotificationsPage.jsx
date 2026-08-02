@@ -132,7 +132,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-3.5 safe-top pb-24 pt-3 sm:py-6 font-sans space-y-4">
+    <main className="max-w-xl mx-auto px-3.5 safe-top pb-10 pt-3 sm:py-6 font-sans space-y-4">
       {/* Page Header Bar */}
       <div className="flex items-center justify-between gap-3 pb-2 border-b border-border">
         <div className="flex items-center gap-2.5">

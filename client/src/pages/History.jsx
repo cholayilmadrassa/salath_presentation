@@ -103,7 +103,7 @@ export default function HistoryPage() {
   const overallTotal = allEntries.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
 
   return (
-    <main className="max-w-xl mx-auto px-4 safe-top pt-4 pb-16 md:py-6 space-y-5 font-sans min-h-screen">
+    <main className="max-w-xl mx-auto px-4 safe-top pt-4 pb-8 md:py-6 space-y-5 font-sans min-h-screen">
       {/* Top Mobile Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

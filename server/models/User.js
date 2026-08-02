@@ -28,12 +28,16 @@ const userSchema = new mongoose.Schema(
     place: { type: String, default: '', trim: true },
     notifiedMilestones: { type: [Number], default: [] },
     readNotifications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'NotificationHistory' }],
+    isRegisteredMember: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// Pre-validate hook enforcing tenantId-by-role rules
+// Pre-validate hook enforcing tenantId-by-role rules & member registration flag
 userSchema.pre('validate', function (next) {
+  if (this.role === 'member') {
+    this.isRegisteredMember = true;
+  }
   if (this.role === 'tenant_admin' && !this.tenantId) {
     this.invalidate('tenantId', 'tenantId is required for tenant_admin users.');
   }

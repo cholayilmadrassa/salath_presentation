@@ -13,11 +13,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { RotateCcw, Save, ArrowLeft, Sparkles, AlertTriangle } from 'lucide-react';
+import { RotateCcw, Save, ArrowLeft, Sparkles, AlertTriangle, UserCheck } from 'lucide-react';
 import { salathCountSchema } from '../schemas/validationSchemas.js';
 
 export default function Counter() {
-  const { token, user } = useAuth();
+  const { token, user, login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,6 +28,7 @@ export default function Counter() {
 
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
@@ -36,7 +37,30 @@ export default function Counter() {
     return null;
   }
 
+  const isAdmin = user?.role === 'tenant_admin' || user?.role === 'super_admin';
+  const isRegisteredMember = user?.role === 'member' || Boolean(user?.isRegisteredMember);
+
+  const handleEnrollMember = async () => {
+    setEnrolling(true);
+    setError('');
+    try {
+      const res = await api('/auth/enroll-member', { method: 'POST', token });
+      if (res && res.user) {
+        login(res.token || token, res.user);
+        setSuccessMsg('Successfully registered as a campaign member! You can now add Swalath counts.');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to register as member.');
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   const increment = () => {
+    if (isAdmin && !isRegisteredMember) {
+      setError('Admins must register as a campaign member before adding Swalath counts.');
+      return;
+    }
     if (count >= 100000) {
       setError('Single entry count cannot exceed 100,000 (1 Lakh)');
       return;
@@ -62,6 +86,10 @@ export default function Counter() {
   };
 
   const submitAsEntry = async () => {
+    if (isAdmin && !isRegisteredMember) {
+      setError('Admins must register as a campaign member before adding Swalath counts.');
+      return;
+    }
     if (count <= 0) {
       setError('Please tap the counter button to record at least 1 count before saving.');
       return;
@@ -90,7 +118,7 @@ export default function Counter() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-4 safe-top pb-16 md:py-6 flex flex-col font-sans min-h-screen select-none space-y-4">
+    <main className="max-w-xl mx-auto px-4 safe-top pb-10 md:pb-4 flex flex-col font-sans h-[calc(100dvh-4.2rem)] md:h-[calc(100vh-2rem)] select-none space-y-4 overflow-hidden">
       {/* Top Header Bar */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -145,7 +173,7 @@ export default function Counter() {
             type="button"
             variant="gold"
             onClick={submitAsEntry}
-            disabled={loading || count === 0}
+            disabled={loading || count === 0 || (isAdmin && !isRegisteredMember)}
             className="font-bold"
           >
             <Save className="w-4 h-4 mr-1.5" />
@@ -155,30 +183,54 @@ export default function Counter() {
       </div>
 
       {/* Feedback Messages */}
-      {error && <Alert variant="destructive">{error}</Alert>}
-      {successMsg && <Alert variant="success">{successMsg}</Alert>}
+      {error && <Alert variant="destructive" className="shrink-0">{error}</Alert>}
+      {successMsg && <Alert variant="success" className="shrink-0">{successMsg}</Alert>}
 
-      {/* Full View Light Background Tap Area */}
-      <div
-        onClick={increment}
-        className="w-full flex-1 min-h-[340px] rounded-2xl p-6 shadow-sm active:scale-[0.98] transition-all duration-100 flex flex-col items-center justify-center text-center cursor-pointer space-y-4 touch-manipulation bg-card border border-border text-foreground"
-      >
-        <div className="w-24 h-24 rounded-full bg-primary/15 shadow-md flex flex-col items-center justify-center gap-0.5 active:scale-90 transition border-2 border-primary text-primary">
-          <span className="text-3xl font-bold">+1</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">TAP</span>
+      {/* Full View Light Background Tap Area or Admin Member Registration Callout */}
+      {isAdmin && !isRegisteredMember ? (
+        <div className="w-full flex-1 min-h-0 rounded-2xl p-6 bg-amber-500/10 border border-amber-500/30 flex flex-col items-center justify-center text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 flex items-center justify-center">
+            <UserCheck className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-sm font-extrabold text-foreground">
+              മെമ്പർ രജിസ്ട്രേഷൻ ആവശ്യമാണ് / Member Registration Required
+            </h2>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              അഡ്മിനുകൾക്ക് ക്യാമ്പയിൻ മെമ്പറായി രജിസ്റ്റർ ചെയ്ത ശേഷമേ സ്വന്തം സ്വലാത്ത് എണ്ണങ്ങൾ സമർപ്പിക്കാൻ സാധിക്കൂ.
+            </p>
+          </div>
+          <Button
+            onClick={handleEnrollMember}
+            disabled={enrolling}
+            className="font-extrabold shadow-md bg-amber-600 hover:bg-amber-700 text-white active:scale-95 transition-all"
+          >
+            <UserCheck className="w-4 h-4 mr-1.5" />
+            <span>{enrolling ? 'അംഗമാകുന്നു...' : 'ക്യാമ്പയിൻ മെമ്പറായി രജിസ്റ്റർ ചെയ്യുക'}</span>
+          </Button>
         </div>
+      ) : (
+        <div
+          onClick={increment}
+          className="w-full flex-1 min-h-0 rounded-2xl p-6 shadow-sm active:scale-[0.98] transition-all duration-100 flex flex-col items-center justify-center text-center cursor-pointer space-y-3 touch-manipulation bg-card border border-border text-foreground overflow-hidden"
+        >
+          <div className="w-24 h-24 rounded-full bg-primary/15 shadow-md flex flex-col items-center justify-center gap-0.5 active:scale-90 transition border-2 border-primary text-primary shrink-0">
+            <span className="text-3xl font-bold">+1</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">TAP</span>
+          </div>
 
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold text-foreground">Tap Anywhere to Count</h2>
-          <p className="text-xs font-medium text-muted-foreground">
-            (TAP ANYWHERE IN THIS AREA TO COUNT +1)
-          </p>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-foreground">Tap Anywhere to Count</h2>
+            <p className="text-xs font-medium text-muted-foreground">
+              (TAP ANYWHERE IN THIS AREA TO COUNT +1)
+            </p>
+          </div>
+
+          <Badge variant="success" className="px-4 py-1.5 text-[11px] font-bold shrink-0">
+            +1 for each tap
+          </Badge>
         </div>
-
-        <Badge variant="success" className="px-4 py-1.5 text-[11px] font-bold">
-          +1 for each tap
-        </Badge>
-      </div>
+      )}
 
       {/* Reset Confirmation Dialog */}
       <Dialog open={showResetModal} onOpenChange={setShowResetModal}>

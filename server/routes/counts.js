@@ -84,7 +84,18 @@ router.post('/entry', auth, async (req, res) => {
     }
     const entryDate = date || todayKey();
     const userId = req.user.userId || req.user.id;
-    const tenantId = req.tenant ? req.tenant._id : (req.user.tenantId || null);
+    const dbUser = await User.findById(userId);
+
+    if (dbUser && (dbUser.role === 'tenant_admin' || dbUser.role === 'super_admin')) {
+      if (!dbUser.isRegisteredMember) {
+        return res.status(403).json({
+          message: 'Only registered campaign members can add counts. Please register as a campaign member first.',
+          code: 'MEMBER_REGISTRATION_REQUIRED',
+        });
+      }
+    }
+
+    const tenantId = req.tenant ? req.tenant._id : (req.user.tenantId || dbUser?.tenantId || null);
 
     const newEntry = await Count.create({
       user: userId,
@@ -116,7 +127,18 @@ router.post('/me/today', auth, async (req, res) => {
     }
     const date = todayKey();
     const userId = req.user.userId || req.user.id;
-    const tenantId = req.tenant ? req.tenant._id : (req.user.tenantId || null);
+    const dbUser = await User.findById(userId);
+
+    if (dbUser && (dbUser.role === 'tenant_admin' || dbUser.role === 'super_admin')) {
+      if (!dbUser.isRegisteredMember) {
+        return res.status(403).json({
+          message: 'Only registered campaign members can add counts. Please register as a campaign member first.',
+          code: 'MEMBER_REGISTRATION_REQUIRED',
+        });
+      }
+    }
+
+    const tenantId = req.tenant ? req.tenant._id : (req.user.tenantId || dbUser?.tenantId || null);
 
     const newEntry = await Count.create({
       user: userId,
