@@ -6,9 +6,13 @@ import Count from '../models/Count.js';
 import User from '../models/User.js';
 import { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } from '../config.js';
 
+const formattedSubject = (VAPID_SUBJECT && (VAPID_SUBJECT.startsWith('mailto:') || VAPID_SUBJECT.startsWith('http')))
+  ? VAPID_SUBJECT
+  : `mailto:${VAPID_SUBJECT }`;
+
 // Initialize web-push VAPID details
 try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  webpush.setVapidDetails(formattedSubject, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 } catch (e) {
   console.warn('[PUSH SERVICE]: VAPID setup warning:', e.message);
 }
@@ -48,7 +52,7 @@ export async function sendPushToSubscriptions(subscriptions, payload) {
     const options = {
       TTL: 86400,
       vapidDetails: {
-        subject: VAPID_SUBJECT || 'mailto:admin@swalath.online',
+        subject: formattedSubject,
         publicKey: VAPID_PUBLIC_KEY,
         privateKey: VAPID_PRIVATE_KEY,
       },

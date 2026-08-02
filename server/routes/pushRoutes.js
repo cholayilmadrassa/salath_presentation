@@ -13,6 +13,33 @@ router.get('/vapid-public-key', (_req, res) => {
   res.json({ publicKey: VAPID_PUBLIC_KEY });
 });
 
+// GET /api/push/debug - Diagnostic status endpoint to verify production push setup
+router.get('/debug', async (req, res) => {
+  try {
+    const totalSubs = await PushSubscription.countDocuments();
+    const activeSubs = await PushSubscription.countDocuments({ enabled: true });
+    const sampleSubs = await PushSubscription.find()
+      .limit(5)
+      .select('endpoint enabled failureCount createdAt lastSuccessAt userAgent');
+
+    res.json({
+      vapidPublicKeyConfigured: !!VAPID_PUBLIC_KEY,
+      vapidPublicKeyPrefix: VAPID_PUBLIC_KEY ? VAPID_PUBLIC_KEY.slice(0, 15) + '...' : 'NONE',
+      totalSubscriptionsInDB: totalSubs,
+      activeSubscriptionsInDB: activeSubs,
+      sampleEndpoints: sampleSubs.map((s) => ({
+        id: s._id,
+        host: new URL(s.endpoint).hostname,
+        enabled: s.enabled,
+        failureCount: s.failureCount,
+        lastSuccessAt: s.lastSuccessAt,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // All endpoints below require authentication
 router.use(requireAuth);
 
