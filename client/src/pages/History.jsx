@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api.js';
 import { Card, CardContent } from '@/components/ui/card';
@@ -53,6 +53,7 @@ export default function HistoryPage() {
   const [error, setError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const activeDateRef = useRef(null);
 
   const loadDayData = (dateStr) => {
     setLoading(true);
@@ -72,6 +73,16 @@ export default function HistoryPage() {
   useEffect(() => {
     loadDayData(selectedDate);
     loadAllHistory();
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (activeDateRef.current) {
+      activeDateRef.current.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
+    }
   }, [selectedDate]);
 
   const confirmDelete = async () => {
@@ -135,6 +146,7 @@ export default function HistoryPage() {
               return (
                 <button
                   key={d.fullDate}
+                  ref={isSelected ? activeDateRef : null}
                   onClick={() => setSelectedDate(d.fullDate)}
                   className={`flex flex-col items-center justify-center min-w-[44px] h-12 rounded-xl transition shrink-0 active:scale-95 ${isSelected
                       ? 'bg-primary text-primary-foreground font-extrabold shadow-sm'

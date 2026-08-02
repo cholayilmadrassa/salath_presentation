@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema(
     address: { type: String, default: '', trim: true },
     place: { type: String, default: '', trim: true },
     notifiedMilestones: { type: [Number], default: [] },
+    readNotifications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'NotificationHistory' }],
   },
   { timestamps: true }
 );

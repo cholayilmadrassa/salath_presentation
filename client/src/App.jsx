@@ -15,6 +15,7 @@ import AdminLogin from './pages/AdminLogin.jsx';
 import AdminPanel from './pages/AdminPanel.jsx';
 import EventTeamRegister from './pages/EventTeamRegister.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx';
 
 import './styles.css';
 
@@ -136,6 +137,14 @@ export default function App() {
                 element={
                   <MemberProtectedRoute>
                     <Counter />
+                  </MemberProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <MemberProtectedRoute>
+                    <NotificationsPage />
                   </MemberProtectedRoute>
                 }
               />

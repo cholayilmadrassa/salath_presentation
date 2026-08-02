@@ -123,7 +123,7 @@ router.get('/status', async (req, res) => {
   }
 });
 
-// GET /api/notifications/inbox - Fetch user notification inbox feed
+// GET /api/notifications/inbox - Fetch user notification inbox feed with read/unread status
 router.get('/inbox', async (req, res) => {
   try {
     const dbUser = await User.findById(req.user.userId);
@@ -138,15 +138,61 @@ router.get('/inbox', async (req, res) => {
       filter.$or.push({ tenantId });
     }
 
-    const notifications = await NotificationHistory.find(filter)
+    const rawNotifications = await NotificationHistory.find(filter)
       .select('title body url icon category createdAt sentAt targetType')
       .sort({ createdAt: -1 })
       .limit(30);
 
-    res.json(notifications);
+    const readSet = new Set((dbUser?.readNotifications || []).map((id) => id.toString()));
+
+    const notifications = rawNotifications.map((item) => {
+      const isRead = readSet.has(item._id.toString());
+      return {
+        ...item.toObject(),
+        isRead,
+      };
+    });
+
+    const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+    res.json({
+      notifications,
+      unreadCount,
+    });
   } catch (err) {
     console.error('[NOTIF INBOX ERROR]:', err);
     res.status(500).json({ error: 'Server error fetching notification inbox' });
+  }
+});
+
+// POST /api/notifications/mark-read - Mark notification(s) as read for current user
+router.post('/mark-read', async (req, res) => {
+  try {
+    const { notificationId, markAll } = req.body;
+    const userId = req.user.userId;
+
+    if (markAll) {
+      const dbUser = await User.findById(userId);
+      const tenantId = req.tenant ? req.tenant._id : (dbUser?.tenantId || req.user.tenantId || null);
+      const filter = { status: 'sent', $or: [{ targetType: 'all' }] };
+      if (tenantId) filter.$or.push({ tenantId });
+
+      const allSent = await NotificationHistory.find(filter).select('_id');
+      const allIds = allSent.map((n) => n._id);
+
+      await User.findByIdAndUpdate(userId, {
+        $addToSet: { readNotifications: { $each: allIds } },
+      });
+    } else if (notificationId) {
+      await User.findByIdAndUpdate(userId, {
+        $addToSet: { readNotifications: notificationId },
+      });
+    }
+
+    res.json({ message: 'Marked as read' });
+  } catch (err) {
+    console.error('[MARK READ ERROR]:', err);
+    res.status(500).json({ error: 'Server error marking notification as read' });
   }
 });
 

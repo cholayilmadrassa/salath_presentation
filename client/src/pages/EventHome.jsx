@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import {
-  Crown, Sparkles, Bell, ArrowUpRight, Star, Calendar, Award,
+  Crown, Sparkles, Settings, ArrowUpRight, Star, Calendar, Award,
   TrendingUp, Plus, Heart, Users, BookOpen, Flame, Moon,
   ChevronRight, Zap, Target
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
-import NotificationsModal from "../components/NotificationsModal.jsx";
+import SettingsModal from "../components/SettingsModal.jsx";
 
 function formatTitleCase(str) {
   if (!str) return '';
@@ -30,7 +30,7 @@ export default function EventHome() {
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const hijri = getHijriDate();
 
@@ -87,12 +87,11 @@ export default function EventHome() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setNotificationsOpen(true)}
-              className="rounded-2xl relative border-primary/30 active:scale-95 transition-transform"
-              aria-label="Notifications"
+              onClick={() => setSettingsOpen(true)}
+              className="rounded-2xl border-primary/30 active:scale-95 transition-transform"
+              aria-label="Settings"
             >
-              <Bell className="w-5 h-5 text-primary" />
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background bg-[#D4AF37] animate-pulse" />
+              <Settings className="w-5 h-5 text-primary" />
             </Button>
           </div>
         </div>
@@ -291,7 +290,7 @@ export default function EventHome() {
       </main>
 
       <Footer />
-      <NotificationsModal isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

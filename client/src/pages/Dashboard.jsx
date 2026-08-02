@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api.js';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Save, History, Plus, Bell, Star, Calendar } from 'lucide-react';
+import { Settings, Save, History, Plus, Star, Calendar } from 'lucide-react';
 import { salathCountSchema } from '../schemas/validationSchemas.js';
+import SettingsModal from '../components/SettingsModal.jsx';
 
 function todayKey() {
     const d = new Date();
@@ -17,14 +18,47 @@ function todayKey() {
     return `${yyyy}-${mm}-${dd}`;
 }
 
+const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function getCalendarDays() {
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        days.push({
+            fullDate: `${yyyy}-${mm}-${dd}`,
+            dayName: dayNames[d.getDay()],
+            dateNum: d.getDate(),
+            isToday: i === 0,
+        });
+    }
+    return days;
+}
+
 export default function Dashboard() {
     const { token, user } = useAuth();
     const [value, setValue] = useState('');
     const [items, setItems] = useState([]);
+    const [calendarDays] = useState(getCalendarDays());
     const [selectedDate, setSelectedDate] = useState(todayKey());
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
     const [loading, setLoading] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const activeDateRef = useRef(null);
+
+    useEffect(() => {
+        if (activeDateRef.current) {
+            activeDateRef.current.scrollIntoView({
+                behavior: 'smooth',
+                inline: 'center',
+                block: 'nearest',
+            });
+        }
+    }, [selectedDate]);
 
     const load = () =>
         api('/counts/me', { token })
@@ -113,35 +147,66 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <Button variant="outline" size="icon" className="rounded-full" aria-label="Notifications">
-                    <Bell className="w-4.5 h-4.5 text-primary" />
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setSettingsOpen(true)}
+                    className="rounded-full"
+                    aria-label="Settings"
+                >
+                    <Settings className="w-4.5 h-4.5 text-primary" />
                 </Button>
             </div>
 
+            <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
             {/* Date Picker Selector Bar */}
             <Card>
-                <CardContent className="p-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-foreground">
-                        <Calendar className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold">Date:</span>
+                <CardContent className="p-3 space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2 text-foreground">
+                            <Calendar className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-extrabold">Date Selector</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="text-[11px] font-bold px-2.5 py-1 rounded-xl border border-input bg-muted/10 text-foreground focus:outline-none"
+                            />
+                            {!isTodaySelected && (
+                                <Button
+                                    size="sm"
+                                    onClick={() => setSelectedDate(todayKey())}
+                                    className="h-7 text-[10px] px-2.5 rounded-lg font-bold"
+                                >
+                                    Today
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="text-xs font-bold px-3 py-1.5 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                        {!isTodaySelected && (
-                            <Button
-                                size="sm"
-                                onClick={() => setSelectedDate(todayKey())}
-                                className="h-7 text-[10px] px-2.5 rounded-lg font-bold"
-                            >
-                                Today
-                            </Button>
-                        )}
+                    {/* Scrollable Date Pills with Auto-centered Active Date */}
+                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
+                        {calendarDays.map((d) => {
+                            const isSelected = d.fullDate === selectedDate;
+                            return (
+                                <button
+                                    key={d.fullDate}
+                                    ref={isSelected ? activeDateRef : null}
+                                    onClick={() => setSelectedDate(d.fullDate)}
+                                    className={`flex flex-col items-center justify-center min-w-[44px] h-11 rounded-xl transition shrink-0 active:scale-95 ${isSelected
+                                        ? 'bg-primary text-primary-foreground font-extrabold shadow-sm'
+                                        : 'bg-muted/10 text-muted-foreground hover:bg-muted/20 font-bold border border-border'
+                                        }`}
+                                >
+                                    <span className="text-[9px] uppercase opacity-80">{d.dayName}</span>
+                                    <span className="text-xs font-extrabold">{d.dateNum}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </CardContent>
             </Card>

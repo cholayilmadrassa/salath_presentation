@@ -36,8 +36,7 @@
     --input: 111 25% 75%;
     --ring: 111 41% 39%;
 
-    /* Sleek radius for inputs and cards */
-    --radius: 0.5rem;
+    --radius: 0.85rem;
   }
 
   html {
@@ -45,15 +44,21 @@
     scroll-behavior: smooth;
     font-family: 'DM Sans', 'Noto Serif Malayalam', sans-serif;
     user-select: none;
+    -webkit-user-select: none;
+    overscroll-behavior-y: contain;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground antialiased font-sans font-normal;
     @apply selection:bg-primary selection:text-primary-foreground;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -70,58 +75,74 @@
   font-family: 'Cinzel Decorative', serif;
 }
 
-/* Legacy class compatibility */
+/* App-like Native Press & Glassmorphic Utilities */
+.app-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.dark .app-glass {
+  background: rgba(20, 30, 22, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.app-card {
+  @apply rounded-2xl bg-card text-card-foreground transition-all duration-200;
+  border: 1px solid hsl(var(--border) / 0.8);
+  box-shadow: 0 8px 24px -4px rgba(41, 110, 55, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.app-card:hover {
+  box-shadow: 0 12px 32px -4px rgba(41, 110, 55, 0.1), 0 4px 12px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* Button & Control Native App Touch Feedback */
 .btn {
-  @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-medium tracking-normal transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none min-h-[44px] touch-manipulation select-none cursor-pointer;
+  @apply inline-flex items-center justify-center px-4 py-2.5 rounded-2xl font-bold tracking-tight transition-all duration-150 active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none min-h-[44px] touch-manipulation select-none cursor-pointer;
 }
 
 .btn-primary {
-  @apply btn bg-gradient-to-r from-[#468B3A] to-[#296E37] text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.97] border border-white/20;
+  @apply btn bg-gradient-to-r from-[#468B3A] to-[#296E37] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] border border-white/20;
 }
 
 .btn-gold {
-  @apply btn bg-gradient-to-r from-[#7EC242] via-[#6EB240] to-[#468B3A] text-white font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] border border-white/30;
+  @apply btn bg-gradient-to-r from-[#7EC242] via-[#6EB240] to-[#468B3A] text-white font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] border border-white/30;
 }
 
 .btn-secondary {
-  @apply btn bg-gradient-to-r from-[#296E37] to-[#1E5229] text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.97] border border-white/15;
+  @apply btn bg-gradient-to-r from-[#296E37] to-[#1E5229] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] border border-white/15;
 }
 
 .btn-outline {
-  @apply btn bg-card hover:bg-primary/10 active:bg-primary/20 text-primary border border-primary/80 shadow-sm;
+  @apply btn bg-card hover:bg-primary/10 active:bg-primary/20 text-primary border border-primary/40 shadow-sm;
 }
 
 .input {
-  @apply w-full px-3.5 py-2.5 rounded-xl text-sm font-normal bg-card text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring/20;
-  border: 1px solid hsl(var(--input));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  @apply w-full px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-medium bg-card text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary/30 border border-input;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .input:focus {
   border-color: hsl(var(--ring));
 }
 
-.card {
-  @apply rounded-2xl p-5 bg-card text-card-foreground transition-all duration-200;
-  border: 1px solid hsl(var(--border));
-  box-shadow: 0 4px 16px rgba(41, 110, 55, 0.05);
-}
-
-/* Custom Scrollbar Hide */
+/* Custom Scrollbar Utilities */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Micro-animations */
+/* Micro-animations & Spring Physics */
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes fadeIn {
@@ -130,7 +151,7 @@
 }
 
 @keyframes countUp {
-  from { opacity: 0; transform: scale(0.8) translateY(6px); }
+  from { opacity: 0; transform: scale(0.85) translateY(6px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -141,16 +162,16 @@
 
 @keyframes pulseGlow {
   0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  50% { opacity: 0.85; }
 }
 
-.animate-slide-down { animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-down { animation: slideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .animate-slide-up { animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
-.animate-count-up { animation: countUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.22s ease-out forwards; }
+.animate-count-up { animation: countUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
 
-/* Compact Safe Area padding for Mobile (iPhone Notch & Dynamic Island) */
-.safe-top { padding-top: max(1.25rem, calc(env(safe-area-inset-top) + 0.5rem)); }
-.safe-bottom { padding-bottom: max(0.25rem, env(safe-area-inset-bottom)); }
+/* Mobile Safe Area Padding for notch & bottom home bar */
+.safe-top { padding-top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem)); }
+.safe-bottom { padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem)); }
