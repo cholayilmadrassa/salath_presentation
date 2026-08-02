@@ -9,14 +9,75 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { LogOut, MapPin, Phone, ShieldCheck, LogIn, UserPlus, Download, Share } from 'lucide-react';
+import { LogOut, MapPin, Phone, ShieldCheck, LogIn, UserPlus, Download, Share, Bell, AlertCircle } from 'lucide-react';
+import { api } from '../api.js';
+import {
+  subscribeUserToPush,
+  unsubscribeUserFromPush,
+  getPushSubscriptionState,
+} from '../utils/pushManager.js';
 
 export default function SettingsModal({ isOpen, onClose }) {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const navigate = useNavigate();
   const isAdmin = sessionStorage.getItem('isAdmin') === '1' || user?.role === 'tenant_admin' || user?.role === 'super_admin';
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
+
+  const [pushState, setPushState] = useState({ isSubscribed: false, isIOS: false, isStandalone: true });
+  const [preferences, setPreferences] = useState(null);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError] = useState('');
+
+  useEffect(() => {
+    if (isOpen && token) {
+      getPushSubscriptionState(token).then((res) => {
+        setPushState(res);
+        if (res.preferences) {
+          setPreferences(res.preferences);
+        }
+      });
+    }
+  }, [isOpen, token]);
+
+  const togglePushSubscription = async () => {
+    setPushLoading(true);
+    setPushError('');
+    try {
+      if (pushState.isSubscribed) {
+        await unsubscribeUserFromPush(token);
+        setPushState((prev) => ({ ...prev, isSubscribed: false }));
+      } else {
+        await subscribeUserToPush(token);
+        const res = await getPushSubscriptionState(token);
+        setPushState(res);
+        if (res.preferences) setPreferences(res.preferences);
+      }
+    } catch (err) {
+      if (err.message === 'IOS_PWA_REQUIRED') {
+        setShowGuide(true);
+      } else {
+        setPushError(err.message || 'Push subscription failed.');
+      }
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const updatePreference = async (key, val) => {
+    if (!token) return;
+    const updated = { ...preferences, [key]: val };
+    setPreferences(updated);
+    try {
+      await api('/notifications/preferences', {
+        method: 'PATCH',
+        token,
+        body: { [key]: val },
+      });
+    } catch (e) {
+      console.error('Failed to update preference:', e);
+    }
+  };
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -114,6 +175,77 @@ export default function SettingsModal({ isOpen, onClose }) {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Web Push Notifications Settings */}
+              <div className="bg-card border border-border rounded-xl p-3.5 space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Bell className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-foreground">Push Notifications</h4>
+                      <span className="text-[10px] text-muted-foreground block">
+                        {pushState.isSubscribed ? 'Notifications Enabled' : 'Notifications Disabled'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant={pushState.isSubscribed ? 'outline' : 'default'}
+                    disabled={pushLoading}
+                    onClick={togglePushSubscription}
+                    className="h-8 text-xs font-bold px-3"
+                  >
+                    {pushLoading ? 'Saving...' : pushState.isSubscribed ? 'Disable' : 'Enable'}
+                  </Button>
+                </div>
+
+                {pushState.isIOS && !pushState.isStandalone && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-2.5 text-[11px] font-medium space-y-1">
+                    <div className="flex items-center gap-1 font-bold text-amber-800">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>iOS Setup Required</span>
+                    </div>
+                    <p className="leading-snug">
+                      നോട്ടിഫിക്കേഷൻ ലഭിക്കാൻ ആദ്യം ഈ ആപ്പ് Home Screen-ലേക്ക് Add ചെയ്യുക (Safari Share → Add to Home Screen).
+                    </p>
+                  </div>
+                )}
+
+                {pushError && (
+                  <div className="text-[11px] text-destructive font-medium bg-destructive/10 p-2 rounded-lg">
+                    {pushError}
+                  </div>
+                )}
+
+                {/* Granular Preference Toggles */}
+                {pushState.isSubscribed && preferences && (
+                  <div className="pt-2 border-t border-border space-y-2">
+                    <span className="text-[11px] font-extrabold text-foreground block">Notification Preferences:</span>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      {[
+                        { key: 'dailyReminders', label: 'Daily Reminders' },
+                        { key: 'milestones', label: 'Milestones' },
+                        { key: 'campaignAnnouncements', label: 'Campaign Info' },
+                        { key: 'results', label: 'Result Updates' },
+                      ].map((item) => (
+                        <label key={item.key} className="flex items-center gap-1.5 cursor-pointer font-medium text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={!!preferences[item.key]}
+                            onChange={(e) => updatePreference(item.key, e.target.checked)}
+                            className="rounded border-input text-primary focus:ring-primary h-3.5 w-3.5"
+                          />
+                          <span>{item.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Install App Button */}

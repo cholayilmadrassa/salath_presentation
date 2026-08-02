@@ -1,6 +1,7 @@
 import express from 'express';
 import Count from '../models/Count.js';
 import { auth } from '../middleware/auth.js';
+import { triggerMilestone } from '../services/pushNotificationService.js';
 
 const router = express.Router();
 
@@ -10,6 +11,18 @@ function todayKey() {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
+}
+
+async function checkUserMilestone(userId, tenantId) {
+  try {
+    const filter = { user: userId };
+    if (tenantId) filter.tenantId = tenantId;
+    const userCounts = await Count.find(filter);
+    const totalUserCount = userCounts.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+    triggerMilestone(userId, tenantId, totalUserCount);
+  } catch (e) {
+    console.error('[MILESTONE CHECK ERROR]:', e);
+  }
 }
 
 // 1. Create a new count entry (multiple entries per day allowed!)
@@ -24,13 +37,20 @@ router.post('/entry', auth, async (req, res) => {
       return res.status(400).json({ message: 'Single entry count cannot exceed 100,000 (1 Lakh)' });
     }
     const entryDate = date || todayKey();
+    const userId = req.user.userId || req.user.id;
+    const tenantId = req.tenant ? req.tenant._id : (req.user.tenantId || null);
+
     const newEntry = await Count.create({
-      user: req.user.userId || req.user.id,
-      tenantId: req.tenant ? req.tenant._id : null,
+      user: userId,
+      tenantId,
       date: entryDate,
       value: numValue,
       note: note || '',
     });
+
+    // Asynchronous milestone check
+    checkUserMilestone(userId, tenantId);
+
     res.status(201).json(newEntry);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -49,13 +69,20 @@ router.post('/me/today', auth, async (req, res) => {
       return res.status(400).json({ message: 'Single entry count cannot exceed 100,000 (1 Lakh)' });
     }
     const date = todayKey();
+    const userId = req.user.userId || req.user.id;
+    const tenantId = req.tenant ? req.tenant._id : (req.user.tenantId || null);
+
     const newEntry = await Count.create({
-      user: req.user.userId || req.user.id,
-      tenantId: req.tenant ? req.tenant._id : null,
+      user: userId,
+      tenantId,
       date,
       value: numValue,
       note: note || '',
     });
+
+    // Asynchronous milestone check
+    checkUserMilestone(userId, tenantId);
+
     res.json(newEntry);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });

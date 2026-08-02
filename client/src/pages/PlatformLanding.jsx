@@ -13,6 +13,7 @@ import Footer from "../components/Footer.jsx";
 
 export default function PlatformLanding() {
   const [totalEventCount, setTotalEventCount] = useState(0);
+  const [totalMemberCount, setTotalMemberCount] = useState(0);
   const [approvedEvents, setApprovedEvents] = useState([]);
 
 
@@ -30,6 +31,7 @@ export default function PlatformLanding() {
         if (Array.isArray(allRows)) {
           const sum = allRows.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
           setTotalEventCount(sum);
+          setTotalMemberCount(allRows.length);
         }
       })
       .catch(() => { });

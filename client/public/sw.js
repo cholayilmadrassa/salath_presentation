@@ -33,11 +33,13 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Bypass API requests, Vite dev modules, and browser extensions
+  // Bypass API requests, Vite dev modules, node_modules, HMR, and browser extensions
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/@') ||
     url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/node_modules/') ||
+    url.pathname.includes('hot-update') ||
     url.protocol === 'chrome-extension:'
   ) {
     return;
@@ -73,6 +75,64 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       });
+    })
+  );
+});
+
+/* ──────── WEB PUSH NOTIFICATION HANDLERS ──────── */
+
+self.addEventListener('push', (event) => {
+  console.log('[SW PUSH EVENT RECEIVED]: Triggered by push server');
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+      console.log('[SW PUSH DATA PARSED]:', data);
+    } catch (e) {
+      data = { title: 'സ്വലാത്ത് ഓർമ്മപ്പെടുത്തൽ', body: event.data.text() };
+    }
+  } else {
+    data = { title: 'സ്വലാത്ത് ഓർമ്മപ്പെടുത്തൽ', body: 'പുതിയ വിവരങ്ങൾ ലഭ്യമാണ്' };
+  }
+
+  const title = data.title || 'സ്വലാത്ത് ആപ്പ്';
+  const options = {
+    body: data.body || 'ക്ലിക്ക് ചെയ്ത് കൂടുതൽ അറിയാം',
+    icon: data.icon || '/appLogo.png',
+    badge: '/appLogo.png',
+    vibrate: [100, 50, 100],
+    data: {
+      url: data.url || '/dashboard',
+      timestamp: Date.now(),
+    },
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+      .then(() => console.log('[SW NOTIFICATION SHOWN]:', title))
+      .catch((err) => console.error('[SW SHOW NOTIFICATION ERROR]:', err))
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url && 'focus' in client) {
+          client.focus();
+          if ('navigate' in client) {
+            return client.navigate(targetUrl);
+          }
+          return;
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     })
   );
 });

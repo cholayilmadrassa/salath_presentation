@@ -13,9 +13,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { ShieldCheck, CheckCircle, PlusCircle, ExternalLink, AlertCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle, PlusCircle, ExternalLink, AlertCircle, Bell, Building2 } from 'lucide-react';
 import { superAdminTenantSchema } from '../schemas/validationSchemas.js';
-  const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import AdminNotificationsTab from '../components/AdminNotificationsTab.jsx';
+
+const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN
 
 export default function SuperAdminDashboard({ token, onLogout }) {
   const [tenants, setTenants] = useState([]);
@@ -264,119 +267,141 @@ export default function SuperAdminDashboard({ token, onLogout }) {
           </DialogContent>
         </Dialog>
 
-        {/* Filter Controls */}
-        <Card>
-          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-medium uppercase text-muted-foreground">Filter Status:</span>
-              {['', 'pending', 'approved', 'rejected', 'suspended'].map((st) => (
-                <Button
-                  key={st}
-                  type="button"
-                  variant={statusFilter === st ? "default" : "soft"}
-                  size="sm"
-                  onClick={() => setStatusFilter(st)}
-                  className="capitalize h-8 text-xs px-3"
-                >
-                  {st === '' ? 'All Subdomains' : st}
-                </Button>
-              ))}
-            </div>
-            <div className="text-xs font-medium text-muted-foreground">
-              Total Event Subdomains: <strong className="text-foreground font-semibold">{tenants.length}</strong>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Tabs Component for Super Admin */}
+        <Tabs defaultValue="subdomains" className="space-y-6">
+          <TabsList className="w-full justify-start border-b border-border pb-px">
+            <TabsTrigger value="subdomains" className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" />
+              <span>Event Subdomains</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="w-4 h-4 text-primary" />
+              <span>Broadcast Push Notifications</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Tenants List */}
-        {loading ? (
-          <div className="text-center py-16 text-muted-foreground font-normal">Loading event subdomains...</div>
-        ) : tenants.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-16 text-xs font-normal text-muted-foreground">
-              No event subdomains found matching criteria.
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {tenants.map((t) => (
-              <Card key={t._id}>
-                <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-base font-bold text-foreground">{t.name}</h2>
-                      <a
-                        href={`http://${t.slug}.${rootDomain}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1 hover:underline bg-muted/10 text-secondary"
-                      >
-                        <span>{t.slug}.{rootDomain}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                      <Badge
-                        variant={t.status === 'approved' ? 'success' : t.status === 'pending' ? 'warning' : 'destructive'}
-                        className="uppercase"
-                      >
-                        {t.status === 'pending' ? '⏳ Pending Approval' : t.status}
-                      </Badge>
-                    </div>
+          {/* TAB 1: SUBDOMAINS MANAGEMENT */}
+          <TabsContent value="subdomains" className="space-y-6">
+            {/* Filter Controls */}
+            <Card>
+              <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-medium uppercase text-muted-foreground">Filter Status:</span>
+                  {['', 'pending', 'approved', 'rejected', 'suspended'].map((st) => (
+                    <Button
+                      key={st}
+                      type="button"
+                      variant={statusFilter === st ? "default" : "soft"}
+                      size="sm"
+                      onClick={() => setStatusFilter(st)}
+                      className="capitalize h-8 text-xs px-3"
+                    >
+                      {st === '' ? 'All Subdomains' : st}
+                    </Button>
+                  ))}
+                </div>
+                <div className="text-xs font-medium text-muted-foreground">
+                  Total Event Subdomains: <strong className="text-foreground font-semibold">{tenants.length}</strong>
+                </div>
+              </CardContent>
+            </Card>
 
-                    <div className="text-xs space-x-4 pt-1 font-medium text-muted-foreground">
-                      <span>
-                        Admin: <strong className="text-foreground">{t.ownerId?.name || 'N/A'}</strong> ({t.ownerId?.email || 'N/A'})
-                      </span>
-                      <span>
-                        Registered: {new Date(t.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center space-x-2 self-start md:self-auto">
-                    {t.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => handleApprove(t._id)}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          <span>Approve Subdomain</span>
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleReject(t._id)}
-                        >
-                          Reject
-                        </Button>
-                      </>
-                    )}
-
-                    {t.status === 'approved' && (
-                      <Button
-                        variant="soft"
-                        size="sm"
-                        onClick={() => handleSuspend(t._id)}
-                      >
-                        Suspend Subdomain
-                      </Button>
-                    )}
-
-                    {t.status === 'suspended' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(t._id)}
-                      >
-                        Re-Approve Subdomain
-                      </Button>
-                    )}
-                  </div>
+            {/* Tenants List */}
+            {loading ? (
+              <div className="text-center py-16 text-muted-foreground font-normal">Loading event subdomains...</div>
+            ) : tenants.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-16 text-xs font-normal text-muted-foreground">
+                  No event subdomains found matching criteria.
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {tenants.map((t) => (
+                  <Card key={t._id}>
+                    <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-base font-bold text-foreground">{t.name}</h2>
+                          <a
+                            href={`http://${t.slug}.${rootDomain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1 hover:underline bg-muted/10 text-secondary"
+                          >
+                            <span>{t.slug}.{rootDomain}</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                          <Badge
+                            variant={t.status === 'approved' ? 'success' : t.status === 'pending' ? 'warning' : 'destructive'}
+                            className="uppercase"
+                          >
+                            {t.status === 'pending' ? '⏳ Pending Approval' : t.status}
+                          </Badge>
+                        </div>
+
+                        <div className="text-xs space-x-4 pt-1 font-medium text-muted-foreground">
+                          <span>
+                            Admin: <strong className="text-foreground">{t.ownerId?.name || 'N/A'}</strong> ({t.ownerId?.email || 'N/A'})
+                          </span>
+                          <span>
+                            Registered: {new Date(t.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center space-x-2 self-start md:self-auto">
+                        {t.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(t._id)}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              <span>Approve Subdomain</span>
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleReject(t._id)}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+
+                        {t.status === 'approved' && (
+                          <Button
+                            variant="soft"
+                            size="sm"
+                            onClick={() => handleSuspend(t._id)}
+                          >
+                            Suspend Subdomain
+                          </Button>
+                        )}
+
+                        {t.status === 'suspended' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(t._id)}
+                          >
+                            Re-Approve Subdomain
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* TAB 2: BROADCAST NOTIFICATIONS */}
+          <TabsContent value="notifications">
+            <AdminNotificationsTab token={token} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

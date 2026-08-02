@@ -10,8 +10,9 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ShieldCheck, Search, Globe, Palette, Users, AlertCircle, Copy, Check, BarChart3, Trophy, ArrowUpDown } from 'lucide-react';
+import { ShieldCheck, Search, Globe, Palette, Users, AlertCircle, Copy, Check, BarChart3, Trophy, ArrowUpDown, Bell } from 'lucide-react';
 import { brandingSchema, customDomainSchema } from '../schemas/validationSchemas.js';
+import AdminNotificationsTab from '../components/AdminNotificationsTab.jsx';
 
 export default function AdminPanel() {
   const { token, user, authenticating } = useAuth();
@@ -282,6 +283,10 @@ export default function AdminPanel() {
             <Users className="w-4 h-4 text-primary" />
             <span>Members ({users.length})</span>
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-primary" />
+            <span>Notifications</span>
+          </TabsTrigger>
           <TabsTrigger value="branding" className="flex items-center gap-2">
             <Palette className="w-4 h-4 text-primary" />
             <span>Branding</span>
@@ -542,6 +547,11 @@ export default function AdminPanel() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ──────── TAB 5: NOTIFICATION MANAGEMENT ──────── */}
+        <TabsContent value="notifications">
+          <AdminNotificationsTab token={token} tenant={tenant} />
         </TabsContent>
       </Tabs>
     </main>

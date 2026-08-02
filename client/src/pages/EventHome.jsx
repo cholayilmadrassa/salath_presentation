@@ -14,6 +14,7 @@ import {
   ChevronRight, Zap, Target
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
+import NotificationsModal from "../components/NotificationsModal.jsx";
 
 function formatTitleCase(str) {
   if (!str) return '';
@@ -29,6 +30,7 @@ export default function EventHome() {
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const hijri = getHijriDate();
 
@@ -82,9 +84,15 @@ export default function EventHome() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="rounded-2xl relative border-primary/30" aria-label="Notifications">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setNotificationsOpen(true)}
+              className="rounded-2xl relative border-primary/30 active:scale-95 transition-transform"
+              aria-label="Notifications"
+            >
               <Bell className="w-5 h-5 text-primary" />
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background bg-[#D4AF37]" />
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background bg-[#D4AF37] animate-pulse" />
             </Button>
           </div>
         </div>
@@ -283,6 +291,7 @@ export default function EventHome() {
       </main>
 
       <Footer />
+      <NotificationsModal isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
     </div>
   );
 }

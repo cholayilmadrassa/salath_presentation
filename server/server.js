@@ -13,7 +13,10 @@ import tenantAdminRoutes from './routes/tenantAdmin.js';
 import memberRoutes from './routes/member.js';
 import countsRoutes from './routes/counts.js';
 import legacyAdminRoutes from './routes/admin.js';
+import pushRoutes from './routes/pushRoutes.js';
+import notificationAdminRoutes from './routes/notificationAdminRoutes.js';
 import { seedSuperAdmin } from './utils/seedSuperAdmin.js';
+import { initNotificationScheduler } from './services/notificationScheduler.js';
 
 // Process Error Handlers
 process.on('uncaughtException', (err) => console.error('[UNCAUGHT EXCEPTION]:', err));
@@ -85,9 +88,12 @@ app.get('/', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/super-admin', superAdminRoutes);
+app.use('/api/admin/notifications', notificationAdminRoutes);
 app.use('/api/admin', tenantAdminRoutes);
 app.use('/api/events', memberRoutes);
 app.use('/api/counts', countsRoutes);
+app.use('/api/push', pushRoutes);
+app.use('/api/notifications', pushRoutes);
 app.use('/api/legacy-admin', legacyAdminRoutes);
 
 // Global 404 Handler
@@ -140,6 +146,7 @@ async function bootstrap() {
   try {
     await connectDatabase();
     await seedSuperAdmin();
+    initNotificationScheduler();
     startListener(PORT);
   } catch (err) {
     console.error('[STARTUP ERROR]: Could not connect to MongoDB.', err.message);

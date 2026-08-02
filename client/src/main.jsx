@@ -10,22 +10,15 @@ window.addEventListener('beforeinstallprompt', (e) => {
   window.dispatchEvent(new Event('pwa-install-available'));
 });
 
-// Register PWA Service Worker (Production Mode Only)
+// Register PWA Service Worker
 if ('serviceWorker' in navigator) {
-  if (import.meta.env.PROD) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
-        console.warn('SW registration failed:', err);
-      });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      console.log('SW active for Web Push:', reg.scope);
+    }).catch((err) => {
+      console.warn('SW registration failed:', err);
     });
-  } else {
-    // Unregister development service worker to prevent Vite module MIME type errors
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      for (const registration of registrations) {
-        registration.unregister();
-      }
-    });
-  }
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
