@@ -11,15 +11,59 @@ import {
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
 
+function DigitCountTicker({ value, isLoading, textColor = 'text-[#D4AF37]' }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) {
+      const target = Number(value) || 0;
+      if (target === 0) {
+        setDisplayValue(0);
+        return;
+      }
+      const duration = 1200;
+      const startTime = performance.now();
+
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        setDisplayValue(Math.floor(easeProgress * target));
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    }
+  }, [value, isLoading]);
+
+  if (isLoading) {
+    return (
+      <span className={`text-2xl sm:text-3xl font-black ${textColor} opacity-30 animate-pulse font-mono tracking-wider select-none`}>
+        00,000,000
+      </span>
+    );
+  }
+
+  return (
+    <span className={`text-2xl sm:text-3xl font-black ${textColor} font-mono`}>
+      {displayValue.toLocaleString('en-IN')}
+    </span>
+  );
+}
+
 export default function PlatformLanding() {
   const [totalEventCount, setTotalEventCount] = useState(0);
   const [totalMemberCount, setTotalMemberCount] = useState(0);
   const [approvedEvents, setApprovedEvents] = useState([]);
-
+  const [loading, setLoading] = useState(true);
 
   const hijri = getHijriDate();
 
   useEffect(() => {
+    setLoading(true);
     api('/events/public-approved')
       .then((res) => {
         if (Array.isArray(res)) setApprovedEvents(res);
@@ -34,7 +78,8 @@ export default function PlatformLanding() {
           setTotalMemberCount(allRows.length);
         }
       })
-      .catch(() => { });
+      .catch(() => { })
+      .finally(() => setLoading(false));
   }, []);
 
   const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN
@@ -43,57 +88,57 @@ export default function PlatformLanding() {
   return (
     <div className="min-h-screen flex flex-col pb-16 md:pb-0 font-ml">
       {/* Platform Top Bar */}
-      <header className="sticky top-0 z-30 px-4 py-2.5 backdrop-blur-lg border-b border-border safe-top bg-background/95">
+      <header className="sticky top-0 z-30 px-4 py-3 bg-background/90 backdrop-blur-md border-b border-border">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <img
               src="/appLogo.png"
-              alt="Swalath Portal"
-              className="w-10 h-10 rounded-2xl object-cover shadow-md shrink-0 border border-primary/20"
+              alt="Platform Logo"
+              className="w-10 h-10 rounded-2xl object-cover shadow-sm border border-primary/20"
             />
             <div>
-              <h1 className="font-extrabold text-base leading-none text-foreground">
-                സ്വലാത്ത് ക്യാമ്പയിൻ
+              <h1 className="font-extrabold text-sm leading-tight text-foreground">
+                സ്വലാത്ത് പോർട്ടൽ
               </h1>
-              <span className="text-[10px] font-semibold text-muted-foreground">
-                Multi-Tenant Event Platform
-              </span>
+              <p className="text-[10px] text-muted-foreground font-semibold">
+                Salath Campaign Network
+              </p>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2">
-            <Button variant="soft" size="sm" asChild>
-              <Link to="/login">Login</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/register-team">
-                <Building2 className="w-3.5 h-3.5 mr-1" />
-                <span>Event Register</span>
-              </Link>
-            </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/admin">
+              <Button variant="outline" size="sm" className="rounded-xl font-bold text-xs">
+                Admin Portal
+              </Button>
+            </Link>
+            <Link to="/register-team">
+              <Button size="sm" className="rounded-xl font-bold text-xs shadow-md">
+                Register Event
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Main Marketing Hero Banner */}
-      <section className="px-4 pt-8 pb-6 max-w-5xl mx-auto w-full">
-        <div
-          className="text-white rounded-[32px] p-6 sm:p-10 shadow-2xl relative overflow-hidden text-center space-y-6 bg-gradient-to-br from-[#296E37] via-[#468B3A] to-[#7EC242] border border-white/20"
-        >
-          {/* Decorative glows */}
-          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl pointer-events-none bg-[#D4AF37]/20" />
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-3xl pointer-events-none bg-primary/20" />
+      {/* Main Platform Hero Banner */}
+      <section className="px-4 py-8 max-w-5xl mx-auto w-full text-center">
+        <div className="text-white rounded-[32px] p-6 sm:p-10 shadow-2xl relative overflow-hidden bg-gradient-to-br from-[#296E37] via-[#468B3A] to-[#7EC242] border border-white/20 space-y-6">
+          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl pointer-events-none animate-pulse-glow bg-[#D4AF37]/20" />
+          <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-3xl pointer-events-none animate-pulse-glow bg-primary/20" />
 
-          <Badge variant="muted" className="bg-black/25 backdrop-blur-md border-[#D4AF37]/40 text-[#F5E6B3] gap-2 py-1.5 px-4 text-xs font-extrabold uppercase tracking-wider mx-auto">
-            <Sparkles className="w-4 h-4 text-[#D4AF37] animate-spin" />
-            <span>ഡിജിറ്റൽ സ്വലാത്ത് ഏകോപന പ്രസ്ഥാനം</span>
-          </Badge>
+          <div className="inline-flex items-center gap-2 bg-black/25 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 text-xs font-bold text-[#F5E6B3]">
+            <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <span>പ്രവാചക പ്രകീർത്തന കാമ്പയിനുകൾ</span>
+          </div>
 
-          <div className="max-w-2xl mx-auto space-y-3">
-            <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight text-white font-ml">
-              നിങ്ങളുടെ സ്വന്തം നാട്ടിൽ ഒരു <span className="text-[#FFFF00]">സ്വലാത്ത് ക്യാമ്പയിൻ</span> നടത്തിയാലോ<span className="text-[#FFFF00]">?</span></h1>
-            <p className="text-sm sm:text-base font-medium leading-relaxed text-[#E6F4ED]">
-              സംഘടനകൾക്കും മഹല്ല് കമ്മിറ്റികൾക്കും കാമ്പയിൻ ടീമുകൾക്കും അവരുടെ പ്രവർത്തനങ്ങൾ കൂടുതൽ എളുപ്പത്തിലും കാര്യക്ഷമമായും നടത്താൻ സ്വന്തം ഓൺലൈൻ പോർട്ടൽ — തത്സമയ കൗണ്ട് , ടോപ്പ് സ്കോർ , വിവരശേഖരണം തുടങ്ങി ആവശ്യമായ എല്ലാം ഒരിടത്ത്.            </p>
+          <div className="space-y-2 max-w-2xl mx-auto">
+            <h1 className="text-3xl sm:text-5xl font-black leading-tight text-white tracking-tight">
+              സ്വലാത്തുകൾ ക്രമീകരിക്കാം, ഒരുമിച്ച് ലക്ഷ്യത്തിലെത്താം
+            </h1>
+            <p className="text-sm sm:text-base font-medium text-[#E6F4ED] max-w-lg mx-auto">
+              വിവിധ മഹല്ലുകൾക്കും സ്ഥാപനങ്ങൾക്കുമായി സജ്ജീകരിച്ച ഡിജിറ്റൽ സ്വലാത്ത് പോർട്ടൽ ശൃംഖല.
+            </p>
           </div>
 
           {/* Total Counter Summary */}
@@ -102,9 +147,7 @@ export default function PlatformLanding() {
               <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
                 Total Swalath Count
               </span>
-              <span className="text-2xl sm:text-3xl font-black text-[#D4AF37]">
-                {Number(totalEventCount).toLocaleString('en-IN')}
-              </span>
+              <DigitCountTicker value={totalEventCount} isLoading={loading} textColor="text-[#D4AF37]" />
             </div>
 
             <div className="w-px h-8 bg-white/20 hidden sm:block" />
@@ -113,9 +156,7 @@ export default function PlatformLanding() {
               <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
                 Registered Members
               </span>
-              <span className="text-2xl sm:text-3xl font-black text-white">
-                {Number(totalMemberCount).toLocaleString('en-IN')}
-              </span>
+              <DigitCountTicker value={totalMemberCount} isLoading={loading} textColor="text-white" />
             </div>
 
             <div className="w-px h-8 bg-white/20 hidden sm:block" />

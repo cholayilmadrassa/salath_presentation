@@ -21,6 +21,51 @@ function formatTitleCase(str) {
   return String(str).toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function DigitCountTicker({ value, isLoading }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) {
+      const target = Number(value) || 0;
+      if (target === 0) {
+        setDisplayValue(0);
+        return;
+      }
+      const duration = 1200;
+      const startTime = performance.now();
+
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        setDisplayValue(Math.floor(easeProgress * target));
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    }
+  }, [value, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="py-1 font-mono flex items-center justify-center">
+        <span className="text-3xl sm:text-5xl font-black text-white/30 animate-pulse tracking-wider select-none font-mono">
+          00,000,000
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-white py-1 font-mono">
+      {displayValue.toLocaleString('en-IN')}
+    </div>
+  );
+}
+
 export default function EventHome() {
   const { activeTenant } = useTenant();
   const { user: authUser } = useAuth();
@@ -124,13 +169,13 @@ export default function EventHome() {
               <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#D4AF37]/25">
                 <Award className="w-4 h-4 text-[#D4AF37]" />
               </div>
-              <span className="text-xs font-extrabold  tracking-wider text-[#E6F4ED]">
+              <span className="text-xs font-extrabold tracking-wider text-[#E6F4ED]">
                 Total Swalath
               </span>
             </div>
-            <div className="text-3xl sm:text-5xl font-black tracking-tight leading-none animate-count-up text-white py-1">
-              {Number(totalEventCount).toLocaleString('en-IN')}
-            </div>
+
+            <DigitCountTicker value={totalEventCount} isLoading={loading} />
+
             <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-[#D4AF37]">
               <TrendingUp className="w-3.5 h-3.5" />
               <span>Verified Activity</span>
