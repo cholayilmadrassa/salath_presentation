@@ -1,6 +1,5 @@
 import express from 'express';
 import PushSubscription from '../models/PushSubscription.js';
-import NotificationPreference from '../models/NotificationPreference.js';
 import NotificationHistory from '../models/NotificationHistory.js';
 import User from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -74,13 +73,6 @@ router.post('/subscribe', async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Initialize default notification preferences if not existing
-    await NotificationPreference.findOneAndUpdate(
-      { userId },
-      { $setOnInsert: { userId } },
-      { upsert: true }
-    );
-
     res.status(201).json({
       message: 'Push notification subscription saved successfully',
       subscriptionId: subscription._id,
@@ -122,58 +114,12 @@ router.get('/status', async (req, res) => {
       isSubscribed = count > 0;
     }
 
-    const pref = await NotificationPreference.findOne({ userId: req.user.userId });
-
     res.json({
       isSubscribed,
-      preferences: pref || {
-        dailyReminders: true,
-        milestones: true,
-        campaignAnnouncements: true,
-        results: true,
-      },
     });
   } catch (err) {
     console.error('[PUSH STATUS ERROR]:', err);
     res.status(500).json({ error: 'Server error checking push status' });
-  }
-});
-
-// GET /api/notifications/preferences - Fetch user notification preferences
-router.get('/preferences', async (req, res) => {
-  try {
-    let pref = await NotificationPreference.findOne({ userId: req.user.userId });
-    if (!pref) {
-      pref = await NotificationPreference.create({ userId: req.user.userId });
-    }
-    res.json(pref);
-  } catch (err) {
-    console.error('[NOTIF PREF ERROR]:', err);
-    res.status(500).json({ error: 'Server error fetching preferences' });
-  }
-});
-
-// PATCH /api/notifications/preferences - Update user notification preferences
-router.patch('/preferences', async (req, res) => {
-  try {
-    const { dailyReminders, milestones, campaignAnnouncements, results } = req.body;
-    const update = {};
-
-    if (typeof dailyReminders === 'boolean') update.dailyReminders = dailyReminders;
-    if (typeof milestones === 'boolean') update.milestones = milestones;
-    if (typeof campaignAnnouncements === 'boolean') update.campaignAnnouncements = campaignAnnouncements;
-    if (typeof results === 'boolean') update.results = results;
-
-    const pref = await NotificationPreference.findOneAndUpdate(
-      { userId: req.user.userId },
-      { $set: update },
-      { new: true, upsert: true }
-    );
-
-    res.json({ message: 'Notification preferences updated', preferences: pref });
-  } catch (err) {
-    console.error('[NOTIF PREF UPDATE ERROR]:', err);
-    res.status(500).json({ error: 'Server error updating preferences' });
   }
 });
 

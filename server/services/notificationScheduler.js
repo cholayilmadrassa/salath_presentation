@@ -9,6 +9,9 @@ export function initNotificationScheduler() {
 
   console.log('[SCHEDULER]: Initializing Web Push background jobs...');
 
+  // Run immediate check on startup for any pending due notifications
+  processDueNotifications().catch((err) => console.error('[SCHEDULER]: Startup check error:', err));
+
   // 1. Process due scheduled admin notifications every 1 minute
   cron.schedule('* * * * *', async () => {
     try {

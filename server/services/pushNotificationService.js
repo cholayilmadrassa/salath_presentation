@@ -1,6 +1,5 @@
 import webpush from 'web-push';
 import PushSubscription from '../models/PushSubscription.js';
-import NotificationPreference from '../models/NotificationPreference.js';
 import NotificationHistory from '../models/NotificationHistory.js';
 import Count from '../models/Count.js';
 import User from '../models/User.js';
@@ -93,18 +92,10 @@ export async function sendPushToSubscriptions(subscriptions, payload) {
 }
 
 /**
- * Send push notification to a specific user (respecting their NotificationPreference)
+ * Send push notification to a specific user
  */
 export async function sendToUser(userId, payload, category = 'admin_broadcast') {
   if (!userId) return { attempted: 0, success: 0, failure: 0 };
-
-  const pref = await NotificationPreference.findOne({ userId });
-  if (pref) {
-    if (category === 'reminder' && !pref.dailyReminders) return { attempted: 0, success: 0, failure: 0 };
-    if (category === 'milestone' && !pref.milestones) return { attempted: 0, success: 0, failure: 0 };
-    if (category === 'campaign' && !pref.campaignAnnouncements) return { attempted: 0, success: 0, failure: 0 };
-    if (category === 'result' && !pref.results) return { attempted: 0, success: 0, failure: 0 };
-  }
 
   const subscriptions = await PushSubscription.find({ userId, enabled: true });
   return sendPushToSubscriptions(subscriptions, payload);
@@ -129,25 +120,7 @@ export async function sendToTenant(tenantId, payload, category = 'admin_broadcas
     subscriptions = await PushSubscription.find({ enabled: true });
   }
 
-  // Filter subscriptions based on individual user preference if preference exists
-  const userIds = [...new Set(subscriptions.map((s) => s.userId.toString()))];
-  const prefs = await NotificationPreference.find({ userId: { $in: userIds } });
-  const prefMap = {};
-  prefs.forEach((p) => {
-    prefMap[p.userId.toString()] = p;
-  });
-
-  const validSubs = subscriptions.filter((sub) => {
-    const p = prefMap[sub.userId.toString()];
-    if (!p) return true;
-    if (category === 'reminder' && !p.dailyReminders) return false;
-    if (category === 'milestone' && !p.milestones) return false;
-    if (category === 'campaign' && !p.campaignAnnouncements) return false;
-    if (category === 'result' && !p.results) return false;
-    return true;
-  });
-
-  return sendPushToSubscriptions(validSubs, payload);
+  return sendPushToSubscriptions(subscriptions, payload);
 }
 
 /**
@@ -166,14 +139,10 @@ export async function triggerMilestone(userId, tenantId, totalUserCount) {
   try {
     if (!userId || !totalUserCount) return;
 
-    let pref = await NotificationPreference.findOne({ userId });
-    if (!pref) {
-      pref = await NotificationPreference.create({ userId });
-    }
+    const user = await User.findById(userId);
+    if (!user) return;
 
-    if (pref.milestones === false) return;
-
-    const notifiedSet = new Set(pref.notifiedMilestones || []);
+    const notifiedSet = new Set(user.notifiedMilestones || []);
     const crossedMilestones = MILESTONES.filter((m) => totalUserCount >= m && !notifiedSet.has(m));
 
     if (crossedMilestones.length === 0) return;
@@ -181,8 +150,9 @@ export async function triggerMilestone(userId, tenantId, totalUserCount) {
     // Pick highest crossed milestone
     const highestMilestone = Math.max(...crossedMilestones);
 
-    pref.notifiedMilestones.push(highestMilestone);
-    await pref.save();
+    user.notifiedMilestones = user.notifiedMilestones || [];
+    user.notifiedMilestones.push(highestMilestone);
+    await user.save();
 
     const payload = {
       title: 'സ്വലാത്ത് നേട്ടം! 🎉',

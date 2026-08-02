@@ -140,7 +140,6 @@ export async function getPushSubscriptionState(token) {
       isStandalone: isStandalonePWA(),
       permission: 'denied',
       isSubscribed: false,
-      preferences: null,
     };
   }
 
@@ -153,21 +152,12 @@ export async function getPushSubscriptionState(token) {
     isSubscribed = !!subscription;
   }
 
-  let preferences = null;
-  if (token) {
-    try {
-      const statusRes = await api('/push/status', { token });
-      preferences = statusRes.preferences;
-    } catch (e) {}
-  }
-
   return {
     supported: true,
     isIOS: isIOS(),
     isStandalone: isStandalonePWA(),
     permission,
     isSubscribed,
-    preferences,
   };
 }
 

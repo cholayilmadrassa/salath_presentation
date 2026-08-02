@@ -13,9 +13,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 // Register PWA Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
-      console.log('SW active for Web Push:', reg.scope);
-    }).catch((err) => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
       console.warn('SW registration failed:', err);
     });
   });

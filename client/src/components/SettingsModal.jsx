@@ -25,7 +25,6 @@ export default function SettingsModal({ isOpen, onClose }) {
   const [showGuide, setShowGuide] = useState(false);
 
   const [pushState, setPushState] = useState({ isSubscribed: false, isIOS: false, isStandalone: true });
-  const [preferences, setPreferences] = useState(null);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushError, setPushError] = useState('');
 
@@ -33,9 +32,6 @@ export default function SettingsModal({ isOpen, onClose }) {
     if (isOpen && token) {
       getPushSubscriptionState(token).then((res) => {
         setPushState(res);
-        if (res.preferences) {
-          setPreferences(res.preferences);
-        }
       });
     }
   }, [isOpen, token]);
@@ -51,7 +47,6 @@ export default function SettingsModal({ isOpen, onClose }) {
         await subscribeUserToPush(token);
         const res = await getPushSubscriptionState(token);
         setPushState(res);
-        if (res.preferences) setPreferences(res.preferences);
       }
     } catch (err) {
       if (err.message === 'IOS_PWA_REQUIRED') {
@@ -61,21 +56,6 @@ export default function SettingsModal({ isOpen, onClose }) {
       }
     } finally {
       setPushLoading(false);
-    }
-  };
-
-  const updatePreference = async (key, val) => {
-    if (!token) return;
-    const updated = { ...preferences, [key]: val };
-    setPreferences(updated);
-    try {
-      await api('/notifications/preferences', {
-        method: 'PATCH',
-        token,
-        body: { [key]: val },
-      });
-    } catch (e) {
-      console.error('Failed to update preference:', e);
     }
   };
 
@@ -233,31 +213,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </div>
                 )}
 
-                {/* Granular Preference Toggles */}
-                {pushState.isSubscribed && preferences && (
-                  <div className="pt-2 border-t border-border space-y-2">
-                    <span className="text-[11px] font-extrabold text-foreground block">Notification Preferences:</span>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      {[
-                        { key: 'dailyReminders', label: 'Daily Reminders' },
-                        { key: 'milestones', label: 'Milestones' },
-                        { key: 'campaignAnnouncements', label: 'Campaign Info' },
-                        { key: 'results', label: 'Result Updates' },
-                      ].map((item) => (
-                        <label key={item.key} className="flex items-center gap-1.5 cursor-pointer font-medium text-foreground">
-                          <input
-                            type="checkbox"
-                            checked={!!preferences[item.key]}
-                            onChange={(e) => updatePreference(item.key, e.target.checked)}
-                            className="rounded border-input text-primary focus:ring-primary h-3.5 w-3.5"
-                          />
-                          <span>{item.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Install App Button */}

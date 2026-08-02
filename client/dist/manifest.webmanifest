@@ -1,0 +1,25 @@
+{
+  "name": "സ്വലാത്ത് ക്യാമ്പയിൻ ",
+  "short_name": "Swalath",
+  "description": "സ്വലാത്ത് ക്യാമ്പയിൻ ഔദ്യോഗിക ആപ്പ്.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#2f643c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/appLogo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/appLogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

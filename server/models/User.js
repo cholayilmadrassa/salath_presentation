@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: '', trim: true },
     address: { type: String, default: '', trim: true },
     place: { type: String, default: '', trim: true },
+    notifiedMilestones: { type: [Number], default: [] },
   },
   { timestamps: true }
 );

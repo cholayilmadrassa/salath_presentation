@@ -1,7 +1,7 @@
 import express from 'express';
 import NotificationHistory from '../models/NotificationHistory.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { sendBroadcast, sendToTenant, triggerDailyReminders } from '../services/pushNotificationService.js';
+import { sendBroadcast, sendToTenant, triggerDailyReminders, processDueNotifications } from '../services/pushNotificationService.js';
 
 const router = express.Router();
 
@@ -68,7 +68,10 @@ router.post('/', async (req, res) => {
     // Handle Scheduled Notification
     if (isScheduled && scheduledAt) {
       const scheduledDate = new Date(scheduledAt);
-      if (isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
+      if (isNaN(scheduledDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid scheduled date/time' });
+      }
+      if (scheduledDate.getTime() < Date.now() - 60000) {
         return res.status(400).json({ error: 'Scheduled date/time must be in the future' });
       }
 
@@ -85,6 +88,9 @@ router.post('/', async (req, res) => {
         category: category || 'admin_broadcast',
         stats: { attempted: 0, success: 0, failure: 0 },
       });
+
+      // Run background check in case scheduled time is due immediately
+      processDueNotifications().catch((e) => console.error('[SCHEDULED CHECK ERROR]:', e));
 
       return res.status(201).json({
         message: 'Notification scheduled successfully',

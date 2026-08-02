@@ -20,8 +20,6 @@ import {
   AlertTriangle,
   Users,
   RefreshCw,
-  Sparkles,
-  Edit3,
 } from 'lucide-react';
 
 const PRESET_TEMPLATES = [
@@ -56,8 +54,6 @@ export default function AdminNotificationsTab({ token, tenant }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Mode Selection: 'preset' | 'custom'
-  const [messageType, setMessageType] = useState('preset');
   const [selectedPresetId, setSelectedPresetId] = useState('');
 
   // Notification Fields
@@ -94,15 +90,6 @@ export default function AdminNotificationsTab({ token, tenant }) {
     setFeedback({ type: '', message: '' });
   };
 
-  const handleMessageTypeChange = (type) => {
-    setMessageType(type);
-    setSelectedPresetId('');
-    if (type === 'custom') {
-      setTitle('');
-      setBody('');
-    }
-  };
-
   const handleFormSubmit = (e) => {
     e.preventDefault();
     setFeedback({ type: '', message: '' });
@@ -133,6 +120,8 @@ export default function AdminNotificationsTab({ token, tenant }) {
     setFeedback({ type: '', message: '' });
 
     try {
+      const formattedScheduledAt = sendMode === 'schedule' && scheduledAt ? new Date(scheduledAt).toISOString() : null;
+
       const res = await api('/admin/notifications', {
         method: 'POST',
         token,
@@ -144,15 +133,14 @@ export default function AdminNotificationsTab({ token, tenant }) {
           tenantId: tenant ? tenant._id : null,
           category: 'admin_broadcast',
           isScheduled: sendMode === 'schedule',
-          scheduledAt: sendMode === 'schedule' ? scheduledAt : null,
+          scheduledAt: formattedScheduledAt,
         },
       });
 
       setFeedback({ type: 'success', message: res.message || 'Notification sent successfully!' });
-      if (messageType === 'custom') {
-        setTitle('');
-        setBody('');
-      }
+      setTitle('');
+      setBody('');
+      setSelectedPresetId('');
       setScheduledAt('');
       setSendMode('now');
       loadHistory();
@@ -199,39 +187,10 @@ export default function AdminNotificationsTab({ token, tenant }) {
         </CardHeader>
 
         <CardContent className="pt-4 space-y-5">
-          {/* Mode Switcher: Pre-defined vs Custom */}
-          <div className="flex items-center p-1 bg-muted/20 rounded-xl border border-border gap-1">
-            <button
-              type="button"
-              onClick={() => handleMessageTypeChange('preset')}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
-                messageType === 'preset'
-                  ? 'bg-card text-primary shadow-sm border border-border'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Quick Templates</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleMessageTypeChange('custom')}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
-                messageType === 'custom'
-                  ? 'bg-card text-primary shadow-sm border border-border'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Custom Notification</span>
-            </button>
-          </div>
-
-          {/* Preset Templates Selector */}
-          {messageType === 'preset' && (
-            <div className="space-y-2">
-              <label className="text-xs font-extrabold text-foreground block">Select Quick Template:</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Quick Templates Selector */}
+          <div className="space-y-2">
+            <label className="text-xs font-extrabold text-foreground block">Select Quick Template:</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {PRESET_TEMPLATES.map((tmpl) => (
                   <button
                     key={tmpl.id}
@@ -249,7 +208,6 @@ export default function AdminNotificationsTab({ token, tenant }) {
                 ))}
               </div>
             </div>
-          )}
 
           {/* Form */}
           <form onSubmit={handleFormSubmit} className="space-y-4 pt-1">
