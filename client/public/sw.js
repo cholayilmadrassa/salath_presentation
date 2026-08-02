@@ -33,14 +33,16 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Bypass API requests, Vite dev modules, node_modules, HMR, and browser extensions
+  // Bypass API, WebSockets, Vite dev modules, node_modules, HMR, chrome extensions, non-http
   if (
+    !url.protocol.startsWith('http') ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/@') ||
     url.pathname.startsWith('/src/') ||
     url.pathname.startsWith('/node_modules/') ||
     url.pathname.includes('hot-update') ||
-    url.protocol === 'chrome-extension:'
+    url.protocol === 'chrome-extension:' ||
+    event.request.headers.get('Upgrade') === 'websocket'
   ) {
     return;
   }
@@ -68,13 +70,18 @@ self.addEventListener('fetch', (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
-        }
-        return networkResponse;
-      });
+      return fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          }
+          return networkResponse;
+        })
+        .catch((err) => {
+          // Graceful fallback for cancelled or failed static asset fetches
+          return new Response('', { status: 408, statusText: 'Request Timed Out / Cancelled' });
+        });
     })
   );
 });
