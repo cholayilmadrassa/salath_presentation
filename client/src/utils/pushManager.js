@@ -33,15 +33,13 @@ export function isPushSupported() {
 }
 
 export async function getVapidPublicKey() {
-  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-  if (envKey) return envKey;
   try {
     const res = await api('/push/vapid-public-key');
-    return res.publicKey;
+    if (res && res.publicKey) return res.publicKey;
   } catch (e) {
-    console.error('Failed to fetch VAPID key:', e);
-    return null;
+    console.warn('Could not fetch server VAPID key via API, using fallback:', e);
   }
+  return import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BGiWMbxl3_s_U1T2_yS-csp-msS0wttV_M5rSDD6X0XeisiqDKYr5f9sOk7kMCXUjaHi-lVIrmlM75a8bb-aXII';
 }
 
 export async function registerServiceWorker() {
@@ -171,4 +169,42 @@ export async function getPushSubscriptionState(token) {
     isSubscribed,
     preferences,
   };
+}
+
+export async function syncPushSubscription(token) {
+  if (!token || !isPushSupported()) return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+
+  try {
+    const swReg = await registerServiceWorker();
+    if (!swReg) return;
+
+    const vapidPublicKey = await getVapidPublicKey();
+    if (!vapidPublicKey) return;
+
+    const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
+
+    let subscription = await swReg.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await swReg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey,
+      });
+    }
+
+    const subJson = subscription.toJSON();
+    if (subJson && subJson.endpoint && subJson.keys) {
+      await api('/push/subscribe', {
+        method: 'POST',
+        token,
+        body: {
+          endpoint: subJson.endpoint,
+          keys: subJson.keys,
+          userAgent: navigator.userAgent,
+        },
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.warn('Background push sync skipped:', e);
+  }
 }

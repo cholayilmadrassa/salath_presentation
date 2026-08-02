@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { syncPushSubscription } from '../utils/pushManager.js';
 
 const AuthCtx = createContext(null);
 
@@ -28,6 +29,8 @@ export function AuthProvider({ children }) {
           if (data.user.role) {
             localStorage.setItem('userRole', data.user.role);
           }
+          // Silently synchronize active Web Push subscription in background
+          syncPushSubscription(storedToken);
         }
       } catch (err) {
         console.warn('JWT Token verification failed or expired:', err.message);

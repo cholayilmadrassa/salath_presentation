@@ -10,7 +10,7 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ShieldCheck, Search, Globe, Palette, Users, AlertCircle, Copy, Check, BarChart3, Trophy, ArrowUpDown, Bell } from 'lucide-react';
+import { ShieldCheck, Search, Globe, Palette, Users, AlertCircle, Copy, Check, BarChart3, Trophy, ArrowUpDown, Bell, Plus } from 'lucide-react';
 import { brandingSchema, customDomainSchema } from '../schemas/validationSchemas.js';
 import AdminNotificationsTab from '../components/AdminNotificationsTab.jsx';
 

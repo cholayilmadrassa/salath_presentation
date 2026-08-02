@@ -17,6 +17,7 @@ export default function EventTeamRegister() {
     title: "",
     tagline: "",
     adminName: "",
+    adminPhone: "",
     adminEmail: "",
     adminPassword: "",
   });
@@ -200,6 +201,21 @@ export default function EventTeamRegister() {
                   className={fieldErrors.adminName ? 'border-destructive ring-2 ring-destructive/20' : ''}
                 />
                 <FieldError error={fieldErrors.adminName} />
+              </div>
+
+              {/* Admin Mobile Number */}
+              <div className="space-y-1.5">
+                <Label>Admin Mobile Number:</Label>
+                <Input
+                  type="tel"
+                  name="adminPhone"
+                  placeholder="e.g. 9876543210"
+                  value={form.adminPhone}
+                  onChange={handleChange}
+                  maxLength={10}
+                  className={fieldErrors.adminPhone ? 'border-destructive ring-2 ring-destructive/20' : ''}
+                />
+                <FieldError error={fieldErrors.adminPhone} />
               </div>
 
               {/* Admin Email */}

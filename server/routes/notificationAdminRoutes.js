@@ -46,17 +46,23 @@ router.post('/', async (req, res) => {
     const payload = {
       title: title.trim(),
       body: body.trim(),
-      url: url || '/dashboard',
+      url: url || '/',
       icon: icon || '/appLogo.png',
       category: category || 'admin_broadcast',
     };
 
     let targetTenantId = null;
-    if (targetType === 'tenant') {
-      targetTenantId = tenantId || (req.tenant ? req.tenant._id : req.user.tenantId);
+    let finalTargetType = targetType || 'all';
+
+    // Restrict Tenant Admins strictly to their own tenant members!
+    if (req.user.role === 'tenant_admin' || req.tenant) {
+      finalTargetType = 'tenant';
+      targetTenantId = req.tenant ? req.tenant._id : req.user.tenantId;
       if (!targetTenantId) {
-        return res.status(400).json({ error: 'Target tenant ID is required for organization/event push' });
+        return res.status(400).json({ error: 'Event admin can only send notifications to their own organization members' });
       }
+    } else if (targetType === 'tenant') {
+      targetTenantId = tenantId || null;
     }
 
     // Handle Scheduled Notification
@@ -69,9 +75,9 @@ router.post('/', async (req, res) => {
       const notifRecord = await NotificationHistory.create({
         title: title.trim(),
         body: body.trim(),
-        url: url || '/dashboard',
+        url: url || '/',
         icon: icon || '/appLogo.png',
-        targetType: targetType || 'all',
+        targetType: finalTargetType,
         tenantId: targetTenantId,
         createdBy: req.user.userId,
         status: 'scheduled',
@@ -88,7 +94,7 @@ router.post('/', async (req, res) => {
 
     // Send Immediately (Send Now)
     let deliveryRes = { attempted: 0, success: 0, failure: 0 };
-    if (targetType === 'tenant' && targetTenantId) {
+    if (finalTargetType === 'tenant' && targetTenantId) {
       deliveryRes = await sendToTenant(targetTenantId, payload, category || 'admin_broadcast');
     } else {
       deliveryRes = await sendBroadcast(payload, category || 'admin_broadcast');
@@ -97,9 +103,9 @@ router.post('/', async (req, res) => {
     const notifRecord = await NotificationHistory.create({
       title: title.trim(),
       body: body.trim(),
-      url: url || '/dashboard',
+      url: url || '/',
       icon: icon || '/appLogo.png',
-      targetType: targetType || 'all',
+      targetType: finalTargetType,
       tenantId: targetTenantId,
       createdBy: req.user.userId,
       status: deliveryRes.failure === 0 ? 'sent' : deliveryRes.success > 0 ? 'partially_failed' : 'failed',

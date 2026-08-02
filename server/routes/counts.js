@@ -1,5 +1,6 @@
 import express from 'express';
 import Count from '../models/Count.js';
+import User from '../models/User.js';
 import { auth } from '../middleware/auth.js';
 import { triggerMilestone } from '../services/pushNotificationService.js';
 
@@ -24,6 +25,51 @@ async function checkUserMilestone(userId, tenantId) {
     console.error('[MILESTONE CHECK ERROR]:', e);
   }
 }
+
+// Admin Submit Count on behalf of a Member
+router.post('/admin/submit-member-count', auth, async (req, res) => {
+  try {
+    const { memberId, value, date, note } = req.body;
+    if (!memberId) {
+      return res.status(400).json({ message: 'Member selection is required' });
+    }
+
+    const numValue = Number(value);
+    if (Number.isNaN(numValue) || numValue <= 0) {
+      return res.status(400).json({ message: 'Please enter a valid count number' });
+    }
+    if (numValue > 500000) {
+      return res.status(400).json({ message: 'Single entry count cannot exceed 500,000' });
+    }
+
+    const targetUser = await User.findById(memberId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Target member not found' });
+    }
+
+    const entryDate = date || todayKey();
+    const tenantId = req.tenant ? req.tenant._id : (targetUser.tenantId || req.user.tenantId || null);
+
+    const newEntry = await Count.create({
+      user: memberId,
+      tenantId,
+      date: entryDate,
+      value: numValue,
+      note: note ? `[Admin Added] ${note}` : '[Admin Added]',
+    });
+
+    // Asynchronous milestone check for member
+    checkUserMilestone(memberId, tenantId);
+
+    res.status(201).json({
+      message: `Successfully added ${numValue.toLocaleString()} Swalath for ${targetUser.name}!`,
+      entry: newEntry,
+    });
+  } catch (err) {
+    console.error('[ADMIN SUBMIT COUNT ERROR]:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
 
 // 1. Create a new count entry (multiple entries per day allowed!)
 router.post('/entry', auth, async (req, res) => {

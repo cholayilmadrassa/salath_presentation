@@ -20,6 +20,7 @@ export const eventTeamRegisterSchema = z.object({
     .min(3, { message: "Subdomain slug must be at least 3 characters" })
     .regex(/^[a-z0-9-]+$/, { message: "Slug must contain only lowercase letters, numbers, and hyphens" }),
   adminName: z.string().trim().min(2, { message: "Please enter admin name" }),
+  adminPhone: z.string().trim().regex(/^[6-9]\d{9}$/, { message: "Please enter a valid 10-digit mobile number" }),
   adminEmail: z.string().trim().email({ message: "Please enter a valid email address" }),
   adminPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });

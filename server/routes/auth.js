@@ -171,6 +171,7 @@ router.post('/register-tenant', async (req, res) => {
   const tenantName = req.body.name || req.body.tenantName;
   const slug = req.body.slug;
   const adminName = req.body.adminName;
+  const adminPhone = req.body.adminPhone || req.body.phone || '';
   const email = req.body.email || req.body.adminEmail;
   const password = req.body.password || req.body.adminPassword;
 
@@ -204,6 +205,7 @@ router.post('/register-tenant', async (req, res) => {
     createdUser = await User.create({
       _id: new mongoose.Types.ObjectId(),
       name: adminName.trim(),
+      phone: adminPhone ? adminPhone.trim() : '',
       email: normalizedEmail,
       passwordHash,
       role: 'tenant_admin',

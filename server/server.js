@@ -33,14 +33,15 @@ const corsOptions = {
     try {
       const url = new URL(origin);
       const host = url.hostname.toLowerCase();
-      const rootDomain = PLATFORM_ROOT_DOMAIN.toLowerCase();
+      const rootDomain = PLATFORM_ROOT_DOMAIN ? PLATFORM_ROOT_DOMAIN.toLowerCase() : 'swalath.online';
 
       if (
         origin === CLIENT_ORIGIN ||
         host === 'localhost' ||
         host === '127.0.0.1' ||
         host === rootDomain ||
-        host.endsWith(`.${rootDomain}`)
+        host.endsWith(`.${rootDomain}`) ||
+        host.endsWith('.localhost')
       ) {
         return callback(null, true);
       }
@@ -56,6 +57,7 @@ const corsOptions = {
     }
   },
   credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id', 'x-tenant-slug', 'Accept', 'Origin'],
 };
 
 app.use(cors(corsOptions));
