@@ -18,6 +18,7 @@ const tenantSchema = new mongoose.Schema(
       trim: true,
     },
     customDomainVerified: { type: Boolean, default: false },
+    customDomainVerificationToken: { type: String, default: '' },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected', 'suspended'],

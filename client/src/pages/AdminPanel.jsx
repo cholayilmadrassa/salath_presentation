@@ -64,8 +64,15 @@ export default function AdminPanel() {
   });
   const [domainInput, setDomainInput] = useState('');
   const [domainDnsInfo, setDomainDnsInfo] = useState(null);
-  const [saveSuccess, setSaveSuccess] = useState('');
   const [copiedField, setCopiedField] = useState('');
+
+  const copyToClipboard = (text, fieldName) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(''), 2000);
+  };
+  const [saveSuccess, setSaveSuccess] = useState('');
 
   // Authentication & Admin Role Guard
   useEffect(() => {
@@ -83,16 +90,6 @@ export default function AdminPanel() {
       fetchDashboard();
     }
   }, [authenticating, token, user, navigate]);
-
-  const copyToClipboard = async (text, fieldName) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedField(fieldName);
-      setTimeout(() => setCopiedField(''), 2000);
-    } catch (err) {
-      console.error('Copy failed:', err);
-    }
-  };
 
   const fetchDashboard = async () => {
     try {

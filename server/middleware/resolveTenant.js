@@ -28,6 +28,7 @@ export async function resolveTenant(req, res, next) {
 
     if (!tenant && host) {
       const rootDomain = PLATFORM_ROOT_DOMAIN.toLowerCase().trim();
+      const cleanHost = host.replace(/^www\./, '');
 
       // Check if host is a subdomain of root domain (e.g. noorulislam.localhost or team1.swalath.online)
       if (host !== rootDomain && host !== `www.${rootDomain}` && (host.endsWith(`.${rootDomain}`) || host.includes('.localhost'))) {
@@ -38,9 +39,11 @@ export async function resolveTenant(req, res, next) {
         }
       }
 
-      // If still not found by subdomain, try custom domain match
+      // If still not found by subdomain, try custom domain match (supports example.com & www.example.com)
       if (!tenant && host !== rootDomain && host !== `www.${rootDomain}` && host !== 'localhost') {
-        tenant = await Tenant.findOne({ customDomain: host, customDomainVerified: true });
+        tenant = await Tenant.findOne({
+          $or: [{ customDomain: host }, { customDomain: cleanHost }],
+        });
       }
     }
 

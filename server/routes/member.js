@@ -24,28 +24,44 @@ router.get('/active-tenant', async (req, res) => {
   try {
     if (!req.tenant) {
       const querySlug = req.query.slug;
-      if (querySlug) {
-        const tenant = await Tenant.findOne({ slug: String(querySlug).toLowerCase().trim() });
-        if (tenant) {
-          if (tenant.status !== 'approved') {
-            return res.status(403).json({
-              error: `Event "${tenant.name}" is currently ${tenant.status.toUpperCase()}. Super Admin approval required.`,
-              code: 'TENANT_NOT_APPROVED',
-              status: tenant.status,
-            });
-          }
+      const queryHost = req.query.host || req.query.domain;
+      let tenant = null;
 
-          return res.json({
-            id: tenant._id,
-            name: tenant.name,
-            slug: tenant.slug,
-            branding: tenant.branding,
-            swalath: tenant.swalath,
-            settings: tenant.settings,
+      if (querySlug) {
+        tenant = await Tenant.findOne({ slug: String(querySlug).toLowerCase().trim() });
+      }
+
+      if (!tenant && queryHost) {
+        const cleanHost = String(queryHost).toLowerCase().trim().replace(/^www\./, '');
+        tenant = await Tenant.findOne({
+          $or: [
+            { customDomain: cleanHost },
+            { slug: cleanHost.split('.')[0] }
+          ]
+        });
+      }
+
+      if (tenant) {
+        if (tenant.status !== 'approved') {
+          return res.status(403).json({
+            error: `Event "${tenant.name}" is currently ${tenant.status.toUpperCase()}. Super Admin approval required.`,
+            code: 'TENANT_NOT_APPROVED',
             status: tenant.status,
-            customDomain: tenant.customDomain,
           });
         }
+
+        return res.json({
+          id: tenant._id,
+          name: tenant.name,
+          slug: tenant.slug,
+          branding: tenant.branding,
+          swalath: tenant.swalath,
+          settings: tenant.settings,
+          status: tenant.status,
+          customDomain: tenant.customDomain,
+          customDomainVerified: tenant.customDomainVerified,
+          customDomainVerificationToken: tenant.customDomainVerificationToken,
+        });
       }
 
       return res.status(404).json({

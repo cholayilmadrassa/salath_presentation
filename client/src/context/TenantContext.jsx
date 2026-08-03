@@ -41,20 +41,21 @@ export function TenantProvider({ children }) {
         localStorage.setItem('activeTenantSlug', slug);
       }
 
-      if (slug) {
-        const data = await api(`/events/active-tenant?slug=${slug}`).catch((err) => {
-          throw err;
-        });
+      // Query active tenant by slug or host domain
+      let queryParam = slug ? `slug=${encodeURIComponent(slug)}&host=${encodeURIComponent(host)}` : `host=${encodeURIComponent(host)}`;
+      const data = await api(`/events/active-tenant?${queryParam}`).catch((err) => {
+        // If query by host failed and no slug, return null
+        if (!slug) return null;
+        throw err;
+      });
 
-        if (data) {
-          setActiveTenant(data);
-          localStorage.setItem('activeTenantSlug', data.slug);
-          if (data.branding?.themeColor) {
-            document.documentElement.style.setProperty('--primary-theme', data.branding.themeColor);
-          }
+      if (data) {
+        setActiveTenant(data);
+        localStorage.setItem('activeTenantSlug', data.slug);
+        if (data.branding?.themeColor) {
+          document.documentElement.style.setProperty('--primary-theme', data.branding.themeColor);
         }
       } else {
-        // Plain root domain -> platform marketing view
         setActiveTenant(null);
       }
     } catch (err) {

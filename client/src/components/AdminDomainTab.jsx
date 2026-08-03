@@ -57,12 +57,15 @@ export default function AdminDomainTab({
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">TXT Record Value:</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-primary truncate max-w-xs">{domainDnsInfo?.txtRecordValue || tenant?.customDomainVerificationToken}</span>
+                  <span className="font-bold text-primary truncate max-w-xs">
+                    {domainDnsInfo?.txtRecordValue || tenant?.customDomainVerificationToken || tenant?.settings?.domainVerificationToken || 'verify_pending'}
+                  </span>
                   <Button
+                    type="button"
                     size="icon"
                     variant="ghost"
-                    onClick={() => copyToClipboard(domainDnsInfo?.txtRecordValue || tenant?.customDomainVerificationToken, 'txtValue')}
-                    className="h-6 w-6"
+                    onClick={() => copyToClipboard(domainDnsInfo?.txtRecordValue || tenant?.customDomainVerificationToken || tenant?.settings?.domainVerificationToken, 'txtValue')}
+                    className="h-6 w-6 cursor-pointer"
                   >
                     {copiedField === 'txtValue' ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                   </Button>
