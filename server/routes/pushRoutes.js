@@ -130,12 +130,16 @@ router.get('/inbox', async (req, res) => {
     const tenantId = req.tenant ? req.tenant._id : (dbUser?.tenantId || req.user.tenantId || null);
 
     const filter = {
-      status: 'sent',
-      $or: [{ targetType: 'all' }],
+      status: { $in: ['sent', 'partially_failed'] },
     };
 
     if (tenantId) {
-      filter.$or.push({ tenantId });
+      filter.$or = [
+        { tenantId: tenantId },
+        { targetType: 'all', tenantId: null }
+      ];
+    } else {
+      filter.targetType = 'all';
     }
 
     const rawNotifications = await NotificationHistory.find(filter)

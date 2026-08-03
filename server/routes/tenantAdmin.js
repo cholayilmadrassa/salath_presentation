@@ -557,17 +557,18 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
     if (isMatched) {
       tenant.customDomainVerified = true;
 
-      // Check if traffic is also pointing to auto-connect
+      // Check if DNS A Record actually resolves to target IP
+      const targetIp = TARGET_A_RECORD || '76.76.21.21';
       const [aResults] = await Promise.allSettled([dns.resolve4(tenant.customDomain)]);
-      if (aResults.status === 'fulfilled') {
-        tenant.customDomainConnected = true;
-      }
-
+      const hasTargetIp = aResults.status === 'fulfilled' && Array.isArray(aResults.value) && aResults.value.includes(targetIp);
+      
+      tenant.customDomainConnected = hasTargetIp;
       await tenant.save();
+
       return res.json({
         message: tenant.customDomainConnected
           ? `✓ Custom domain ${tenant.customDomain} connected & active!`
-          : `Ownership verified for ${tenant.customDomain}! Next, point your domain traffic A Record to ${TARGET_A_RECORD}.`,
+          : `Ownership verified for ${tenant.customDomain}! Next, point your domain A Record (@) to ${targetIp}.`,
         customDomain: tenant.customDomain,
         customDomainVerified: true,
         customDomainConnected: tenant.customDomainConnected,
@@ -577,11 +578,13 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
 
     // Verification Failure
     tenant.customDomainVerified = false;
+    tenant.customDomainConnected = false;
     await tenant.save();
 
     return res.status(400).json({
       error: `Ownership verification pending for ${tenant.customDomain}. Could not find verification token at "_verify.${tenant.customDomain}". Please add the TXT or A record in your DNS settings and allow 2-5 minutes for propagation.`,
       customDomainVerified: false,
+      customDomainConnected: false,
       ownershipStatus: 'Pending Verification',
     });
   } catch (err) {
@@ -612,6 +615,7 @@ router.post('/me/tenant/domain/check-connection', async (req, res) => {
 
     const domain = tenant.customDomain;
     const targetIp = TARGET_A_RECORD || '76.76.21.21';
+    const targetCname = TARGET_CNAME_RECORD || 'cname.vercel-dns.com';
 
     // Perform parallel DNS lookups & Vercel API check
     const [aResults, cnameResults, vercelRes] = await Promise.allSettled([
@@ -620,21 +624,13 @@ router.post('/me/tenant/domain/check-connection', async (req, res) => {
       verifyVercelDomain(domain),
     ]);
 
-    let isResolved = false;
+    const hasTargetIp = aResults.status === 'fulfilled' && Array.isArray(aResults.value) && aResults.value.includes(targetIp);
+    const hasTargetCname = cnameResults.status === 'fulfilled' && Array.isArray(cnameResults.value) && cnameResults.value.some(c => String(c).toLowerCase().includes(targetCname.toLowerCase()));
+    const isVercelVerified = vercelRes.status === 'fulfilled' && vercelRes.value.data?.verified === true;
 
-    if (aResults.status === 'fulfilled' && aResults.value.length > 0) {
-      isResolved = true;
-    }
+    const isConnected = hasTargetIp || hasTargetCname || isVercelVerified;
 
-    if (cnameResults.status === 'fulfilled' && cnameResults.value.length > 0) {
-      isResolved = true;
-    }
-
-    if (vercelRes.status === 'fulfilled' && vercelRes.value.success) {
-      isResolved = true;
-    }
-
-    if (isResolved) {
+    if (isConnected) {
       tenant.customDomainVerified = true;
       tenant.customDomainConnected = true;
       await tenant.save();
@@ -647,8 +643,11 @@ router.post('/me/tenant/domain/check-connection', async (req, res) => {
       });
     }
 
+    tenant.customDomainConnected = false;
+    await tenant.save();
+
     return res.status(400).json({
-      error: `DNS Check Pending for ${domain}. Could not detect DNS A Record pointing to ${targetIp} yet. Please check your Hostinger DNS settings and allow 2-5 minutes for propagation.`,
+      error: `DNS Check Pending for ${domain}. Could not detect A Record pointing to ${targetIp} on global DNS. Please allow 5-15 minutes for Hostinger TTL (14400) propagation.`,
       customDomainVerified: tenant.customDomainVerified,
       customDomainConnected: false,
       connectionStatus: 'DNS Configuration Required',

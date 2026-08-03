@@ -110,14 +110,14 @@ export async function sendToTenant(tenantId, payload, category = 'admin_broadcas
   const tenantUsers = await User.find({ tenantId }).select('_id');
   const tenantUserIds = tenantUsers.map((u) => u._id);
 
-  let subscriptions = await PushSubscription.find({
+  const subscriptions = await PushSubscription.find({
     $or: [{ tenantId }, { userId: { $in: tenantUserIds } }],
     enabled: true,
   });
 
   if (subscriptions.length === 0) {
-    console.log(`[PUSH TENANT]: No tenant-specific subscriptions for ${tenantId}. Falling back to all active subscriptions.`);
-    subscriptions = await PushSubscription.find({ enabled: true });
+    console.log(`[PUSH TENANT]: No active subscriptions found for tenant ${tenantId}. Skipping delivery.`);
+    return { attempted: 0, success: 0, failure: 0 };
   }
 
   return sendPushToSubscriptions(subscriptions, payload);
