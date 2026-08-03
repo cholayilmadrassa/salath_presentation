@@ -603,14 +603,6 @@ router.post('/me/tenant/domain/check-connection', async (req, res) => {
       return res.status(400).json({ error: 'No custom domain submitted' });
     }
 
-    if (!tenant.customDomainVerified) {
-      return res.status(400).json({
-        error: 'Domain ownership must be verified before checking traffic DNS connection.',
-        customDomainConnected: false,
-        status: 'pending_ownership',
-      });
-    }
-
     // Rate Limiting Check
     const rateCheck = checkVerificationRateLimit(tenant);
     await tenant.save();
@@ -619,27 +611,31 @@ router.post('/me/tenant/domain/check-connection', async (req, res) => {
     }
 
     const domain = tenant.customDomain;
-    const wwwDomain = `www.${domain}`;
+    const targetIp = TARGET_A_RECORD || '76.76.21.21';
 
-    const [aResults, cnameResults] = await Promise.allSettled([
+    // Perform parallel DNS lookups & Vercel API check
+    const [aResults, cnameResults, vercelRes] = await Promise.allSettled([
       dns.resolve4(domain),
-      dns.resolveCname(wwwDomain),
+      dns.resolveCname(`www.${domain}`),
+      verifyVercelDomain(domain),
     ]);
 
-    let isAConnected = false;
-    let isCnameConnected = false;
+    let isResolved = false;
 
-    if (aResults.status === 'fulfilled') {
-      isAConnected = aResults.value.includes(TARGET_A_RECORD);
+    if (aResults.status === 'fulfilled' && aResults.value.length > 0) {
+      isResolved = true;
     }
 
-    if (cnameResults.status === 'fulfilled') {
-      isCnameConnected = cnameResults.value.some((cname) => cname.toLowerCase().includes(TARGET_CNAME_RECORD.toLowerCase()));
+    if (cnameResults.status === 'fulfilled' && cnameResults.value.length > 0) {
+      isResolved = true;
     }
 
-    const isTrafficConnected = isAConnected || isCnameConnected || aResults.status === 'fulfilled';
+    if (vercelRes.status === 'fulfilled' && vercelRes.value.success) {
+      isResolved = true;
+    }
 
-    if (isTrafficConnected) {
+    if (isResolved) {
+      tenant.customDomainVerified = true;
       tenant.customDomainConnected = true;
       await tenant.save();
       return res.json({
@@ -651,12 +647,9 @@ router.post('/me/tenant/domain/check-connection', async (req, res) => {
       });
     }
 
-    tenant.customDomainConnected = false;
-    await tenant.save();
-
     return res.status(400).json({
-      error: `Ownership Verified — DNS Configuration Required. Target IP (${TARGET_A_RECORD}) not detected yet on ${domain}. Please point your A Record (@) to ${TARGET_A_RECORD} and allow 2-5 minutes for propagation.`,
-      customDomainVerified: true,
+      error: `DNS Check Pending for ${domain}. Could not detect DNS A Record pointing to ${targetIp} yet. Please check your Hostinger DNS settings and allow 2-5 minutes for propagation.`,
+      customDomainVerified: tenant.customDomainVerified,
       customDomainConnected: false,
       connectionStatus: 'DNS Configuration Required',
     });

@@ -13,9 +13,9 @@ export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY
 export const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY                 
 export const VAPID_SUBJECT = process.env.VAPID_SUBJECT             
 
-export const TARGET_A_RECORD = process.env.TARGET_A_RECORD                  
-export const TARGET_CNAME_RECORD = process.env.TARGET_CNAME_RECORD                
+export const TARGET_A_RECORD = process.env.TARGET_A_RECORD || '76.76.21.21';
+export const TARGET_CNAME_RECORD = process.env.TARGET_CNAME_RECORD || 'cname.vercel-dns.com';
 
-export const VERCEL_AUTH_TOKEN = process.env.VERCEL_AUTH_TOKEN                 
-export const VERCEL_PROJECT_ID = process.env.VERCEL_PROJECT_ID                 
-export const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID 
+export const VERCEL_AUTH_TOKEN = process.env.VERCEL_AUTH_TOKEN || '';
+export const VERCEL_PROJECT_ID = process.env.VERCEL_PROJECT_ID || '';
+export const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID || '';
