@@ -48,7 +48,10 @@ const corsOptions = {
 
       const cleanHost = host.replace(/^www\./, '');
       const matchedTenant = await Tenant.findOne({
-        $or: [{ customDomain: host }, { customDomain: cleanHost }]
+        $or: [
+          { customDomain: host, customDomainVerified: true },
+          { customDomain: cleanHost, customDomainVerified: true }
+        ]
       });
       if (matchedTenant) {
         return callback(null, true);

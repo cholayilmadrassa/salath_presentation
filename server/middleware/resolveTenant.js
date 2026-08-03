@@ -39,10 +39,13 @@ export async function resolveTenant(req, res, next) {
         }
       }
 
-      // If still not found by subdomain, try custom domain match (supports example.com & www.example.com)
+      // If still not found by subdomain, try custom domain match (requires customDomainVerified: true)
       if (!tenant && host !== rootDomain && host !== `www.${rootDomain}`) {
         tenant = await Tenant.findOne({
-          $or: [{ customDomain: host }, { customDomain: cleanHost }],
+          $or: [
+            { customDomain: host, customDomainVerified: true },
+            { customDomain: cleanHost, customDomainVerified: true }
+          ],
         });
       }
     }

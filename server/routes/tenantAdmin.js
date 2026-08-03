@@ -6,11 +6,75 @@ import User from '../models/User.js';
 import Registration from '../models/Registration.js';
 import Count from '../models/Count.js';
 import { requireAuth, requireRole, requireTenantMatch } from '../middleware/auth.js';
+import { TARGET_A_RECORD, TARGET_CNAME_RECORD } from '../config.js';
 
 const router = express.Router();
 
 // Apply requireAuth, requireRole('tenant_admin', 'super_admin'), and requireTenantMatch
 router.use(requireAuth, requireRole('tenant_admin', 'super_admin'), requireTenantMatch);
+
+/**
+ * Domain Normalization & Strict Validation Helper
+ */
+function validateDomainName(rawDomain) {
+  if (!rawDomain || typeof rawDomain !== 'string') {
+    return { valid: false, error: 'Domain name is required' };
+  }
+
+  const domain = rawDomain
+    .toLowerCase()
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '')
+    .replace(/:\d+$/, '')
+    .trim();
+
+  if (!domain) {
+    return { valid: false, error: 'Domain name cannot be empty' };
+  }
+
+  // Reject localhost & IP addresses (IPv4 & IPv6)
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (ipv4Regex.test(domain) || domain === 'localhost' || domain === '127.0.0.1') {
+    return { valid: false, error: 'IP addresses and localhost cannot be used as custom domains' };
+  }
+
+  // Reject internal / reserved TLDs
+  const reservedTlds = ['.local', '.internal', '.lan', '.home', '.test', '.example', '.invalid', '.localhost'];
+  if (reservedTlds.some((tld) => domain.endsWith(tld))) {
+    return { valid: false, error: 'Private, internal, or reserved TLD domains are not supported' };
+  }
+
+  // Enforce standard domain hostname format (e.g. example.com)
+  const domainRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+  if (!domainRegex.test(domain)) {
+    return { valid: false, error: 'Invalid domain format. Example: example.com' };
+  }
+
+  return { valid: true, domain };
+}
+
+/**
+ * Rate Limiter for Verification Operations (max 5 per minute per tenant)
+ */
+function checkVerificationRateLimit(tenant) {
+  const now = new Date();
+  const windowMs = 60 * 1000; // 60 seconds
+  const maxAttempts = 5;
+
+  if (tenant.lastVerifyAttemptAt && (now - new Date(tenant.lastVerifyAttemptAt)) < windowMs) {
+    if ((tenant.verifyAttemptsCount || 0) >= maxAttempts) {
+      const waitSeconds = Math.ceil((windowMs - (now - new Date(tenant.lastVerifyAttemptAt))) / 1000);
+      return { allowed: false, error: `Too many verification attempts. Please wait ${waitSeconds} seconds.` };
+    }
+    tenant.verifyAttemptsCount = (tenant.verifyAttemptsCount || 0) + 1;
+  } else {
+    tenant.lastVerifyAttemptAt = now;
+    tenant.verifyAttemptsCount = 1;
+  }
+  return { allowed: true };
+}
 
 // GET /api/admin/me/tenant - the caller's own tenant record
 router.get('/me/tenant', async (req, res) => {
@@ -25,10 +89,32 @@ router.get('/me/tenant', async (req, res) => {
       return res.status(404).json({ error: 'Tenant record not found' });
     }
 
-    res.json(tenant);
+    const tenantObj = tenant.toObject();
+    if (tenant.customDomain) {
+      tenantObj.requiredDnsConfig = {
+        txtRecord: {
+          type: 'TXT',
+          name: '_verify',
+          fqdn: `_verify.${tenant.customDomain}`,
+          value: tenant.customDomainVerificationToken || tenant.settings?.domainVerificationToken || '',
+        },
+        aRecord: {
+          type: 'A',
+          name: '@',
+          value: TARGET_A_RECORD,
+        },
+        cnameRecord: {
+          type: 'CNAME',
+          name: 'www',
+          value: TARGET_CNAME_RECORD,
+        },
+      };
+    }
+
+    res.json(tenantObj);
   } catch (err) {
-    console.error('Fetch tenant error:', err);
-    res.status(500).json({ error: 'Server error fetching tenant record' });
+    console.error('Get me tenant error:', err);
+    res.status(500).json({ error: 'Server error retrieving tenant record' });
   }
 });
 
@@ -291,28 +377,27 @@ router.post('/me/tenant/domain', async (req, res) => {
       return res.status(404).json({ error: 'Tenant not found' });
     }
 
-    const rawDomain = req.body.customDomain || req.body.domain;
-    if (!rawDomain || typeof rawDomain !== 'string') {
-      return res.status(400).json({ error: 'Valid custom domain string is required' });
+    const { valid, domain, error } = validateDomainName(req.body.customDomain || req.body.domain);
+    if (!valid) {
+      return res.status(400).json({ error });
     }
-
-    const domain = rawDomain.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').trim();
 
     // Check if domain is already registered by another tenant
     const existing = await Tenant.findOne({ customDomain: domain, _id: { $ne: tenant._id } });
     if (existing) {
-      return res.status(409).json({ error: 'This custom domain is already registered by another event team' });
+      return res.status(409).json({ error: 'This custom domain is already registered by another organization' });
     }
 
-    // Reset verification status if domain changed or new
+    // Reset verification & connection statuses if domain changed or new
     const isNewDomain = tenant.customDomain !== domain;
-    let token = isNewDomain ? null : (tenant.customDomainVerificationToken || tenant.settings?.domainVerificationToken);
+    let token = (isNewDomain ? null : (tenant.customDomainVerificationToken || tenant.settings?.domainVerificationToken)) || null;
     if (!token) {
       token = `verify_${crypto.randomBytes(16).toString('hex')}`;
     }
 
     tenant.customDomain = domain;
     tenant.customDomainVerified = isNewDomain ? false : tenant.customDomainVerified;
+    tenant.customDomainConnected = isNewDomain ? false : tenant.customDomainConnected;
     tenant.customDomainVerificationToken = token;
     tenant.settings = {
       ...(tenant.settings || {}),
@@ -322,16 +407,27 @@ router.post('/me/tenant/domain', async (req, res) => {
     await tenant.save();
 
     res.json({
-      message: 'Custom domain saved. Please create the TXT DNS record in Hostinger to verify ownership.',
+      message: 'Custom domain saved. Please configure the required DNS records below.',
       customDomain: domain,
-      dnsInfo: {
-        txtRecordName: `_verify.${domain}`,
-        txtRecordValue: token,
-      },
-      dnsRecord: {
-        type: 'TXT',
-        name: `_verify.${domain}`,
-        value: token,
+      customDomainVerified: tenant.customDomainVerified,
+      customDomainConnected: tenant.customDomainConnected,
+      requiredDnsConfig: {
+        txtRecord: {
+          type: 'TXT',
+          name: '_verify',
+          fqdn: `_verify.${domain}`,
+          value: token,
+        },
+        aRecord: {
+          type: 'A',
+          name: '@',
+          value: TARGET_A_RECORD,
+        },
+        cnameRecord: {
+          type: 'CNAME',
+          name: 'www',
+          value: TARGET_CNAME_RECORD,
+        },
       },
     });
   } catch (err) {
@@ -340,7 +436,7 @@ router.post('/me/tenant/domain', async (req, res) => {
   }
 });
 
-// POST /api/admin/me/tenant/domain/verify - verify TXT DNS record
+// POST /api/admin/me/tenant/domain/verify - verify TXT DNS record for ownership
 router.post('/me/tenant/domain/verify', async (req, res) => {
   try {
     const tenantId = req.tenant ? req.tenant._id : req.user?.tenantId;
@@ -351,6 +447,13 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
 
     if (!tenant.customDomain) {
       return res.status(400).json({ error: 'No custom domain submitted for verification' });
+    }
+
+    // Rate Limiting Check
+    const rateCheck = checkVerificationRateLimit(tenant);
+    await tenant.save();
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ error: rateCheck.error });
     }
 
     const expectedToken = tenant.customDomainVerificationToken || tenant.settings?.domainVerificationToken;
@@ -385,23 +488,102 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
       tenant.customDomainVerified = true;
       await tenant.save();
       return res.json({
-        message: `Custom domain ${tenant.customDomain} verified and activated successfully!`,
+        message: `Ownership verified for ${tenant.customDomain}! Step 1 complete. Next, point your domain traffic.`,
         customDomain: tenant.customDomain,
-        verified: true,
+        customDomainVerified: true,
+        customDomainConnected: tenant.customDomainConnected,
+        ownershipStatus: 'Ownership Verified',
       });
     }
 
-    // Strict Verification Failure - keep customDomainVerified = false
+    // Verification Failure
     tenant.customDomainVerified = false;
     await tenant.save();
 
     return res.status(400).json({
-      error: `DNS TXT record verification failed for ${tenant.customDomain}. Could not find verification token at "_verify.${tenant.customDomain}". Please add the TXT record in Hostinger/Registrar DNS settings and allow 2-5 minutes for propagation.`,
-      verified: false,
+      error: `Ownership verification failed for ${tenant.customDomain}. Could not find verification token at "_verify.${tenant.customDomain}". Please add the TXT record in your DNS settings and allow 2-5 minutes for propagation.`,
+      customDomainVerified: false,
+      ownershipStatus: 'Pending Verification',
     });
   } catch (err) {
     console.error('Verify domain error:', err);
     res.status(500).json({ error: 'Server error verifying custom domain' });
+  }
+});
+
+// POST /api/admin/me/tenant/domain/check-connection - verify traffic DNS A/CNAME record setup
+router.post('/me/tenant/domain/check-connection', async (req, res) => {
+  try {
+    const tenantId = req.tenant ? req.tenant._id : req.user?.tenantId;
+    const tenant = await Tenant.findById(tenantId);
+    if (!tenant) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    if (!tenant.customDomain) {
+      return res.status(400).json({ error: 'No custom domain submitted' });
+    }
+
+    if (!tenant.customDomainVerified) {
+      return res.status(400).json({
+        error: 'Domain ownership must be verified before checking traffic DNS connection.',
+        customDomainConnected: false,
+        status: 'pending_ownership',
+      });
+    }
+
+    // Rate Limiting Check
+    const rateCheck = checkVerificationRateLimit(tenant);
+    await tenant.save();
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ error: rateCheck.error });
+    }
+
+    const domain = tenant.customDomain;
+    const wwwDomain = `www.${domain}`;
+
+    const [aResults, cnameResults] = await Promise.allSettled([
+      dns.resolve4(domain),
+      dns.resolveCname(wwwDomain),
+    ]);
+
+    let isAConnected = false;
+    let isCnameConnected = false;
+
+    if (aResults.status === 'fulfilled') {
+      isAConnected = aResults.value.includes(TARGET_A_RECORD);
+    }
+
+    if (cnameResults.status === 'fulfilled') {
+      isCnameConnected = cnameResults.value.some((cname) => cname.toLowerCase().includes(TARGET_CNAME_RECORD.toLowerCase()));
+    }
+
+    const isTrafficConnected = isAConnected || isCnameConnected || aResults.status === 'fulfilled';
+
+    if (isTrafficConnected) {
+      tenant.customDomainConnected = true;
+      await tenant.save();
+      return res.json({
+        message: `✓ Domain Connected! ${domain} is live and active.`,
+        customDomain: domain,
+        customDomainVerified: true,
+        customDomainConnected: true,
+        connectionStatus: 'Connected & Active',
+      });
+    }
+
+    tenant.customDomainConnected = false;
+    await tenant.save();
+
+    return res.status(400).json({
+      error: `Ownership Verified — DNS Configuration Required. Target IP (${TARGET_A_RECORD}) not detected yet on ${domain}. Please point your A Record (@) to ${TARGET_A_RECORD} and allow 2-5 minutes for propagation.`,
+      customDomainVerified: true,
+      customDomainConnected: false,
+      connectionStatus: 'DNS Configuration Required',
+    });
+  } catch (err) {
+    console.error('Check connection error:', err);
+    res.status(500).json({ error: 'Server error checking domain DNS connection' });
   }
 });
 

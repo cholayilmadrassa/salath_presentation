@@ -31,8 +31,8 @@ router.get('/active-tenant', async (req, res) => {
         const cleanHost = String(queryHost).toLowerCase().trim().replace(/^www\./, '');
         tenant = await Tenant.findOne({
           $or: [
-            { customDomain: cleanHost },
-            { customDomain: String(queryHost).toLowerCase().trim() }
+            { customDomain: cleanHost, customDomainVerified: true },
+            { customDomain: String(queryHost).toLowerCase().trim(), customDomainVerified: true }
           ]
         });
       }

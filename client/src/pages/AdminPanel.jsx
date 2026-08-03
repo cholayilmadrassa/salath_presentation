@@ -284,10 +284,25 @@ export default function AdminPanel() {
         method: 'POST',
         token,
       });
-      setSaveSuccess(res.message || 'Custom domain verified and active!');
+      setSaveSuccess(res.message || 'Ownership verified! Next, point your domain traffic.');
       fetchTenantDetails();
     } catch (e) {
-      setError(e.message || 'Domain DNS verification failed. Please ensure TXT record is propagated.');
+      setError(e.message || 'Domain ownership verification failed. Please ensure TXT record is propagated.');
+    }
+  };
+
+  const handleCheckDnsConnection = async () => {
+    setError('');
+    setSaveSuccess('');
+    try {
+      const res = await api('/admin/me/tenant/domain/check-connection', {
+        method: 'POST',
+        token,
+      });
+      setSaveSuccess(res.message || 'Domain connected and active!');
+      fetchTenantDetails();
+    } catch (e) {
+      setError(e.message || 'DNS connection check failed. Please ensure A record points to target IP.');
     }
   };
 
@@ -535,6 +550,7 @@ export default function AdminPanel() {
             setDomainInput={setDomainInput}
             handleRequestCustomDomain={handleRequestCustomDomain}
             handleVerifyDomain={handleVerifyDomain}
+            handleCheckDnsConnection={handleCheckDnsConnection}
             domainDnsInfo={domainDnsInfo}
             tenant={tenant}
             copiedField={copiedField}
