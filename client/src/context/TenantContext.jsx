@@ -27,8 +27,11 @@ export function TenantProvider({ children }) {
 
       let slug = null;
 
-      // Extract subdomain if present (e.g. noorulislam.swalath.online or noorulislam.localhost:5173)
-      if (host.includes('.')) {
+      // Extract subdomain ONLY if host is on platform root domain (e.g. *.swalath.online) or multi-level localhost (e.g. team1.localhost)
+      const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+      const isPlatformSubdomain = host.endsWith('.swalath.online') || (isLocalhost && host.split('.').length > 1 && !host.startsWith('localhost'));
+
+      if (isPlatformSubdomain && host.includes('.')) {
         const parts = host.split('.');
         if (parts.length > 1 && parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== '127') {
           slug = parts[0];
@@ -42,10 +45,15 @@ export function TenantProvider({ children }) {
       }
 
       // Query active tenant by slug or host domain
-      let queryParam = slug ? `slug=${encodeURIComponent(slug)}&host=${encodeURIComponent(host)}` : `host=${encodeURIComponent(host)}`;
+      let queryParam = slug
+        ? `slug=${encodeURIComponent(slug)}&host=${encodeURIComponent(host)}`
+        : `host=${encodeURIComponent(host)}`;
+
       const data = await api(`/events/active-tenant?${queryParam}`).catch((err) => {
-        // If query by host failed and no slug, return null
-        if (!slug) return null;
+        // If query by plain host failed on root domain, return null
+        if (!slug && (host === 'localhost' || host === '127.0.0.1' || host === 'swalath.online' || host === 'www.swalath.online')) {
+          return null;
+        }
         throw err;
       });
 
@@ -60,12 +68,7 @@ export function TenantProvider({ children }) {
       }
     } catch (err) {
       const host = window.location.hostname.toLowerCase();
-      const searchParams = new URLSearchParams(window.location.search);
-      const slug = searchParams.get('tenant') || (host.includes('.') ? host.split('.')[0] : '');
-
-      if (slug) {
-        setError(err.message || `Event subdomain "${slug}" is invalid or pending approval.`);
-      }
+      setError(err.message || `Event domain "${host}" is invalid or pending approval.`);
     } finally {
       setLoading(false);
     }

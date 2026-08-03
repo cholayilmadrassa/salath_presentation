@@ -5,8 +5,11 @@ export async function api(path, { method = 'GET', body, token } = {}) {
   const authToken = token || localStorage.getItem('token');
   const tenantSlug = localStorage.getItem('activeTenantSlug');
 
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
+
   const headers = {
     'Content-Type': 'application/json',
+    ...(currentHost ? { 'X-Tenant-Host': currentHost, 'X-Forwarded-Host': currentHost } : {}),
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...(tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}),
   };

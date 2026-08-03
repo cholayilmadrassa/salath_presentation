@@ -46,7 +46,10 @@ const corsOptions = {
         return callback(null, true);
       }
 
-      const matchedTenant = await Tenant.findOne({ customDomain: host, customDomainVerified: true });
+      const cleanHost = host.replace(/^www\./, '');
+      const matchedTenant = await Tenant.findOne({
+        $or: [{ customDomain: host }, { customDomain: cleanHost }]
+      });
       if (matchedTenant) {
         return callback(null, true);
       }
@@ -57,7 +60,7 @@ const corsOptions = {
     }
   },
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id', 'x-tenant-slug', 'Accept', 'Origin'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id', 'x-tenant-slug', 'x-tenant-host', 'x-forwarded-host', 'Accept', 'Origin'],
 };
 
 app.use(cors(corsOptions));

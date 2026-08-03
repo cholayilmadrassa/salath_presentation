@@ -15,8 +15,9 @@ export async function resolveTenant(req, res, next) {
       req.path.startsWith('/api/events/public-approved') ||
       req.path.startsWith('/api/events/active-tenant');
 
-    let rawHost = (req.headers['x-forwarded-host'] || req.headers.host || '').toString();
-    const host = rawHost.split(':')[0].toLowerCase().trim();
+    let rawHost = (req.headers['x-tenant-host'] || req.headers['x-forwarded-host'] || req.headers.host || '').toString();
+    const host = rawHost.split(',')[0].split(':')[0].toLowerCase().trim();
+    const cleanHost = host.replace(/^www\./, '');
 
     let tenant = null;
 
@@ -28,7 +29,6 @@ export async function resolveTenant(req, res, next) {
 
     if (!tenant && host) {
       const rootDomain = PLATFORM_ROOT_DOMAIN.toLowerCase().trim();
-      const cleanHost = host.replace(/^www\./, '');
 
       // Check if host is a subdomain of root domain (e.g. noorulislam.localhost or team1.swalath.online)
       if (host !== rootDomain && host !== `www.${rootDomain}` && (host.endsWith(`.${rootDomain}`) || host.includes('.localhost'))) {
@@ -40,7 +40,7 @@ export async function resolveTenant(req, res, next) {
       }
 
       // If still not found by subdomain, try custom domain match (supports example.com & www.example.com)
-      if (!tenant && host !== rootDomain && host !== `www.${rootDomain}` && host !== 'localhost') {
+      if (!tenant && host !== rootDomain && host !== `www.${rootDomain}`) {
         tenant = await Tenant.findOne({
           $or: [{ customDomain: host }, { customDomain: cleanHost }],
         });
@@ -54,19 +54,6 @@ export async function resolveTenant(req, res, next) {
         }
       }
       req.tenant = tenant;
-    }
-
-    // Require tenant ONLY for strict event-scoped private endpoints
-    const isPublicRoute =
-      isPlatformRoute ||
-      req.path.startsWith('/api/counts/leaderboard');
-
-    const requiresTenant =
-      (req.path.startsWith('/api/events') || req.path.startsWith('/api/admin/me')) &&
-      !isPublicRoute;
-
-    if (requiresTenant && !req.tenant) {
-      return res.status(404).json({ error: 'Tenant not found for requested domain or slug' });
     }
 
     next();

@@ -27,18 +27,18 @@ router.get('/active-tenant', async (req, res) => {
       const queryHost = req.query.host || req.query.domain;
       let tenant = null;
 
-      if (querySlug) {
-        tenant = await Tenant.findOne({ slug: String(querySlug).toLowerCase().trim() });
-      }
-
-      if (!tenant && queryHost) {
+      if (queryHost) {
         const cleanHost = String(queryHost).toLowerCase().trim().replace(/^www\./, '');
         tenant = await Tenant.findOne({
           $or: [
             { customDomain: cleanHost },
-            { slug: cleanHost.split('.')[0] }
+            { customDomain: String(queryHost).toLowerCase().trim() }
           ]
         });
+      }
+
+      if (!tenant && querySlug) {
+        tenant = await Tenant.findOne({ slug: String(querySlug).toLowerCase().trim() });
       }
 
       if (tenant) {

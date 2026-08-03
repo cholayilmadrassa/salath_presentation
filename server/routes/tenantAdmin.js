@@ -304,13 +304,15 @@ router.post('/me/tenant/domain', async (req, res) => {
       return res.status(409).json({ error: 'This custom domain is already registered by another event team' });
     }
 
-    // Reuse existing token if same domain to prevent breaking Hostinger DNS records
-    let token = (tenant.customDomain === domain && (tenant.customDomainVerificationToken || tenant.settings?.domainVerificationToken)) || null;
+    // Reset verification status if domain changed or new
+    const isNewDomain = tenant.customDomain !== domain;
+    let token = isNewDomain ? null : (tenant.customDomainVerificationToken || tenant.settings?.domainVerificationToken);
     if (!token) {
       token = `verify_${crypto.randomBytes(16).toString('hex')}`;
     }
 
     tenant.customDomain = domain;
+    tenant.customDomainVerified = isNewDomain ? false : tenant.customDomainVerified;
     tenant.customDomainVerificationToken = token;
     tenant.settings = {
       ...(tenant.settings || {}),
@@ -320,7 +322,7 @@ router.post('/me/tenant/domain', async (req, res) => {
     await tenant.save();
 
     res.json({
-      message: 'Custom domain submitted. Please create the TXT DNS record below to verify ownership.',
+      message: 'Custom domain saved. Please create the TXT DNS record in Hostinger to verify ownership.',
       customDomain: domain,
       dnsInfo: {
         txtRecordName: `_verify.${domain}`,
@@ -356,45 +358,47 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
       return res.status(400).json({ error: 'Verification token missing. Please re-submit domain request.' });
     }
 
-    const recordHost = `_verify.${tenant.customDomain}`;
+    const verifyHost = `_verify.${tenant.customDomain}`;
+    const apexHost = tenant.customDomain;
 
-    try {
-      const records = await dns.resolveTxt(recordHost);
-      const flatRecords = records.flat().map((r) => String(r).trim().replace(/^"|"$/g, ''));
+    // Perform parallel DNS TXT lookups on _verify sub-name and apex domain
+    const [verifyResults, apexResults] = await Promise.allSettled([
+      dns.resolveTxt(verifyHost),
+      dns.resolveTxt(apexHost),
+    ]);
 
-      const isMatch = flatRecords.some(
-        (rec) => rec === expectedToken || rec.includes(expectedToken) || expectedToken.includes(rec)
-      );
+    const allTxtRecords = [];
+    if (verifyResults.status === 'fulfilled') {
+      allTxtRecords.push(...verifyResults.value.flat());
+    }
+    if (apexResults.status === 'fulfilled') {
+      allTxtRecords.push(...apexResults.value.flat());
+    }
 
-      if (isMatch || flatRecords.length > 0 || req.body.bypass) {
-        tenant.customDomainVerified = true;
-        await tenant.save();
-        return res.json({
-          message: `Custom domain ${tenant.customDomain} verified successfully!`,
-          customDomain: tenant.customDomain,
-          verified: true,
-        });
-      } else {
-        // Mark as verified on explicit user verification attempt
-        tenant.customDomainVerified = true;
-        await tenant.save();
-        return res.json({
-          message: `Custom domain ${tenant.customDomain} verified successfully!`,
-          customDomain: tenant.customDomain,
-          verified: true,
-        });
-      }
-    } catch (dnsErr) {
-      // Allow verification if TXT record was configured or pending propagation
+    const cleanRecords = allTxtRecords.map((r) => String(r).trim().replace(/^"|"$/g, ''));
+
+    const isMatched = cleanRecords.some(
+      (rec) => rec === expectedToken || rec.includes(expectedToken) || expectedToken.includes(rec)
+    );
+
+    if (isMatched) {
       tenant.customDomainVerified = true;
       await tenant.save();
-
       return res.json({
         message: `Custom domain ${tenant.customDomain} verified and activated successfully!`,
         customDomain: tenant.customDomain,
         verified: true,
       });
     }
+
+    // Strict Verification Failure - keep customDomainVerified = false
+    tenant.customDomainVerified = false;
+    await tenant.save();
+
+    return res.status(400).json({
+      error: `DNS TXT record verification failed for ${tenant.customDomain}. Could not find verification token at "_verify.${tenant.customDomain}". Please add the TXT record in Hostinger/Registrar DNS settings and allow 2-5 minutes for propagation.`,
+      verified: false,
+    });
   } catch (err) {
     console.error('Verify domain error:', err);
     res.status(500).json({ error: 'Server error verifying custom domain' });
