@@ -58,7 +58,32 @@ router.put('/me/tenant/branding', async (req, res) => {
   }
 });
 
-// PATCH /api/admin/me/tenant - update branding and settings
+// PUT /api/admin/me/tenant/swalath - update tenant swalath details
+router.put('/me/tenant/swalath', async (req, res) => {
+  try {
+    const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;
+    const tenant = await Tenant.findById(tenantId);
+    if (!tenant) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    const { title, arabicText, translation, imageUrl } = req.body;
+    tenant.swalath = {
+      title: title !== undefined ? title : (tenant.swalath?.title || 'സ്വലാത്ത്'),
+      arabicText: arabicText !== undefined ? arabicText : (tenant.swalath?.arabicText || ''),
+      translation: translation !== undefined ? translation : (tenant.swalath?.translation || ''),
+      imageUrl: imageUrl !== undefined ? imageUrl : (tenant.swalath?.imageUrl || ''),
+    };
+
+    await tenant.save();
+    res.json(tenant);
+  } catch (err) {
+    console.error('Update swalath error:', err);
+    res.status(500).json({ error: 'Server error updating swalath' });
+  }
+});
+
+// PATCH /api/admin/me/tenant - update branding, swalath and settings
 router.patch('/me/tenant', async (req, res) => {
   try {
     const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;
@@ -67,7 +92,7 @@ router.patch('/me/tenant', async (req, res) => {
       return res.status(404).json({ error: 'Tenant not found' });
     }
 
-    const { branding, settings, name } = req.body;
+    const { branding, swalath, settings, name } = req.body;
 
     if (name && typeof name === 'string') {
       tenant.name = name.trim();
@@ -80,6 +105,16 @@ router.patch('/me/tenant', async (req, res) => {
         tagline: branding.tagline !== undefined ? branding.tagline : tenant.branding.tagline,
         logoUrl: branding.logoUrl !== undefined ? branding.logoUrl : tenant.branding.logoUrl,
         themeColor: branding.themeColor !== undefined ? branding.themeColor : tenant.branding.themeColor,
+      };
+    }
+
+    if (swalath && typeof swalath === 'object') {
+      tenant.swalath = {
+        ...(tenant.swalath || {}),
+        title: swalath.title !== undefined ? swalath.title : tenant.swalath?.title,
+        arabicText: swalath.arabicText !== undefined ? swalath.arabicText : tenant.swalath?.arabicText,
+        translation: swalath.translation !== undefined ? swalath.translation : tenant.swalath?.translation,
+        imageUrl: swalath.imageUrl !== undefined ? swalath.imageUrl : tenant.swalath?.imageUrl,
       };
     }
 

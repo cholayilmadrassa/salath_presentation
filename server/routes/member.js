@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/public-approved', async (_req, res) => {
   try {
     const tenants = await Tenant.find({ status: 'approved' })
-      .select('name slug branding customDomain createdAt')
+      .select('name slug branding swalath settings customDomain createdAt')
       .sort({ createdAt: -1 });
 
     res.json(tenants);
@@ -40,6 +40,8 @@ router.get('/active-tenant', async (req, res) => {
             name: tenant.name,
             slug: tenant.slug,
             branding: tenant.branding,
+            swalath: tenant.swalath,
+            settings: tenant.settings,
             status: tenant.status,
             customDomain: tenant.customDomain,
           });
@@ -65,6 +67,8 @@ router.get('/active-tenant', async (req, res) => {
       name: req.tenant.name,
       slug: req.tenant.slug,
       branding: req.tenant.branding,
+      swalath: req.tenant.swalath,
+      settings: req.tenant.settings,
       status: req.tenant.status,
       customDomain: req.tenant.customDomain,
     });

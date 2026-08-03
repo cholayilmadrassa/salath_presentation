@@ -33,6 +33,12 @@ const tenantSchema = new mongoose.Schema(
       logoUrl: { type: String, default: '' },
       themeColor: { type: String, default: '#4f46e5' },
     },
+    swalath: {
+      title: { type: String, default: 'സ്വലാത്ത്' },
+      arabicText: { type: String, default: 'اللَّهُمَّ صَلِّ عَلَى سَيِّدِنَا مُحَمَّدٍ وَعَلَى آلِ سَيِّدِنَا مُحَمَّدٍ وَبَارِكْ وَسَلِّمْ' },
+      translation: { type: String, default: '' },
+      imageUrl: { type: String, default: '' },
+    },
     settings: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }

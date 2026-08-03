@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
 import SettingsModal from "../components/SettingsModal.jsx";
+import SwalathCard from "../components/SwalathCard.jsx";
+import QuickActionGrid from "../components/QuickActionGrid.jsx";
+import LeaderboardSection from "../components/LeaderboardSection.jsx";
 
 function formatTitleCase(str) {
   if (!str) return '';
@@ -194,105 +197,23 @@ export default function EventHome() {
         </div>
       </section>
 
-      {/* ──────── QUICK ACTION GRID ──────── */}
-      <section className="px-4 pt-4 pb-2 max-w-xl mx-auto w-full">
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { icon: <BookOpen className="w-5 h-5" />, label: 'Dashboard', to: user ? '/dashboard' : '/login' },
-            { icon: <Crown className="w-5 h-5" />, label: 'Leaderboard', to: '/dashboard' },
-            { icon: <Heart className="w-5 h-5" />, label: 'Counter', to: user ? '/counter' : '/signup' },
-            { icon: <Users className="w-5 h-5" />, label: 'Membership', to: '/signup' },
-          ].map((item, i) => (
-            <Link
-              key={i}
-              to={item.to}
-              className={`flex flex-col items-center gap-2 py-3.5 rounded-2xl bg-card shadow-xs active:scale-95 transition border border-border animate-slide-up stagger-${i + 1}`}
-              style={{ animationFillMode: 'both' }}
-            >
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm bg-primary/15 text-primary">
-                {item.icon}
-              </div>
-              <span className="text-[10px] font-extrabold leading-tight text-center text-foreground">
-                {item.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* ──────── LEADERBOARD SECTION ──────── */}
-      <main className="max-w-xl mx-auto px-4 py-3 space-y-5 w-full flex-1">
-        <section id="leaderboard" className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-extrabold flex items-center gap-2 text-foreground">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm bg-primary text-primary-foreground">
-                <Crown className="w-4 h-4 text-[#D4AF37]" />
-              </div>
-              <span>Today's Top Leaders</span>
-            </h2>
-    
-          </div>
-
-          {error && <Alert variant="destructive">{error}</Alert>}
-
-          {loading ? (
-            <div className="py-8 text-center space-y-2">
-              <div className="w-8 h-8 mx-auto rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              <p className="text-xs font-medium text-muted-foreground">Loading...</p>
-            </div>
-          ) : leaders.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto bg-primary/15 text-primary">
-                  <Zap className="w-6 h-6" />
-                </div>
-                <p className="text-xs font-bold text-foreground">No entries recorded today yet</p>
-                <p className="text-[11px] text-muted-foreground">Be the first to record your Swalath count today!</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {leaders.map((row, idx) => (
-                <div
-                  key={row.userId || idx}
-                  className={`bg-card rounded-2xl p-3.5 shadow-xs flex items-center justify-between transition active:scale-[0.98] animate-slide-up stagger-${idx + 1} border ${idx === 0 ? 'border-primary ring-1 ring-primary/30' : 'border-border'
-                    }`}
-                  style={{ animationFillMode: 'both' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-sm shrink-0 shadow-xs ${idx === 0 ? 'bg-primary text-primary-foreground' : idx < 3 ? 'bg-secondary text-secondary-foreground' : 'bg-primary/15 text-primary'
-                        }`}
-                    >
-                      {idx < 3 ? medalEmoji[idx] : `#${idx + 1}`}
-                    </div>
-                    <div>
-                      <h3 className="font-extrabold text-xs sm:text-sm leading-tight text-foreground">
-                        {row.name}
-                      </h3>
-                      <div className="flex items-center gap-1 text-[10px] font-semibold mt-0.5 text-muted-foreground">
-                        <Star className="w-3 h-3 text-[#D4AF37] fill-[#D4AF37]" />
-                        <span>{idx === 0 ? '🔥 Top Leader' : 'Participant'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5">
-                    <div className="text-right">
-                      <span className="font-extrabold text-sm sm:text-base block text-primary">
-                        {Number(row.value).toLocaleString('en-IN')}
-                      </span>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Swalath</span>
-                    </div>
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary/15 text-primary">
-                      <ArrowUpRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* ──────── ARABIC SWALATH DISPLAY CARD ──────── */}
+      {activeTenant?.settings?.showSwalath !== false && (
+        <section className="px-4 pt-3 max-w-xl mx-auto w-full animate-slide-up">
+          <SwalathCard swalath={activeTenant?.swalath} />
         </section>
+      )}
+
+      {/* ──────── QUICK ACTION GRID ──────── */}
+      {activeTenant?.settings?.showQuickActions !== false && (
+        <QuickActionGrid user={user} />
+      )}
+
+      {/* ──────── LEADERBOARD & VIRTUES MAIN CONTAINER ──────── */}
+      <main className="max-w-xl mx-auto px-4 py-3 space-y-5 w-full flex-1">
+        {activeTenant?.settings?.showLeaderboard !== false && (
+          <LeaderboardSection leaders={leaders} loading={loading} error={error} />
+        )}
 
         {/* Virtues Section */}
         <section

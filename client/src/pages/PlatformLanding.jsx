@@ -10,6 +10,7 @@ import {
   Plus, ArrowRight
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
+import SwalathCard from "../components/SwalathCard.jsx";
 
 function DigitCountTicker({ value, isLoading, textColor = 'text-[#D4AF37]' }) {
   const [displayValue, setDisplayValue] = useState(0);
@@ -129,12 +130,14 @@ export default function PlatformLanding() {
 
           <div className="inline-flex items-center gap-2 bg-black/25 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 text-xs font-bold text-[#F5E6B3]">
             <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <span>പ്രവാചക പ്രകീർത്തന കാമ്പയിനുകൾ</span>
+            <span>മീലാദ് കാമ്പയിൻ 2026</span>
           </div>
 
           <div className="space-y-2 max-w-2xl mx-auto">
-            <h1 className="text-3xl sm:text-5xl font-black leading-tight text-white tracking-tight">
-              സ്വലാത്തുകൾ ക്രമീകരിക്കാം, ഒരുമിച്ച് ലക്ഷ്യത്തിലെത്താം
+            <h1 className="text-3xl sm:text-5xl font-black leading-tight text-white ">
+              നാടൊന്നാകെ സ്വലാത്തിൽ നിറയട്ടെ
+              <br />
+              <span className="text-[#F5E6B3]">നിങ്ങളുടെ ക്യാമ്പയിൻ ഇന്ന് തന്നെ ആരംഭിക്കൂ...</span>
             </h1>
             <p className="text-sm sm:text-base font-medium text-[#E6F4ED] max-w-lg mx-auto">
               വിവിധ മഹല്ലുകൾക്കും സ്ഥാപനങ്ങൾക്കുമായി സജ്ജീകരിച്ച ഡിജിറ്റൽ സ്വലാത്ത് പോർട്ടൽ ശൃംഖല.
@@ -189,6 +192,11 @@ export default function PlatformLanding() {
             </Button>
           </div>
         </div>
+      </section>
+
+      {/* ──────── ARABIC SWALATH DISPLAY CARD ──────── */}
+      <section className="px-4 py-4 max-w-xl mx-auto w-full">
+        <SwalathCard />
       </section>
 
       {/* Feature Highlights Grid */}

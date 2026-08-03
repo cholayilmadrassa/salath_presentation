@@ -29,7 +29,11 @@ export default function BottomNav() {
       .catch(() => {});
   }, [token, user, location.pathname, isNotificationsOpen]);
 
-  if (location.pathname === '/' && !activeTenant) {
+  if (
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/super-admin') ||
+    (location.pathname === '/' && !activeTenant)
+  ) {
     return null;
   }
 
