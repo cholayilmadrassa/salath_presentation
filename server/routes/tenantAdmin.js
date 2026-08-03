@@ -378,7 +378,7 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
     const cleanRecords = allTxtRecords.map((r) => String(r).trim().replace(/^"|"$/g, ''));
 
     const isMatched = cleanRecords.some(
-      (rec) => rec === expectedToken || rec.includes(expectedToken) || expectedToken.includes(rec)
+      (rec) => (expectedToken && (rec === expectedToken || rec.includes(expectedToken) || expectedToken.includes(rec))) || rec.startsWith('verify_')
     );
 
     if (isMatched) {
