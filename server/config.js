@@ -9,10 +9,13 @@ export const PLATFORM_ROOT_DOMAIN = process.env.PLATFORM_ROOT_DOMAIN
 
 export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL 
 export const SUPER_ADMIN_PASSWORD = process.env.SUPER_ADMIN_PASSWORD
+export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY                 
+export const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY                 
+export const VAPID_SUBJECT = process.env.VAPID_SUBJECT             
 
-export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BGiWMbxl3_s_U1T2_yS-csp-msS0wttV_M5rSDD6X0XeisiqDKYr5f9sOk7kMCXUjaHi-lVIrmlM75a8bb-aXII';
-export const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'Yp0dsNsFyDQ3EGBVMp7e93HAGGgdzgBXg79Hd0ym18c';
-export const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@swalath.online';
+export const TARGET_A_RECORD = process.env.TARGET_A_RECORD                  
+export const TARGET_CNAME_RECORD = process.env.TARGET_CNAME_RECORD                
 
-export const TARGET_A_RECORD = process.env.TARGET_A_RECORD || '76.76.21.21';
-export const TARGET_CNAME_RECORD = process.env.TARGET_CNAME_RECORD || 'cname.vercel-dns.com';
+export const VERCEL_AUTH_TOKEN = process.env.VERCEL_AUTH_TOKEN                 
+export const VERCEL_PROJECT_ID = process.env.VERCEL_PROJECT_ID                 
+export const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID 

@@ -6,12 +6,72 @@ import User from '../models/User.js';
 import Registration from '../models/Registration.js';
 import Count from '../models/Count.js';
 import { requireAuth, requireRole, requireTenantMatch } from '../middleware/auth.js';
-import { TARGET_A_RECORD, TARGET_CNAME_RECORD } from '../config.js';
+import { TARGET_A_RECORD, TARGET_CNAME_RECORD, VERCEL_AUTH_TOKEN, VERCEL_PROJECT_ID, VERCEL_TEAM_ID } from '../config.js';
 
 const router = express.Router();
 
 // Apply requireAuth, requireRole('tenant_admin', 'super_admin'), and requireTenantMatch
 router.use(requireAuth, requireRole('tenant_admin', 'super_admin'), requireTenantMatch);
+
+/**
+ * Automatic Vercel API Domain Provisioning Helper
+ */
+async function addDomainToVercel(domain) {
+  if (!VERCEL_AUTH_TOKEN || !VERCEL_PROJECT_ID) {
+    console.log('[VERCEL AUTO-REGISTRATION]: Skipping. Set VERCEL_AUTH_TOKEN and VERCEL_PROJECT_ID in .env to enable automatic Vercel API domain provisioning.');
+    return { success: false, reason: 'unconfigured' };
+  }
+
+  try {
+    const url = `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains${VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : ''}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${VERCEL_AUTH_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: domain }),
+    });
+
+    const data = await response.json();
+    if (!response.ok && data.error?.code !== 'domain_already_in_use') {
+      console.warn('[VERCEL API WARNING]: Could not auto-register domain on Vercel:', data.error?.message || data);
+      return { success: false, error: data.error?.message };
+    }
+
+    console.log(`[VERCEL API SUCCESS]: Successfully registered domain "${domain}" on Vercel project.`);
+    return { success: true, data };
+  } catch (err) {
+    console.warn('[VERCEL API EXCEPTION]:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Verify Domain on Vercel Project via API
+ */
+async function verifyVercelDomain(domain) {
+  if (!VERCEL_AUTH_TOKEN || !VERCEL_PROJECT_ID) {
+    return { success: false, reason: 'unconfigured' };
+  }
+
+  try {
+    const url = `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${domain}/verify${VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : ''}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${VERCEL_AUTH_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    return { success: response.ok && (data.verified || data.name === domain), data };
+  } catch (err) {
+    console.warn('[VERCEL VERIFY EXCEPTION]:', err.message);
+    return { success: false, error: err.message };
+  }
+}
 
 /**
  * Domain Normalization & Strict Validation Helper
@@ -406,6 +466,10 @@ router.post('/me/tenant/domain', async (req, res) => {
 
     await tenant.save();
 
+    // Trigger automatic Vercel API domain provisioning (non-blocking)
+    addDomainToVercel(domain).catch((err) => console.warn('Vercel auto-registration error:', err));
+    addDomainToVercel(`www.${domain}`).catch((err) => console.warn('Vercel www auto-registration error:', err));
+
     res.json({
       message: 'Custom domain saved. Please configure the required DNS records below.',
       customDomain: domain,
@@ -480,15 +544,30 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
 
     const cleanRecords = allTxtRecords.map((r) => String(r).trim().replace(/^"|"$/g, ''));
 
-    const isMatched = cleanRecords.some(
+    const isTxtMatched = cleanRecords.some(
       (rec) => (expectedToken && (rec === expectedToken || rec.includes(expectedToken) || expectedToken.includes(rec))) || rec.startsWith('verify_')
     );
 
+    // Also attempt verification directly via Vercel REST API
+    const vercelVerification = await verifyVercelDomain(tenant.customDomain);
+    const isVercelMatched = vercelVerification.success;
+
+    const isMatched = isTxtMatched || isVercelMatched;
+
     if (isMatched) {
       tenant.customDomainVerified = true;
+
+      // Check if traffic is also pointing to auto-connect
+      const [aResults] = await Promise.allSettled([dns.resolve4(tenant.customDomain)]);
+      if (aResults.status === 'fulfilled') {
+        tenant.customDomainConnected = true;
+      }
+
       await tenant.save();
       return res.json({
-        message: `Ownership verified for ${tenant.customDomain}! Step 1 complete. Next, point your domain traffic.`,
+        message: tenant.customDomainConnected
+          ? `✓ Custom domain ${tenant.customDomain} connected & active!`
+          : `Ownership verified for ${tenant.customDomain}! Next, point your domain traffic A Record to ${TARGET_A_RECORD}.`,
         customDomain: tenant.customDomain,
         customDomainVerified: true,
         customDomainConnected: tenant.customDomainConnected,
@@ -501,7 +580,7 @@ router.post('/me/tenant/domain/verify', async (req, res) => {
     await tenant.save();
 
     return res.status(400).json({
-      error: `Ownership verification failed for ${tenant.customDomain}. Could not find verification token at "_verify.${tenant.customDomain}". Please add the TXT record in your DNS settings and allow 2-5 minutes for propagation.`,
+      error: `Ownership verification pending for ${tenant.customDomain}. Could not find verification token at "_verify.${tenant.customDomain}". Please add the TXT or A record in your DNS settings and allow 2-5 minutes for propagation.`,
       customDomainVerified: false,
       ownershipStatus: 'Pending Verification',
     });
