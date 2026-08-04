@@ -205,6 +205,11 @@ This document summarizes all available API endpoints, HTTP methods, required rol
 - **Description**: Performs live DNS TXT lookup (`_verify.<domain>`) and marks `customDomainVerified: true` if record matches.
 - **Response (200 OK)**: `{ "message": "Custom domain verified successfully!", "customDomain": "event.myorg.org", "verified": true }`
 
+### `DELETE /api/admin/me/tenant/domain`
+- **Description**: Cancels and removes the active custom domain configuration for the tenant and triggers background removal from Vercel.
+- **Response (200 OK)**: `{ "message": "Custom domain cancelled and removed successfully.", "customDomain": null, "customDomainVerified": false, "customDomainConnected": false }`
+- **Error (400 Bad Request)**: `{ "error": "No custom domain is currently configured for this event team" }`
+
 ---
 
 ## 4. Member & Event Routes (`/api/events`)

@@ -74,6 +74,38 @@ async function verifyVercelDomain(domain) {
 }
 
 /**
+ * Remove Domain from Vercel Project via API
+ */
+async function removeDomainFromVercel(domain) {
+  if (!VERCEL_AUTH_TOKEN || !VERCEL_PROJECT_ID) {
+    console.log('[VERCEL AUTO-DELETION]: Skipping. Set VERCEL_AUTH_TOKEN and VERCEL_PROJECT_ID in .env to enable automatic Vercel API domain removal.');
+    return { success: false, reason: 'unconfigured' };
+  }
+
+  try {
+    const url = `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${domain}${VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : ''}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${VERCEL_AUTH_TOKEN}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.warn(`[VERCEL API WARNING]: Could not remove domain "${domain}" on Vercel:`, data.error?.message || data);
+      return { success: false, error: data.error?.message };
+    }
+
+    console.log(`[VERCEL API SUCCESS]: Successfully removed domain "${domain}" from Vercel project.`);
+    return { success: true, data };
+  } catch (err) {
+    console.warn('[VERCEL API DELETION EXCEPTION]:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Domain Normalization & Strict Validation Helper
  */
 function validateDomainName(rawDomain) {
@@ -658,4 +690,47 @@ router.post('/me/tenant/domain/check-connection', async (req, res) => {
   }
 });
 
+// DELETE /api/admin/me/tenant/domain - cancel and remove custom domain
+router.delete('/me/tenant/domain', async (req, res) => {
+  try {
+    const tenantId = req.tenant ? req.tenant._id : req.user?.tenantId;
+    const tenant = await Tenant.findById(tenantId);
+    if (!tenant) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    if (!tenant.customDomain) {
+      return res.status(400).json({ error: 'No custom domain is currently configured for this event team' });
+    }
+
+    const domainToRemove = tenant.customDomain;
+
+    // Reset custom domain fields
+    tenant.customDomain = null;
+    tenant.customDomainVerified = false;
+    tenant.customDomainConnected = false;
+    tenant.customDomainVerificationToken = null;
+    if (tenant.settings) {
+      tenant.settings.domainVerificationToken = null;
+    }
+
+    await tenant.save();
+
+    // Trigger automatic Vercel API domain removal (non-blocking)
+    removeDomainFromVercel(domainToRemove).catch((err) => console.warn('Vercel auto-removal error:', err));
+    removeDomainFromVercel(`www.${domainToRemove}`).catch((err) => console.warn('Vercel www auto-removal error:', err));
+
+    return res.json({
+      message: `Custom domain "${domainToRemove}" has been cancelled and removed successfully.`,
+      customDomain: null,
+      customDomainVerified: false,
+      customDomainConnected: false,
+    });
+  } catch (err) {
+    console.error('Cancel domain error:', err);
+    res.status(500).json({ error: 'Server error cancelling custom domain' });
+  }
+});
+
 export default router;
+

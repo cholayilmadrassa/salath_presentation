@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
-import { Check, Copy, Globe, CheckCircle2 } from 'lucide-react';
+import { Check, Copy, Globe, CheckCircle2, Trash2 } from 'lucide-react';
 
 export default function AdminDomainTab({
   domainInput,
@@ -11,6 +12,7 @@ export default function AdminDomainTab({
   handleRequestCustomDomain,
   handleVerifyDomain,
   handleCheckDnsConnection,
+  handleCancelCustomDomain,
   domainDnsInfo,
   tenant,
   copiedField,
@@ -19,6 +21,9 @@ export default function AdminDomainTab({
   saveSuccess = '',
   error = '',
 }) {
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
   const dnsConfig = tenant?.requiredDnsConfig || domainDnsInfo?.requiredDnsConfig;
   const txtToken =
     domainDnsInfo?.txtRecordValue ||
@@ -32,6 +37,17 @@ export default function AdminDomainTab({
   const isOwnershipVerified = tenant?.customDomainVerified;
   const isTrafficConnected = tenant?.customDomainConnected;
   const isFullyConnected = isOwnershipVerified && isTrafficConnected;
+
+  const onConfirmCancel = async () => {
+    if (!handleCancelCustomDomain) return;
+    setCancelling(true);
+    try {
+      await handleCancelCustomDomain();
+    } finally {
+      setCancelling(false);
+      setShowCancelConfirm(false);
+    }
+  };
 
   return (
     <Card className="border border-border shadow-xs rounded-3xl overflow-hidden">
@@ -152,7 +168,51 @@ export default function AdminDomainTab({
             </div>
           </div>
         )}
+
+        {/* Cancel Domain Section */}
+        {tenant?.customDomain && (
+          <div className="pt-4 border-t border-border">
+            {!showCancelConfirm ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCancelConfirm(true)}
+                className="w-full font-bold text-xs cursor-pointer text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Cancel Custom Domain
+              </Button>
+            ) : (
+              <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30 space-y-3">
+                <p className="text-xs font-semibold text-destructive">
+                  Are you sure you want to cancel custom domain <strong className="font-mono">{tenant.customDomain}</strong>? This will unbind it from your event portal and disconnect domain traffic.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={onConfirmCancel}
+                    disabled={cancelling}
+                    className="text-xs font-bold cursor-pointer"
+                  >
+                    {cancelling ? 'Cancelling Domain...' : 'Yes, Cancel Domain'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowCancelConfirm(false)}
+                    disabled={cancelling}
+                    className="text-xs font-bold cursor-pointer"
+                  >
+                    Keep Domain
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
+

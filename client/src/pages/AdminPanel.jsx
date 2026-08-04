@@ -306,6 +306,23 @@ export default function AdminPanel() {
     }
   };
 
+  const handleCancelCustomDomain = async () => {
+    setError('');
+    setSaveSuccess('');
+    try {
+      const res = await api('/admin/me/tenant/domain', {
+        method: 'DELETE',
+        token,
+      });
+      setDomainInput('');
+      setDomainDnsInfo(null);
+      setSaveSuccess(res.message || 'Custom domain cancelled and removed successfully.');
+      fetchTenantDetails();
+    } catch (e) {
+      setError(e.message || 'Failed to cancel custom domain.');
+    }
+  };
+
   if (authenticating) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -551,6 +568,7 @@ export default function AdminPanel() {
             handleRequestCustomDomain={handleRequestCustomDomain}
             handleVerifyDomain={handleVerifyDomain}
             handleCheckDnsConnection={handleCheckDnsConnection}
+            handleCancelCustomDomain={handleCancelCustomDomain}
             domainDnsInfo={domainDnsInfo}
             tenant={tenant}
             copiedField={copiedField}
