@@ -385,6 +385,27 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// GET /api/admin/users/:userId/counts - get member history for a specific user under tenant
+router.get('/users/:userId/counts', async (req, res) => {
+  try {
+    const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;
+    const filter = { user: req.params.userId };
+    if (tenantId) {
+      filter.tenantId = tenantId;
+    }
+
+    const items = await Count.find(filter).sort({ date: -1, createdAt: -1 });
+    const totalCount = items.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+    res.json({
+      totalCount,
+      items,
+    });
+  } catch (err) {
+    console.error('Get user counts error:', err);
+    res.status(500).json({ error: 'Server error fetching user counts' });
+  }
+});
+
 // GET /api/admin/registrations - list registrations for req.tenant._id only (paginated)
 router.get('/registrations', async (req, res) => {
   try {
