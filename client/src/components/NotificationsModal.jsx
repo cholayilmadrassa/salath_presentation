@@ -3,14 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api.js';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Bell, Clock, ArrowRight, RefreshCw, Sparkles, CheckCircle2, Moon } from 'lucide-react';
+import {
+  Bell,
+  RefreshCw,
+  BellRing,
+  Trophy,
+  Megaphone,
+  BarChart3,
+  MessageSquare,
+} from 'lucide-react';
 
 export default function NotificationsModal({ isOpen, onClose }) {
   const { token, user } = useAuth();
@@ -41,6 +48,62 @@ export default function NotificationsModal({ isOpen, onClose }) {
     onClose();
     if (url) {
       navigate(url);
+    }
+  };
+
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'ഇപ്പോൾ';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return date.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+    });
+  };
+
+  const getCategoryMeta = (category) => {
+    switch (category) {
+      case 'reminder':
+        return {
+          icon: BellRing,
+          bgColor: 'bg-amber-50',
+          iconColor: 'text-amber-500',
+        };
+      case 'milestone':
+        return {
+          icon: Trophy,
+          bgColor: 'bg-emerald-50',
+          iconColor: 'text-emerald-500',
+        };
+      case 'campaign':
+        return {
+          icon: Megaphone,
+          bgColor: 'bg-blue-50',
+          iconColor: 'text-blue-500',
+        };
+      case 'result':
+        return {
+          icon: BarChart3,
+          bgColor: 'bg-purple-50',
+          iconColor: 'text-purple-500',
+        };
+      default:
+        return {
+          icon: MessageSquare,
+          bgColor: 'bg-primary/10',
+          iconColor: 'text-primary',
+        };
     }
   };
 
@@ -76,7 +139,7 @@ export default function NotificationsModal({ isOpen, onClose }) {
         </DialogHeader>
 
         {/* Notifications Feed */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto">
           {loading && notifications.length === 0 ? (
             <div className="py-12 text-center text-xs font-medium text-muted-foreground space-y-2">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
@@ -93,53 +156,46 @@ export default function NotificationsModal({ isOpen, onClose }) {
               </p>
             </div>
           ) : (
-            notifications.map((item) => (
-              <div
-                key={item._id}
-                onClick={() => handleNotificationClick(item.url)}
-                className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-sm hover:border-primary/40 hover:shadow transition-all cursor-pointer space-y-2 group"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                    <h4 className="font-extrabold text-xs sm:text-sm text-foreground leading-tight group-hover:text-primary transition-colors">
-                      {item.title}
-                    </h4>
+            notifications.map((item, index) => {
+              const { icon: CategoryIcon, bgColor, iconColor } = getCategoryMeta(item.category);
+
+              return (
+                <div
+                  key={item._id}
+                  onClick={() => handleNotificationClick(item.url)}
+                  className={`flex items-start gap-3.5 px-4 py-4 transition-colors duration-150 hover:bg-muted/30 active:bg-muted/40 cursor-pointer ${
+                    index < notifications.length - 1 ? 'border-b border-border/50' : ''
+                  } ${!item.isRead ? 'bg-primary/[0.03]' : ''}`}
+                >
+                  {/* Circular Icon */}
+                  <div className={`w-11 h-11 rounded-full ${bgColor} flex items-center justify-center shrink-0 mt-0.5 shadow-sm`}>
+                    <CategoryIcon className={`w-5 h-5 ${iconColor}`} />
                   </div>
 
-                  <Badge variant="outline" className="text-[9px] font-bold shrink-0 capitalize">
-                    {item.category === 'reminder'
-                      ? 'ഓർമ്മപ്പെടുത്തൽ'
-                      : item.category === 'milestone'
-                      ? 'നേട്ടം 🎉'
-                      : item.category === 'campaign'
-                      ? 'ക്യാമ്പയിൻ'
-                      : item.category === 'result'
-                      ? 'ഫലം'
-                      : 'അറിയിപ്പ്'}
-                  </Badge>
+                  {/* Content */}
+                  <div className="min-w-0 flex-1">
+                    {/* Title Row with Time */}
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-bold text-[13px] sm:text-sm text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                        {item.title}
+                      </h4>
+                      <span className="text-[11px] text-muted-foreground/70 font-medium shrink-0 mt-0.5">
+                        {formatTimeAgo(item.sentAt || item.createdAt)}
+                      </span>
+                    </div>
+
+                    {/* Body */}
+                    <p className="text-xs text-muted-foreground font-normal leading-relaxed mt-1 line-clamp-2">
+                      {item.body}
+                    </p>
+                  </div>
                 </div>
-
-                <p className="text-xs text-muted-foreground font-medium leading-relaxed pl-4">
-                  {item.body}
-                </p>
-
-                <div className="flex items-center justify-between pl-4 pt-1 text-[10px] text-muted-foreground font-semibold border-t border-border/40">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-primary/70" />
-                    <span>{new Date(item.sentAt || item.createdAt).toLocaleDateString()}</span>
-                  </span>
-
-                  <span className="flex items-center gap-0.5 text-primary font-bold group-hover:translate-x-0.5 transition-transform">
-                    <span>തുറക്കുക</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+

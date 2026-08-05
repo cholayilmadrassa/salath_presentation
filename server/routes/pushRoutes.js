@@ -134,10 +134,7 @@ router.get('/inbox', async (req, res) => {
     };
 
     if (tenantId) {
-      filter.$or = [
-        { tenantId: tenantId },
-        { targetType: 'all', tenantId: null }
-      ];
+      filter.tenantId = tenantId;
     } else {
       filter.targetType = 'all';
     }
@@ -178,8 +175,12 @@ router.post('/mark-read', async (req, res) => {
     if (markAll) {
       const dbUser = await User.findById(userId);
       const tenantId = req.tenant ? req.tenant._id : (dbUser?.tenantId || req.user.tenantId || null);
-      const filter = { status: 'sent', $or: [{ targetType: 'all' }] };
-      if (tenantId) filter.$or.push({ tenantId });
+      const filter = { status: { $in: ['sent', 'partially_failed'] } };
+      if (tenantId) {
+        filter.tenantId = tenantId;
+      } else {
+        filter.targetType = 'all';
+      }
 
       const allSent = await NotificationHistory.find(filter).select('_id');
       const allIds = allSent.map((n) => n._id);

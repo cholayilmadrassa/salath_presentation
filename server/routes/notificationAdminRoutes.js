@@ -13,11 +13,11 @@ router.get('/', async (req, res) => {
   try {
     const filter = {};
 
-    // If tenant_admin, filter by tenantId unless super_admin
+    // If tenant_admin, filter strictly by tenantId unless super_admin
     if (req.user.role === 'tenant_admin') {
       const tenantId = req.tenant ? req.tenant._id : req.user.tenantId;
       if (tenantId) {
-        filter.$or = [{ tenantId }, { targetType: 'all' }];
+        filter.tenantId = tenantId;
       }
     }
 

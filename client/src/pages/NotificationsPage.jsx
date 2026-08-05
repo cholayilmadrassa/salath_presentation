@@ -9,7 +9,6 @@ import {
   Bell,
   ArrowLeft,
   RefreshCw,
-  Clock,
   BellRing,
   Trophy,
   Megaphone,
@@ -96,37 +95,32 @@ export default function NotificationsPage() {
       case 'reminder':
         return {
           icon: BellRing,
-          iconClass: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/25',
-          label: 'ഓർമ്മപ്പെടുത്തൽ',
-          variant: 'warning',
+          bgColor: 'bg-amber-50',
+          iconColor: 'text-amber-500',
         };
       case 'milestone':
         return {
           icon: Trophy,
-          iconClass: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25',
-          label: 'നേട്ടം',
-          variant: 'success',
+          bgColor: 'bg-emerald-50',
+          iconColor: 'text-emerald-500',
         };
       case 'campaign':
         return {
           icon: Megaphone,
-          iconClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/25',
-          label: 'ക്യാമ്പയിൻ',
-          variant: 'default',
+          bgColor: 'bg-blue-50',
+          iconColor: 'text-blue-500',
         };
       case 'result':
         return {
           icon: BarChart3,
-          iconClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/25',
-          label: 'ഫലം',
-          variant: 'secondary',
+          bgColor: 'bg-purple-50',
+          iconColor: 'text-purple-500',
         };
       default:
         return {
           icon: MessageSquare,
-          iconClass: 'text-primary bg-primary/10 border-primary/25',
-          label: 'അറിയിപ്പ്',
-          variant: 'outline',
+          bgColor: 'bg-primary/10',
+          iconColor: 'text-primary',
         };
     }
   };
@@ -172,62 +166,55 @@ export default function NotificationsPage() {
       </div>
 
       {/* Notifications Feed */}
-      <div className="space-y-3">
+      <div className="bg-card rounded-2xl border border-border/60 overflow-hidden shadow-sm">
         {loading && notifications.length === 0 ? (
           <div className="py-16 text-center text-xs font-medium text-muted-foreground space-y-2.5">
             <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
             <p>അറിയിപ്പുകൾ ലോഡ് ചെയ്യുന്നു...</p>
           </div>
         ) : notifications.length === 0 ? (
-          <Card className="border-dashed border-border/80 shadow-none">
-            <CardContent className="py-14 text-center space-y-2.5">
-              <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto text-muted-foreground">
-                <Bell className="w-6 h-6 opacity-40" />
-              </div>
-              <h3 className="text-sm font-extrabold text-foreground">പുതിയ അറിയിപ്പുകൾ ഒന്നുമില്ല</h3>
-              <p className="text-xs text-muted-foreground max-w-xs mx-auto font-medium">
-                നിങ്ങൾക്ക് അയക്കുന്ന പുതിയ അറിയിപ്പുകളും ഓർമ്മപ്പെടുത്തലുകളും ഇവിടെ കാണാം.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="py-14 text-center space-y-2.5 px-4">
+            <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mx-auto text-muted-foreground">
+              <Bell className="w-6 h-6 opacity-40" />
+            </div>
+            <h3 className="text-sm font-extrabold text-foreground">പുതിയ അറിയിപ്പുകൾ ഒന്നുമില്ല</h3>
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto font-medium">
+              നിങ്ങൾക്ക് അയക്കുന്ന പുതിയ അറിയിപ്പുകളും ഓർമ്മപ്പെടുത്തലുകളും ഇവിടെ കാണാം.
+            </p>
+          </div>
         ) : (
-          notifications.map((item) => {
-            const { icon: CategoryIcon, iconClass, label, variant } = getCategoryMeta(item.category);
+          notifications.map((item, index) => {
+            const { icon: CategoryIcon, bgColor, iconColor } = getCategoryMeta(item.category);
 
             return (
               <div
                 key={item._id}
-                className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm space-y-2.5 relative overflow-hidden transition-all duration-200 hover:border-primary/40"
+                className={`flex items-start gap-3.5 px-4 py-4 transition-colors duration-150 hover:bg-muted/30 active:bg-muted/40 ${
+                  index < notifications.length - 1 ? 'border-b border-border/50' : ''
+                } ${!item.isRead ? 'bg-primary/[0.03]' : ''}`}
               >
-                {/* Top Row: Icon + Title + Time + Badge */}
-                <div className="flex items-start justify-between gap-2.5">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`w-10 h-10 rounded-2xl border shadow-2xs flex items-center justify-center shrink-0 select-none ${iconClass}`}>
-                      <CategoryIcon className="w-5 h-5" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <h2 className="font-extrabold text-xs sm:text-sm text-foreground truncate leading-tight">
-                        {item.title}
-                      </h2>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <Clock className="w-3 h-3 text-muted-foreground/70 shrink-0" />
-                        <span className="text-[10px] text-muted-foreground font-bold">
-                          {formatTimeAgo(item.sentAt || item.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Badge variant={variant} className="text-[10px] font-extrabold py-0.5 px-2.5 shrink-0 shadow-2xs">
-                    {label}
-                  </Badge>
+                {/* Circular Icon */}
+                <div className={`w-11 h-11 rounded-full ${bgColor} flex items-center justify-center shrink-0 mt-0.5 shadow-sm`}>
+                  <CategoryIcon className={`w-5 h-5 ${iconColor}`} />
                 </div>
 
-                {/* Message Body */}
-                <p className="text-xs text-muted-foreground font-medium leading-relaxed pl-0.5">
-                  {item.body}
-                </p>
+                {/* Content */}
+                <div className="min-w-0 flex-1">
+                  {/* Title Row with Time */}
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="font-bold text-[13px] sm:text-sm text-foreground leading-snug line-clamp-2">
+                      {item.title}
+                    </h2>
+                    <span className="text-[11px] text-muted-foreground/70 font-medium shrink-0 mt-0.5">
+                      {formatTimeAgo(item.sentAt || item.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* Body */}
+                  <p className="text-xs text-muted-foreground font-normal leading-relaxed mt-1 line-clamp-2">
+                    {item.body}
+                  </p>
+                </div>
               </div>
             );
           })
