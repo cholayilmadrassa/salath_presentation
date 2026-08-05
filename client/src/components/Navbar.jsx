@@ -76,7 +76,7 @@ export default function Navbar() {
             }
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>Register Event Team</span>
+            <span>Register Swalath Campain</span>
           </NavLink>
 
           <NavLink

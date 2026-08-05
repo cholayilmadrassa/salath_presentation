@@ -102,8 +102,7 @@ export default function EventTeamRegister() {
           Organization Portal
         </Badge>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground">
-          Register Event Team
-        </h1>
+Register Swalath Campain        </h1>
         <p className="text-xs font-medium max-w-md mx-auto text-muted-foreground">
           Create a dedicated subdomain portal for your organization, mahallu, or campaign team.
         </p>

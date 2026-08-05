@@ -252,7 +252,7 @@ router.post('/register-tenant', async (req, res) => {
       await User.deleteOne({ _id: createdUser._id }).catch(() => {});
     }
     console.error('Register Tenant Error:', err);
-    res.status(500).json({ error: 'Failed to register event team', details: err.message });
+    res.status(500).json({ error: 'Failed to  register swalath campain', details: err.message });
   }
 });
 

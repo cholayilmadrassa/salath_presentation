@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { getHijriDate } from "../utils/hijri.js";
 import { Link } from "react-router-dom";
+import { useTenant } from "../context/TenantContext.jsx";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,12 +57,13 @@ function DigitCountTicker({ value, isLoading, textColor = 'text-[#D4AF37]' }) {
 }
 
 export default function PlatformLanding() {
+  const { activeTenant } = useTenant();
   const [totalEventCount, setTotalEventCount] = useState(0);
   const [totalMemberCount, setTotalMemberCount] = useState(0);
   const [approvedEvents, setApprovedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const hijri = getHijriDate();
+  const hijri = activeTenant ? getHijriDate() : null;
 
   useEffect(() => {
     setLoading(true);
@@ -71,17 +73,21 @@ export default function PlatformLanding() {
       })
       .catch(() => { });
 
-    api("/counts/leaderboard/all?limit=100")
-      .then((allRows) => {
-        if (Array.isArray(allRows)) {
-          const sum = allRows.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-          setTotalEventCount(sum);
-          setTotalMemberCount(allRows.length);
-        }
-      })
-      .catch(() => { })
-      .finally(() => setLoading(false));
-  }, []);
+    if (activeTenant) {
+      api("/counts/leaderboard/all?limit=100")
+        .then((allRows) => {
+          if (Array.isArray(allRows)) {
+            const sum = allRows.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+            setTotalEventCount(sum);
+            setTotalMemberCount(allRows.length);
+          }
+        })
+        .catch(() => { })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [activeTenant]);
 
   const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN
 
@@ -115,8 +121,7 @@ export default function PlatformLanding() {
             </Link>
             <Link to="/register-team">
               <Button size="sm" className="rounded-xl font-bold text-xs shadow-md">
-                Register Event
-              </Button>
+Register Swalath Campain              </Button>
             </Link>
           </div>
         </div>
@@ -144,42 +149,44 @@ export default function PlatformLanding() {
             </p>
           </div>
 
-          {/* Total Counter Summary */}
-          <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-black/25 backdrop-blur-md p-4 rounded-2xl border border-white/15 mx-auto max-w-lg w-full justify-around">
-            <div className="text-center">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
-                Total Swalath Count
-              </span>
-              <DigitCountTicker value={totalEventCount} isLoading={loading} textColor="text-[#D4AF37]" />
+          {/* Total Counter Summary — only shown when an active tenant exists */}
+          {activeTenant && (
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-black/25 backdrop-blur-md p-4 rounded-2xl border border-white/15 mx-auto max-w-lg w-full justify-around">
+              <div className="text-center">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
+                  Total Swalath Count
+                </span>
+                <DigitCountTicker value={totalEventCount} isLoading={loading} textColor="text-[#D4AF37]" />
+              </div>
+
+              <div className="w-px h-8 bg-white/20 hidden sm:block" />
+
+              <div className="text-center">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
+                  Registered Members
+                </span>
+                <DigitCountTicker value={totalMemberCount} isLoading={loading} textColor="text-white" />
+              </div>
+
+              <div className="w-px h-8 bg-white/20 hidden sm:block" />
+
+              <div className="text-center">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
+                  Today's Hijri Date
+                </span>
+                <span className="text-lg sm:text-xl font-extrabold font-arabic text-[#F5E6B3]" dir="rtl">
+                  {hijri?.formattedAr}
+                </span>
+              </div>
             </div>
-
-            <div className="w-px h-8 bg-white/20 hidden sm:block" />
-
-            <div className="text-center">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
-                Registered Members
-              </span>
-              <DigitCountTicker value={totalMemberCount} isLoading={loading} textColor="text-white" />
-            </div>
-
-            <div className="w-px h-8 bg-white/20 hidden sm:block" />
-
-            <div className="text-center">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
-                Today's Hijri Date
-              </span>
-              <span className="text-lg sm:text-xl font-extrabold font-arabic text-[#F5E6B3]" dir="rtl">
-                {hijri.formattedAr}
-              </span>
-            </div>
-          </div>
+          )}
 
           {/* Marketing Hero CTA Grid */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 max-w-md mx-auto">
             <Button asChild size="lg" className="w-full sm:w-auto bg-[#D4AF37] text-[#07351F] hover:bg-[#E2BE46]">
               <Link to="/register-team">
                 <Building2 className="w-4 h-4 mr-2" />
-                <span>Register Event Team</span>
+                <span>Register Swalath Campain</span>
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>
@@ -266,7 +273,7 @@ export default function PlatformLanding() {
               <Button asChild size="sm" className="mt-2">
                 <Link to="/register-team">
                   <Plus className="w-4 h-4 mr-1.5" />
-                  <span>Register Event Team</span>
+                  <span>Register Swalath Campain</span>
                 </Link>
               </Button>
             </CardContent>
