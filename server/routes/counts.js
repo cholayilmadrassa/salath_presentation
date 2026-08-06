@@ -225,29 +225,9 @@ router.get('/leaderboard/today', async (req, res) => {
       }
     });
 
-    let rows = Object.values(userTotalsMap)
+    const rows = Object.values(userTotalsMap)
       .sort((a, b) => b.value - a.value)
       .slice(0, limit);
-
-    if (!rows || rows.length === 0) {
-      const allFilter = {};
-      if (req.tenant) allFilter.tenantId = req.tenant._id;
-      const allCounts = await Count.find(allFilter).populate('user', 'name');
-      const allMap = {};
-      allCounts.forEach((item) => {
-        if (item.user) {
-          const uid = item.user._id ? item.user._id.toString() : String(item.user);
-          const uname = item.user.name || 'അംഗം';
-          if (!allMap[uid]) {
-            allMap[uid] = { userId: uid, name: uname, value: 0 };
-          }
-          allMap[uid].value += Number(item.value) || 0;
-        }
-      });
-      rows = Object.values(allMap)
-        .sort((a, b) => b.value - a.value)
-        .slice(0, limit);
-    }
 
     res.json(rows || []);
   } catch (err) {

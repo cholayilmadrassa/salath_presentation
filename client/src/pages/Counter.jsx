@@ -26,7 +26,22 @@ export default function Counter() {
     }
   }, [token, user, navigate]);
 
-  const [count, setCount] = useState(0);
+  const savedKey = user?._id ? `salath_counter_draft_${user._id}` : 'salath_counter_draft';
+
+  const [count, setCount] = useState(() => {
+    const saved = localStorage.getItem(savedKey);
+    const parsed = parseInt(saved, 10);
+    return !isNaN(parsed) && parsed > 0 ? parsed : 0;
+  });
+
+  useEffect(() => {
+    if (count > 0) {
+      localStorage.setItem(savedKey, count.toString());
+    } else {
+      localStorage.removeItem(savedKey);
+    }
+  }, [count, savedKey]);
+
   const [loading, setLoading] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState('');
