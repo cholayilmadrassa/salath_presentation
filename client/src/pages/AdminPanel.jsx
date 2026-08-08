@@ -524,6 +524,7 @@ export default function AdminPanel() {
             setSortBy={setSortBy}
             filteredUsers={filteredUsers}
             token={token}
+            tenant={tenant}
           />
         </TabsContent>
 

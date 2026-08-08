@@ -7,7 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import {
   Search, ArrowUpDown, ChevronRight, ArrowLeft,
   Clock, Calendar, Star, History, Award, TrendingUp,
+  FileSpreadsheet, FileText, Download,
 } from 'lucide-react';
+import {
+  exportMembersToExcel,
+  exportMembersToPdf,
+  exportMemberHistoryToExcel,
+  exportMemberHistoryToPdf,
+} from '../utils/exportUtils.js';
 
 export default function AdminMembersTab({
   searchQuery,
@@ -16,12 +23,16 @@ export default function AdminMembersTab({
   setSortBy,
   filteredUsers = [],
   token,
+  tenant,
 }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberHistory, setMemberHistory] = useState([]);
   const [memberTotal, setMemberTotal] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
+
+  const eventName = tenant?.name || 'Salath Presentation';
+  const totalAllSwalath = filteredUsers.reduce((sum, u) => sum + (Number(u.totalCount) || 0), 0);
 
   const handleSelectMember = async (user) => {
     const memberId = user._id || user.id;
@@ -56,6 +67,39 @@ export default function AdminMembersTab({
     setHistoryError('');
   };
 
+  const logoUrl = tenant?.branding?.logoUrl || '/appLogo.png';
+
+  // Export handlers for all members summary
+  const handleExportMembersExcel = () => {
+    exportMembersToExcel({ members: filteredUsers, eventName });
+  };
+
+  const handleExportMembersPdf = async () => {
+    await exportMembersToPdf({ members: filteredUsers, eventName, logoUrl });
+  };
+
+  // Export handlers for individual selected member history
+  const handleExportMemberHistoryExcel = () => {
+    if (!selectedMember) return;
+    exportMemberHistoryToExcel({
+      member: selectedMember,
+      historyItems: memberHistory,
+      eventName,
+      memberTotal,
+    });
+  };
+
+  const handleExportMemberHistoryPdf = async () => {
+    if (!selectedMember) return;
+    await exportMemberHistoryToPdf({
+      member: selectedMember,
+      historyItems: memberHistory,
+      eventName,
+      memberTotal,
+      logoUrl,
+    });
+  };
+
   // Group entries by date for the history view
   const groupedByDate = {};
   memberHistory.forEach((entry) => {
@@ -74,28 +118,54 @@ export default function AdminMembersTab({
     return (
       <div className="space-y-4 animate-slide-up">
         {/* Back Button & Member Info Header */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleBackToList}
-            className="rounded-full border-primary/30 shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4 text-foreground" />
-          </Button>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-11 h-11 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-base shrink-0">
-              {selectedMember.name?.charAt(0) || 'U'}
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-extrabold text-sm text-foreground truncate">
-                {selectedMember.name}
-              </h3>
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                <span>{selectedMember.phone || selectedMember.email}</span>
-                {selectedMember.place && <span>• {selectedMember.place}</span>}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleBackToList}
+              className="rounded-full border-primary/30 shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4 text-foreground" />
+            </Button>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-11 h-11 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-base shrink-0">
+                {selectedMember.name?.charAt(0) || 'U'}
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-extrabold text-sm text-foreground truncate">
+                  {selectedMember.name}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  <span>{selectedMember.phone || selectedMember.email}</span>
+                  {selectedMember.place && <span>• {selectedMember.place}</span>}
+                </div>
               </div>
             </div>
+          </div>
+
+          {/* Export Buttons for Member Details */}
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportMemberHistoryExcel}
+              className="text-xs font-bold gap-1.5 rounded-xl border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+              title="Export Member History to Excel"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export Excel</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportMemberHistoryPdf}
+              className="text-xs font-bold gap-1.5 rounded-xl border-rose-600/30 text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+              title="Export Member History to PDF"
+            >
+              <FileText className="w-3.5 h-3.5 text-rose-600" />
+              <span>Export PDF</span>
+            </Button>
           </div>
         </div>
 
@@ -223,6 +293,47 @@ export default function AdminMembersTab({
   // ─── MEMBERS LIST VIEW (default) ───
   return (
     <div className="space-y-4">
+      {/* Top Banner with Stats & Export Buttons */}
+      <Card className="bg-card border-border/80 shadow-xs">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-extrabold text-foreground flex items-center gap-2">
+              <span>Member List & All Counts</span>
+              <Badge variant="muted" className="font-mono text-[10px]">
+                {filteredUsers.length} Members
+              </Badge>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Total Combined Swalath: <strong className="text-primary font-extrabold">{totalAllSwalath.toLocaleString('en-IN')}</strong>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportMembersExcel}
+              className="text-xs font-extrabold gap-1.5 rounded-xl border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 flex-1 sm:flex-none justify-center"
+              title="Export All Members Details & Total Count to Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>Export Excel</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportMembersPdf}
+              className="text-xs font-extrabold gap-1.5 rounded-xl border-rose-600/30 text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30 flex-1 sm:flex-none justify-center"
+              title="Export All Members Details & Total Count to PDF"
+            >
+              <FileText className="w-4 h-4 text-rose-600" />
+              <span>Export PDF</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filter and Sort Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
@@ -250,6 +361,7 @@ export default function AdminMembersTab({
         </div>
       </div>
 
+      {/* Members List */}
       <div className="space-y-2">
         {filteredUsers.length === 0 ? (
           <Card>
