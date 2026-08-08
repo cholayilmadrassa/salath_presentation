@@ -2,20 +2,23 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useTenant } from '../context/TenantContext.jsx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { ShieldCheck, Building2, Lock, Mail } from 'lucide-react';
+import { ShieldCheck, Building2, Lock, Mail, Globe } from 'lucide-react';
 import { adminLoginSchema } from '../schemas/validationSchemas.js';
 
 export default function AdminLogin({ onLoginSuccess }) {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { activeTenant } = useTenant();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [tenantSlug, setTenantSlug] = useState(() => activeTenant?.slug || localStorage.getItem('activeTenantSlug') || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -27,7 +30,9 @@ export default function AdminLogin({ onLoginSuccess }) {
     setFieldErrors({});
     setStatusNotice(null);
 
-    const validationResult = adminLoginSchema.safeParse({ email, password });
+    const cleanSlug = tenantSlug.toLowerCase().trim();
+
+    const validationResult = adminLoginSchema.safeParse({ email, password, tenantSlug: cleanSlug || undefined });
     if (!validationResult.success) {
       const errMap = {};
       const issues = validationResult.error?.issues || validationResult.error?.errors || [];
@@ -44,7 +49,7 @@ export default function AdminLogin({ onLoginSuccess }) {
     try {
       const data = await api('/auth/login', {
         method: 'POST',
-        body: { email, password },
+        body: { email, password, tenantSlug: cleanSlug || undefined },
       });
 
       login(data.token, data.user);
@@ -147,6 +152,27 @@ export default function AdminLogin({ onLoginSuccess }) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <div className="space-y-1.5">
+              <Label className="uppercase tracking-wide font-medium flex items-center justify-between">
+                <span>Event Subdomain / Slug</span>
+                <span className="text-[10px] text-muted-foreground lowercase font-normal">(Optional)</span>
+              </Label>
+              <div className="relative">
+                <Globe className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="text"
+                  value={tenantSlug}
+                  onChange={(e) => {
+                    if (fieldErrors.tenantSlug) setFieldErrors((prev) => ({ ...prev, tenantSlug: null }));
+                    setTenantSlug(e.target.value.toLowerCase().trim());
+                  }}
+                  placeholder="e.g. grandsalath"
+                  className={`pl-9 ${fieldErrors.tenantSlug ? 'border-2 border-red-500 bg-red-50/20 ring-4 ring-red-500/15' : ''}`}
+                />
+              </div>
+              <FieldError error={fieldErrors.tenantSlug} />
+            </div>
+
             <div className="space-y-1.5">
               <Label className="uppercase tracking-wide font-medium">Admin Email</Label>
               <div className="relative">

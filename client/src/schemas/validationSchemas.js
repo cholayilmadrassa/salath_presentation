@@ -47,6 +47,7 @@ export const salathCountSchema = z.object({
 export const adminLoginSchema = z.object({
   email: z.string().trim().min(1, { message: "Email is required" }).email({ message: "Please enter a valid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
+  tenantSlug: z.string().trim().optional(),
 });
 
 export const brandingSchema = z.object({
