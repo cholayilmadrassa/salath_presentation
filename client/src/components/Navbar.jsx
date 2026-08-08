@@ -79,15 +79,7 @@ export default function Navbar() {
             <span>Register Swalath Campain</span>
           </NavLink>
 
-          <NavLink
-            to="/super-admin"
-            className={({ isActive }) =>
-              isActive ? 'text-amber-700 font-extrabold flex items-center gap-1' : 'text-muted-foreground hover:text-foreground flex items-center gap-1 transition'
-            }
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Super Admin</span>
-          </NavLink>
+
 
           {user ? (
             <>

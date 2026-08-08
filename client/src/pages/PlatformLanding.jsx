@@ -60,18 +60,12 @@ export default function PlatformLanding() {
   const { activeTenant } = useTenant();
   const [totalEventCount, setTotalEventCount] = useState(0);
   const [totalMemberCount, setTotalMemberCount] = useState(0);
-  const [approvedEvents, setApprovedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const hijri = activeTenant ? getHijriDate() : null;
 
   useEffect(() => {
     setLoading(true);
-    api('/events/public-approved')
-      .then((res) => {
-        if (Array.isArray(res)) setApprovedEvents(res);
-      })
-      .catch(() => { });
 
     if (activeTenant) {
       api("/counts/leaderboard/all?limit=100")
@@ -244,72 +238,6 @@ Register Swalath Campain              </Button>
             </Card>
           ))}
         </div>
-      </section>
-
-      {/* Active Approved Portals List */}
-      <section className="px-4 py-8 max-w-5xl mx-auto w-full space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-extrabold text-foreground">
-              Active Approved Events
-            </h2>
-            <p className="text-xs font-medium text-muted-foreground">
-              Join active campaign portals
-            </p>
-          </div>
-          <Badge variant="muted" className="font-mono text-xs font-bold">
-            {approvedEvents.length} Active Events
-          </Badge>
-        </div>
-
-        {approvedEvents.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto bg-primary/15 text-primary">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-bold text-foreground">No active approved events available currently.</p>
-              <p className="text-[11px] text-muted-foreground">Be the first to register your event team!</p>
-              <Button asChild size="sm" className="mt-2">
-                <Link to="/register-team">
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  <span>Register Swalath Campain</span>
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {approvedEvents.map((ev) => (
-              <Card key={ev._id || ev.slug} className="flex flex-col justify-between">
-                <CardContent className="p-5 space-y-4 flex-1 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
-                        ☪
-                      </div>
-                      <Badge variant="muted" className="font-mono text-[10px]">
-                        {ev.slug}
-                      </Badge>
-                    </div>
-
-                    <h3 className="font-extrabold text-sm text-foreground">{ev.name}</h3>
-                    <p className="text-[11px] font-medium leading-relaxed line-clamp-2 text-muted-foreground">
-                      {ev.branding?.tagline || 'സ്വലാത്ത് ഏകോപന കാമ്പയിൻ'}
-                    </p>
-                  </div>
-
-                  <Button asChild size="sm" className="w-full mt-2">
-                    <a href={`http://${ev.slug}.${rootDomain}`}>
-                      <span>Enter Event Portal</span>
-                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* Super Admin Quick Link Footer Bar */}

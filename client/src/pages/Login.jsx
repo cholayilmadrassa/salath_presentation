@@ -27,13 +27,23 @@ export default function Login() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  const getSlugFromUrl = () => {
+    if (typeof window === 'undefined') return '';
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('tenant') || params.get('slug') || params.get('tenantSlug') || '').toLowerCase().trim();
+  };
+
   useEffect(() => {
+    const urlSlug = getSlugFromUrl();
+    if (urlSlug) {
+      setSelectedTenantSlug(urlSlug);
+    }
     if (!activeTenant) {
       api('/events/public-approved')
         .then((res) => {
           if (Array.isArray(res)) {
             setApprovedEvents(res);
-            if (res.length > 0) {
+            if (!urlSlug && res.length > 0) {
               setSelectedTenantSlug(res[0].slug);
             }
           }

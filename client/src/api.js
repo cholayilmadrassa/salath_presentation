@@ -9,6 +9,8 @@ export async function api(path, { method = 'GET', body, token } = {}) {
 
   const headers = {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
     ...(currentHost ? { 'X-Tenant-Host': currentHost, 'X-Forwarded-Host': currentHost } : {}),
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...(tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}),
