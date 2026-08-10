@@ -39,7 +39,13 @@ function Footer() {
             </Button>
 
             <Button size="sm" asChild className="flex-1 sm:flex-initial">
-              <a href="https://wa.me/919747785512" target="_blank" rel="noopener noreferrer">
+              <a
+                href={`https://wa.me/919747785512?text=${encodeURIComponent(
+                  'السَّلاَمُ عَلَيْكُمْ, സ്വലാത്ത് ക്യാമ്പയിൻ ആപ്പുമായി ബന്ധപ്പെട്ട് ബന്ധപ്പെടുന്നു.'
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <FaWhatsapp className="mr-2" />
                 <span>WhatsApp</span>
               </a>

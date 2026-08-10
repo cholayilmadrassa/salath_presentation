@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { FaWhatsapp } from 'react-icons/fa';
 import {
   Search, ArrowUpDown, ChevronRight, ArrowLeft,
   Clock, Calendar, Star, History, Award, TrendingUp,
@@ -138,6 +139,20 @@ export default function AdminMembersTab({
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                   <span>{selectedMember.phone || selectedMember.email}</span>
+                  {selectedMember.phone && (
+                    <a
+                      href={`https://wa.me/91${selectedMember.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                        `അസ്സലാമു അലൈക്കും ${selectedMember.name}, സ്വലാത്ത് ക്യാമ്പയിനുമായി ബന്ധപ്പെട്ട് ബന്ധപ്പെടുന്നു.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline font-bold"
+                      title="WhatsApp Contact"
+                    >
+                      <FaWhatsapp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>WhatsApp</span>
+                    </a>
+                  )}
                   {selectedMember.place && <span>• {selectedMember.place}</span>}
                 </div>
               </div>
