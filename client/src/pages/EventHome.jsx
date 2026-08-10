@@ -110,7 +110,7 @@ export default function EventHome() {
   if (!activeTenant) return null;
 
   return (
-    <div className="min-h-screen flex flex-col pb-8 md:pb-0">
+    <div className="min-h-screen flex flex-col">
       {/* ──────── MOBILE APP HEADER ──────── */}
       <header className="sticky top-0 z-30 px-4 py-2.5 backdrop-blur-lg md:hidden safe-top bg-background/95 border-b border-border">
         <div className="flex items-center justify-between">

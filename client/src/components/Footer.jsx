@@ -2,10 +2,17 @@ import React from 'react';
 import { FaWhatsapp, FaPhoneAlt } from 'react-icons/fa';
 import { Sparkles, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTenant } from '../context/TenantContext.jsx';
 
 function Footer() {
+  const { activeTenant } = useTenant();
+
+  if (activeTenant) {
+    return null;
+  }
+
   return (
-    <footer className="hidden md:block bg-card text-card-foreground pt-10 pb-10 px-4 border-t border-border font-ml">
+    <footer className="block bg-card text-card-foreground py-10 px-4 border-t border-border font-ml">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Brand & Organization Summary */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left pb-6 border-b border-border">

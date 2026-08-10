@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Sparkles, Users, Building2, Flame, Globe, ShieldCheck,
-  Plus, ArrowRight
+  Plus, ArrowRight, Bell, Trophy
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
-import SwalathCard from "../components/SwalathCard.jsx";
 
 function DigitCountTicker({ value, isLoading, textColor = 'text-[#D4AF37]' }) {
   const [displayValue, setDisplayValue] = useState(0);
@@ -87,7 +86,7 @@ export default function PlatformLanding() {
 
 
   return (
-    <div className="min-h-screen flex flex-col pb-16 md:pb-0 font-ml">
+    <div className="min-h-screen flex flex-col font-ml">
       {/* Platform Top Bar */}
       <header className="sticky top-0 z-30 px-4 py-3 bg-background/90 backdrop-blur-md border-b border-border">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -105,18 +104,6 @@ export default function PlatformLanding() {
                 Salath Campaign Network
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link to="/admin">
-              <Button variant="outline" size="sm" className="rounded-xl font-bold text-xs">
-                Admin Portal
-              </Button>
-            </Link>
-            <Link to="/register-team">
-              <Button size="sm" className="rounded-xl font-bold text-xs shadow-md">
-Register Swalath Campain              </Button>
-            </Link>
           </div>
         </div>
       </header>
@@ -184,20 +171,8 @@ Register Swalath Campain              </Button>
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>
-
-            <Button variant="ghost" size="lg" asChild className="w-full sm:w-auto bg-white/15 hover:bg-white/25 border border-white/20 text-white">
-              <Link to="/signup">
-                <Users className="w-4 h-4 mr-2" />
-                <span>Register Member</span>
-              </Link>
-            </Button>
           </div>
         </div>
-      </section>
-
-      {/* ──────── ARABIC SWALATH DISPLAY CARD ──────── */}
-      <section className="px-4 py-4 max-w-xl mx-auto w-full">
-        <SwalathCard />
       </section>
 
       {/* Feature Highlights Grid */}
@@ -209,7 +184,7 @@ Register Swalath Campain              </Button>
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             {
               icon: <Globe className="w-6 h-6 text-primary" />,
@@ -220,6 +195,16 @@ Register Swalath Campain              </Button>
               icon: <Flame className="w-6 h-6 text-primary" />,
               title: 'തത്സമയ ലീഡർബോർഡ്',
               desc: 'പ്രവർത്തകർ നൽകുന്ന സ്വലാത്തുകൾ തത്സമയം ടോപ്പ് സ്കോറർ പട്ടികയായി കാണാം.',
+            },
+            {
+              icon: <Trophy className="w-6 h-6 text-primary" />,
+              title: 'വിജയികളുടെ പട്ടിക (Winners)',
+              desc: 'ഏറ്റവും കൂടുതൽ സ്വലാത്ത് രേഖപ്പെടുത്തിയ മുന്നേറ്റക്കാരെയും റാങ്ക് വിജയികളെയും തത്സമയം അറിയാം.',
+            },
+            {
+              icon: <Bell className="w-6 h-6 text-primary" />,
+              title: 'തത്സമയ അറിയിപ്പുകൾ (Notifications)',
+              desc: 'ക്യാമ്പയിൻ അറിയിപ്പുകളും പ്രധാന അപ്‌ഡേറ്റുകളും തത്സമയം വാർത്തകളായി ലഭിക്കുന്നു.',
             },
             {
               icon: <ShieldCheck className="w-6 h-6 text-primary" />,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-import { TenantProvider } from './context/TenantContext.jsx';
+import { TenantProvider, useTenant } from './context/TenantContext.jsx';
 import Navbar from './components/Navbar.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import InstallPrompt from './components/InstallPrompt.jsx';
@@ -16,6 +16,7 @@ import AdminPanel from './pages/AdminPanel.jsx';
 import EventTeamRegister from './pages/EventTeamRegister.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
+import NotFound from './pages/NotFound.jsx';
 import { WifiOff } from 'lucide-react';
 
 import './styles.css';
@@ -140,78 +141,92 @@ function OfflineBanner() {
   );
 }
 
+function AppContent() {
+  const { activeTenant } = useTenant();
+  const location = useLocation();
+
+  const isPlatformLanding = location.pathname === '/' && !activeTenant;
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin');
+  const needsBottomPadding = !isPlatformLanding && !isAdminRoute;
+
+  return (
+    <div className={`min-h-screen ${needsBottomPadding ? 'pb-16 md:pb-0' : ''} bg-background text-foreground font-ml`}>
+      <OfflineBanner />
+      <Navbar />
+      <InstallPrompt />
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+        {/* Protected Member Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <MemberProtectedRoute>
+              <Dashboard />
+            </MemberProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <MemberProtectedRoute>
+              <HistoryPage />
+            </MemberProtectedRoute>
+          }
+        />
+        <Route
+          path="/counter"
+          element={
+            <MemberProtectedRoute>
+              <Counter />
+            </MemberProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <MemberProtectedRoute>
+              <NotificationsPage />
+            </MemberProtectedRoute>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route
+          path="/admin/panel"
+          element={
+            <AdminProtectedRoute>
+              <AdminPanel />
+            </AdminProtectedRoute>
+          }
+        />
+
+        <Route path="/register-team" element={<EventTeamRegister />} />
+        <Route
+          path="/super-admin"
+          element={
+            <SuperAdminProtectedRoute>
+              <SuperAdminWrapper />
+            </SuperAdminProtectedRoute>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <BottomNav />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
       <TenantProvider>
         <AuthProvider>
-          <div className="min-h-screen pb-16 md:pb-0 bg-background text-foreground font-ml">
-            <OfflineBanner />
-            <Navbar />
-            <InstallPrompt />
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-
-              {/* Protected Member Routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <MemberProtectedRoute>
-                    <Dashboard />
-                  </MemberProtectedRoute>
-                }
-              />
-              <Route
-                path="/history"
-                element={
-                  <MemberProtectedRoute>
-                    <HistoryPage />
-                  </MemberProtectedRoute>
-                }
-              />
-              <Route
-                path="/counter"
-                element={
-                  <MemberProtectedRoute>
-                    <Counter />
-                  </MemberProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <MemberProtectedRoute>
-                    <NotificationsPage />
-                  </MemberProtectedRoute>
-                }
-              />
-
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route
-                path="/admin/panel"
-                element={
-                  <AdminProtectedRoute>
-                    <AdminPanel />
-                  </AdminProtectedRoute>
-                }
-              />
-
-              <Route path="/register-team" element={<EventTeamRegister />} />
-              <Route
-                path="/super-admin"
-                element={
-                  <SuperAdminProtectedRoute>
-                    <SuperAdminWrapper />
-                  </SuperAdminProtectedRoute>
-                }
-              />
-            </Routes>
-            <BottomNav />
-          </div>
+          <AppContent />
         </AuthProvider>
       </TenantProvider>
     </BrowserRouter>

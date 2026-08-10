@@ -11,10 +11,7 @@ export function TenantProvider({ children }) {
   const currentPath = window.location.pathname;
   const isPlatformAdminRoute =
     currentPath.startsWith('/super-admin') ||
-    currentPath.startsWith('/admin') ||
-    currentPath.startsWith('/register-team') ||
-    currentPath.startsWith('/login') ||
-    currentPath === '/';
+    currentPath.startsWith('/register-team');
 
   const resolveCurrentTenant = async () => {
     setLoading(true);
@@ -113,32 +110,47 @@ export function TenantProvider({ children }) {
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold bg-destructive/10 text-destructive border border-destructive/20">
               ✕
             </div>
-            <h1 className="text-xl font-extrabold text-foreground">Invalid or Pending Subdomain</h1>
+            <div className="space-y-1">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-destructive bg-destructive/10 px-3 py-1 rounded-full">
+                404 Not Found
+              </span>
+              <h1 className="text-xl font-extrabold text-foreground pt-2">Event Subdomain Not Found</h1>
+            </div>
             <p className="text-xs p-3 rounded-xl font-mono leading-relaxed bg-muted/10 text-muted-foreground border border-border">
               {error}
             </p>
             <p className="text-xs font-medium text-muted-foreground">
-              If you just registered this event team, a Super Admin must approve it before member access is activated.
+              The event subdomain you requested does not exist or may be awaiting Super Admin approval.
             </p>
 
             <div className="space-y-2 pt-2">
               <button
                 onClick={() => {
-                  window.location.href = '/super-admin';
+                  localStorage.removeItem('activeTenantSlug');
+                  window.location.href = '/';
                 }}
                 className="w-full py-3 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md transition active:scale-95"
               >
-                Log In as Super Admin (Approve Subdomain)
+                Return to Platform Home
               </button>
 
               <button
                 onClick={() => {
                   localStorage.removeItem('activeTenantSlug');
-                  window.location.href = '/';
+                  window.location.href = '/register-team';
                 }}
                 className="w-full py-3 font-bold text-xs rounded-xl border border-border bg-muted/10 text-foreground transition"
               >
-                Return to Platform Home
+                Register New Swalath Campaign
+              </button>
+
+              <button
+                onClick={() => {
+                  window.location.href = '/super-admin';
+                }}
+                className="w-full py-2 font-semibold text-[11px] text-muted-foreground hover:underline"
+              >
+                Super Admin Login (Approve Pending Team)
               </button>
             </div>
           </div>
