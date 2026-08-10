@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ArrowRight, AlertCircle } from "lucide-react";
 import { eventTeamRegisterSchema } from "../schemas/validationSchemas.js";
+import UPIPaymentCard from "@/components/UPIPaymentCard";
 
 export default function EventTeamRegister() {
   const [form, setForm] = useState({
@@ -50,8 +51,9 @@ export default function EventTeamRegister() {
     const validationResult = eventTeamRegisterSchema.safeParse(form);
     if (!validationResult.success) {
       const errMap = {};
-      validationResult.error.errors.forEach((err) => {
-        if (err.path[0]) {
+      const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+      issues.forEach((err) => {
+        if (err.path && err.path[0]) {
           errMap[err.path[0]] = err.message;
         }
       });
@@ -109,44 +111,10 @@ Register Swalath Campain        </h1>
       </div>
 
       {registeredTenant ? (
-        <Card className="text-center">
-          <CardContent className="p-8 space-y-5">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-md bg-primary/15 text-primary">
-              <Clock className="w-8 h-8" />
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-xl font-extrabold text-foreground">
-                Application Submitted! (Pending Approval)
-              </h2>
-              <p className="text-xs font-medium leading-relaxed text-muted-foreground">
-                Your application for <strong className="font-extrabold text-foreground">{registeredTenant.name}</strong> is under Super Admin review. Your portal will be activated upon approval.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl text-left space-y-2 text-xs font-mono bg-muted/10 border border-border">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground"> Assigned Subdomain:</span>
-                <span className="font-bold text-primary">{registeredTenant.slug}.{rootDomain}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground"> Status:</span>
-                <Badge variant="warning">
-                  PENDING APPROVAL
-                </Badge>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <Button asChild>
-                <Link to="/">
-                  <span>Return to Home</span>
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <UPIPaymentCard
+          tenant={registeredTenant}
+          onPaymentSubmitted={(updatedTenant) => setRegisteredTenant(updatedTenant)}
+        />
       ) : (
         <Card>
           <CardContent className="p-6 sm:p-8 space-y-5">

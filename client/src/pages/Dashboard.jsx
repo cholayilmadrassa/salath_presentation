@@ -96,7 +96,8 @@ export default function Dashboard() {
         // Zod schema validation
         const validationResult = salathCountSchema.safeParse({ value: num });
         if (!validationResult.success) {
-            setError(validationResult.error.errors[0].message);
+            const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+            setError(issues[0]?.message || 'Invalid count value');
             return;
         }
 

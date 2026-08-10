@@ -133,6 +133,9 @@ router.post('/tenants/:id/approve', async (req, res) => {
     tenant.approvedBy = req.user.userId;
     tenant.approvedAt = new Date();
     tenant.rejectionReason = '';
+    if (tenant.paymentStatus === 'submitted' || tenant.paymentStatus === 'pending') {
+      tenant.paymentStatus = 'verified';
+    }
 
     await tenant.save();
 

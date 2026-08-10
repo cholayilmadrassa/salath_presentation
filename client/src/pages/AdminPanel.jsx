@@ -225,8 +225,9 @@ export default function AdminPanel() {
     const validationResult = brandingSchema.safeParse(brandingForm);
     if (!validationResult.success) {
       const errMap = {};
-      validationResult.error.errors.forEach((err) => {
-        if (err.path[0]) errMap[err.path[0]] = err.message;
+      const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+      issues.forEach((err) => {
+        if (err.path && err.path[0]) errMap[err.path[0]] = err.message;
       });
       setFieldErrors(errMap);
       return;
@@ -255,8 +256,9 @@ export default function AdminPanel() {
     const validationResult = customDomainSchema.safeParse({ domain: domainInput });
     if (!validationResult.success) {
       const errMap = {};
-      validationResult.error.errors.forEach((err) => {
-        if (err.path[0]) errMap[err.path[0]] = err.message;
+      const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+      issues.forEach((err) => {
+        if (err.path && err.path[0]) errMap[err.path[0]] = err.message;
       });
       setFieldErrors(errMap);
       return;

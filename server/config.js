@@ -6,6 +6,7 @@ export const MONGODB_URI = process.env.MONGODB_URI
 export const JWT_SECRET = process.env.JWT_SECRET 
 export const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN
 export const PLATFORM_ROOT_DOMAIN = process.env.PLATFORM_ROOT_DOMAIN 
+export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL 
 export const SUPER_ADMIN_PASSWORD = process.env.SUPER_ADMIN_PASSWORD

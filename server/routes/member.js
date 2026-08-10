@@ -64,6 +64,11 @@ router.get('/active-tenant', async (req, res) => {
         });
       }
 
+      const isRootHost = queryHost === 'localhost' || queryHost === '127.0.0.1' || queryHost === 'swalath.online' || queryHost === 'www.swalath.online';
+      if (isRootHost && !querySlug) {
+        return res.json(null);
+      }
+
       return res.status(404).json({
         error: 'Invalid or unapproved event subdomain',
         code: 'TENANT_NOT_FOUND',

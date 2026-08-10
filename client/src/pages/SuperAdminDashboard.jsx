@@ -95,8 +95,9 @@ export default function SuperAdminDashboard({ token, onLogout }) {
     const validationResult = superAdminTenantSchema.safeParse(newForm);
     if (!validationResult.success) {
       const errMap = {};
-      validationResult.error.errors.forEach((err) => {
-        if (err.path[0]) {
+      const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+      issues.forEach((err) => {
+        if (err.path && err.path[0]) {
           errMap[err.path[0]] = err.message;
         }
       });
@@ -340,13 +341,32 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                           </Badge>
                         </div>
 
-                        <div className="text-xs space-x-4 pt-1 font-medium text-muted-foreground">
+                        <div className="text-xs space-x-4 pt-1 font-medium text-muted-foreground flex flex-wrap items-center gap-y-1">
                           <span>
                             Admin: <strong className="text-foreground">{t.ownerId?.name || 'N/A'}</strong> ({t.ownerId?.email || 'N/A'})
                           </span>
                           <span>
                             Registered: {new Date(t.createdAt).toLocaleDateString()}
                           </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-medium">
+                          <span className="text-muted-foreground">UPI Payment:</span>
+                          {t.paymentStatus === 'submitted' ? (
+                            <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-mono">
+                              ₹{t.paymentAmount || 250} Submitted (UTR: <strong>{t.paymentUtr}</strong>)
+                            </Badge>
+                          ) : t.paymentStatus === 'verified' ? (
+                            <Badge variant="outline" className="bg-emerald-600 text-white font-mono flex items-center gap-1">
+                              <span>₹{t.paymentAmount || 250} Verified</span>
+                              {t.paymentMethod === 'UPI_AI_SCREENSHOT' && <span className="opacity-90">(AI Auto-Approved)</span>}
+                              {t.paymentUtr && <span className="text-[10px] opacity-80">UTR: {t.paymentUtr}</span>}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-mono">
+                              ₹{t.paymentAmount || 250} Pending Payment
+                            </Badge>
+                          )}
                         </div>
                       </div>
 
