@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
   AlertTriangle,
   Users,
   RefreshCw,
+  WifiOff,
 } from 'lucide-react';
 
 const PRESET_TEMPLATES = [
@@ -52,6 +54,7 @@ const PRESET_TEMPLATES = [
 export default function AdminNotificationsTab({ token, tenant }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const [selectedPresetId, setSelectedPresetId] = useState('');
@@ -68,11 +71,13 @@ export default function AdminNotificationsTab({ token, tenant }) {
 
   const loadHistory = async () => {
     setLoading(true);
+    setHistoryError(null);
     try {
       const data = await api('/admin/notifications', { token });
       setHistory(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load notification history:', err);
+      setHistoryError(err.message || 'Failed to load notification history');
     } finally {
       setLoading(false);
     }
@@ -344,8 +349,38 @@ export default function AdminNotificationsTab({ token, tenant }) {
 
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-6 text-center text-xs text-muted-foreground font-medium">
-              Loading notification history...
+            <div className="divide-y divide-border">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="p-3.5 sm:p-4 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1.5 flex-1">
+                      <Skeleton className="h-4 w-1/3" />
+                      <Skeleton className="h-3 w-3/4" />
+                    </div>
+                    <Skeleton className="h-5 w-14 rounded-full shrink-0" />
+                  </div>
+                  <div className="flex items-center gap-3 pt-1">
+                    <Skeleton className="h-3 w-1/3" />
+                    <Skeleton className="h-3 w-1/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : historyError ? (
+            <div className="p-6 text-center space-y-3">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+                <WifiOff className="w-5 h-5" />
+              </div>
+              <p className="text-xs font-bold text-foreground">{historyError}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadHistory}
+                className="text-xs font-bold gap-1.5 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </Button>
             </div>
           ) : history.length === 0 ? (
             <div className="p-6 text-center text-xs text-muted-foreground font-medium">

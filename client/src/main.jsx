@@ -10,12 +10,32 @@ window.addEventListener('beforeinstallprompt', (e) => {
   window.dispatchEvent(new Event('pwa-install-available'));
 });
 
-// Register PWA Service Worker
+// Register PWA Service Worker with auto-update capability
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.warn('SW registration failed:', err);
-    });
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        reg.update();
+
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                installingWorker.postMessage({ type: 'SKIP_WAITING' });
+              }
+            };
+          }
+        };
+      })
+      .catch((err) => {
+        console.warn('SW registration failed:', err);
+      });
   });
 }
 

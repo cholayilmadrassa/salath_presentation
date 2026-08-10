@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api.js';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
   Megaphone,
   BarChart3,
   MessageSquare,
+  WifiOff,
 } from 'lucide-react';
 
 export default function NotificationsModal({ isOpen, onClose }) {
@@ -24,15 +26,18 @@ export default function NotificationsModal({ isOpen, onClose }) {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchNotifications = async () => {
     if (!token) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await api('/notifications/inbox', { token });
       setNotifications(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching notifications inbox:', err);
+      setError(err.message || 'Failed to load notifications');
     } finally {
       setLoading(false);
     }
@@ -141,9 +146,41 @@ export default function NotificationsModal({ isOpen, onClose }) {
         {/* Notifications Feed */}
         <div className="flex-1 overflow-y-auto">
           {loading && notifications.length === 0 ? (
-            <div className="py-12 text-center text-xs font-medium text-muted-foreground space-y-2">
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-              <span>അറിയിപ്പുകൾ ലോഡ് ചെയ്യുന്നു...</span>
+            <div className="divide-y divide-border/50">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="flex items-start gap-3.5 px-4 py-4">
+                  <Skeleton className="w-11 h-11 rounded-full shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Skeleton className="h-4 w-3/5" />
+                      <Skeleton className="h-3 w-12 shrink-0" />
+                    </div>
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-4/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error && notifications.length === 0 ? (
+            <div className="py-12 text-center space-y-3 px-4">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+                <WifiOff className="w-6 h-6" />
+              </div>
+              <p className="text-xs font-extrabold text-foreground">{error}</p>
+              <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
+                {error === 'No internet connection'
+                  ? 'ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച ശേഷം വീണ്ടും ശ്രമിക്കുക.'
+                  : 'അറിയിപ്പുകൾ ലഭ്യമാക്കുന്നതിൽ തടസ്സം നേരിട്ടു.'}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchNotifications}
+                className="text-xs font-bold gap-1.5 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </Button>
             </div>
           ) : notifications.length === 0 ? (
             <div className="py-12 text-center space-y-2">

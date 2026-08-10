@@ -16,6 +16,7 @@ import AdminPanel from './pages/AdminPanel.jsx';
 import EventTeamRegister from './pages/EventTeamRegister.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
+import { WifiOff } from 'lucide-react';
 
 import './styles.css';
 
@@ -113,6 +114,32 @@ function SuperAdminWrapper() {
   );
 }
 
+function OfflineBanner() {
+  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  if (!isOffline) return null;
+
+  return (
+    <div className="bg-destructive text-destructive-foreground px-4 py-2 text-xs font-extrabold text-center flex items-center justify-center gap-2 sticky top-0 z-50 shadow-md animate-slide-down">
+      <WifiOff className="w-4 h-4 shrink-0" />
+      <span>No internet connection. Please check your network.</span>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -120,6 +147,7 @@ export default function App() {
       <TenantProvider>
         <AuthProvider>
           <div className="min-h-screen pb-16 md:pb-0 bg-background text-foreground font-ml">
+            <OfflineBanner />
             <Navbar />
             <InstallPrompt />
             <Routes>

@@ -1,10 +1,16 @@
-const CACHE_NAME = 'salath-app-v2';
+const CACHE_NAME = 'salath-app-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/appLogo.png'
 ];
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -47,42 +53,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for HTML page navigation, Cache-first for static assets
-  const isHtml = event.request.headers.get('accept')?.includes('text/html');
-
-  if (isHtml) {
-    event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
-          }
-          return networkResponse;
-        })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html')))
-    );
-    return;
-  }
-
+  // Always Network-First to ensure users always receive fresh application updates
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+    fetch(event.request, { cache: 'no-cache' })
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (event.request.headers.get('accept')?.includes('text/html')) {
+            return caches.match('/index.html');
           }
-          return networkResponse;
-        })
-        .catch((err) => {
-          // Graceful fallback for cancelled or failed static asset fetches
-          return new Response('', { status: 408, statusText: 'Request Timed Out / Cancelled' });
+          return new Response('', { status: 408, statusText: 'Offline / Network Request Failed' });
         });
-    })
+      })
   );
 });
 
