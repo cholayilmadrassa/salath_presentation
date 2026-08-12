@@ -3,10 +3,10 @@ import { BookOpen, Crown, Heart, Users } from 'lucide-react';
 
 export default function QuickActionGrid({ user }) {
   const quickActions = [
-    { icon: <BookOpen className="w-5 h-5" />, label: 'Dashboard', to: user ? '/dashboard' : '/login' },
-    { icon: <Crown className="w-5 h-5" />, label: 'Leaderboard', to: '/dashboard' },
-    { icon: <Heart className="w-5 h-5" />, label: 'Counter', to: user ? '/counter' : '/signup' },
-    { icon: <Users className="w-5 h-5" />, label: 'Membership', to: '/signup' },
+    { icon: <BookOpen className="w-5 h-5" />, label: 'Dashboard',  },
+    { icon: <Crown className="w-5 h-5" />, label: 'Leaderboard',  },
+    { icon: <Heart className="w-5 h-5" />, label: 'Counter',},
+    { icon: <Users className="w-5 h-5" />, label: 'Membership',  },
   ];
 
   return (
@@ -15,7 +15,6 @@ export default function QuickActionGrid({ user }) {
         {quickActions.map((item, i) => (
           <Link
             key={i}
-            to={item.to}
             className={`flex flex-col items-center gap-2 py-3.5 rounded-2xl bg-card shadow-xs active:scale-95 transition border border-border animate-slide-up stagger-${i + 1}`}
             style={{ animationFillMode: 'both' }}
           >

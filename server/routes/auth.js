@@ -34,6 +34,28 @@ function generateToken(user, tenantIdOverride = null) {
   );
 }
 
+// Helper: generate unique email for a new account
+// Format: {sanitized_name}{last4digits}@{tenantSlug}.swalath.online
+async function generateUniqueEmail(name, phone, tenantSlug) {
+  const sanitizedName = name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9]/g, '');
+  const last4 = String(phone).replace(/\D/g, '').slice(-4) || '0000';
+  const base = `${sanitizedName}${last4}@${tenantSlug}.swalath.online`;
+
+  const existing = await User.findOne({ email: base });
+  if (!existing) return base;
+
+  for (let i = 2; i <= 20; i++) {
+    const candidate = `${sanitizedName}${last4}.${i}@${tenantSlug}.swalath.online`;
+    const taken = await User.findOne({ email: candidate });
+    if (!taken) return candidate;
+  }
+  return `${sanitizedName}${last4}.${Date.now()}@${tenantSlug}.swalath.online`;
+}
+
 // POST /api/auth/register - Register member under an active approved event
 router.post('/register', async (req, res) => {
   try {
@@ -79,23 +101,79 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    const allowMultipleAccounts = targetTenant.settings?.allowMultipleAccounts === true;
+
+    if (allowMultipleAccounts) {
+      // ── Multiple accounts mode: always create a new account ──
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: 'Name is required' });
+      }
+
+      const existingCount = cleanPhone
+        ? await User.countDocuments({ phone: cleanPhone, tenantId: targetTenant._id, role: 'member' })
+        : 0;
+
+      if (existingCount >= 3) {
+        return res.status(409).json({
+          error: 'Maximum 3 accounts allowed per phone number for this event.',
+          code: 'MAX_ACCOUNTS_REACHED',
+        });
+      }
+
+      const uniqueEmail = await generateUniqueEmail(name, cleanPhone, targetTenant.slug);
+      const cleanPassword = password || `pass_${cleanPhone || '123456'}`;
+
+      const newUser = await User.create({
+        name: name.trim(),
+        email: uniqueEmail,
+        passwordHash: hashPassword(cleanPassword),
+        role: 'member',
+        tenantId: targetTenant._id,
+        phone: cleanPhone,
+        address: cleanAddress,
+        place: cleanAddress,
+        isRegisteredMember: true,
+      });
+
+      await Registration.create({
+        tenantId: targetTenant._id,
+        userId: newUser._id,
+        status: 'registered',
+        data: req.body,
+      });
+
+      const token = generateToken(newUser, targetTenant._id);
+      return res.status(201).json({
+        message: `Account created successfully under "${targetTenant.name}"!`,
+        token,
+        user: {
+          id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          tenantId: targetTenant._id,
+          phone: newUser.phone,
+          address: newUser.address || newUser.place,
+          place: newUser.place || newUser.address,
+        },
+        tenant: targetTenant,
+      });
+    }
+
+    // ── Single account mode (default) ──
     const cleanEmail = email ? email.toLowerCase().trim() : `${cleanPhone || Date.now()}@member.salath`;
     const cleanPassword = password || `pass_${cleanPhone || '123456'}`;
 
     let existingUser = await User.findOne({
       $or: [
         { email: cleanEmail },
-        ...(cleanPhone ? [{ phone: cleanPhone }] : []),
+        ...(cleanPhone ? [{ phone: cleanPhone, tenantId: targetTenant._id }] : []),
       ],
     });
 
     if (existingUser) {
-      if (!existingUser.tenantId) {
-        existingUser.tenantId = targetTenant._id;
-      }
-      if (cleanPhone && !existingUser.phone) {
-        existingUser.phone = cleanPhone;
-      }
+      if (!existingUser.tenantId) existingUser.tenantId = targetTenant._id;
+      if (cleanPhone && !existingUser.phone) existingUser.phone = cleanPhone;
       if (cleanAddress) {
         existingUser.address = cleanAddress;
         existingUser.place = cleanAddress;
@@ -103,7 +181,6 @@ router.post('/register', async (req, res) => {
       existingUser.isRegisteredMember = true;
       await existingUser.save();
 
-      // Register membership record for targetTenant
       await Registration.findOneAndUpdate(
         { tenantId: targetTenant._id, userId: existingUser._id },
         { status: 'registered', data: req.body },
@@ -139,7 +216,6 @@ router.post('/register', async (req, res) => {
       place: cleanAddress,
     });
 
-    // Create Registration record
     await Registration.create({
       tenantId: targetTenant._id,
       userId: newUser._id,
@@ -148,8 +224,7 @@ router.post('/register', async (req, res) => {
     });
 
     const token = generateToken(newUser, targetTenant._id);
-
-    res.status(201).json({
+    return res.status(201).json({
       message: `Account created successfully under "${targetTenant.name}"!`,
       token,
       user: {
@@ -281,18 +356,23 @@ router.post('/login', async (req, res) => {
       currentTenant = foundTenant;
     }
 
-    // Find target user
+    const emailPrefix = rawIdentifier.includes('@') ? rawIdentifier.split('@')[0] : '';
+
+    // Find ALL users matching email, phone, or email prefix
     const queryOr = [
       { email: rawIdentifier },
+      ...(emailPrefix && emailPrefix.length >= 3 ? [{ email: new RegExp(`^${emailPrefix}`, 'i') }] : []),
       ...(cleanPhone ? [{ phone: cleanPhone }] : []),
       ...(cleanPhone ? [{ email: `${cleanPhone}@member.salath` }] : []),
       ...(cleanPhone ? [{ email: new RegExp(`^${cleanPhone}\\.`, 'i') }] : []),
     ];
 
-    const user = await User.findOne({ $or: queryOr });
+    // Broad search across all users — tenant filtering is applied downstream
+    // for member-specific multi-account detection (via tenantMembers filter)
+    const allMatchingUsers = await User.find({ $or: queryOr });
 
-    // If user does not exist in the database at all:
-    if (!user) {
+    // If no users found at all:
+    if (!allMatchingUsers.length) {
       const eventName = currentTenant ? currentTenant.name : 'this event';
       return res.status(403).json({
         error: `Account with identifier "${rawIdentifier}" is not registered in event "${eventName}" yet. Please register first to join this event portal.`,
@@ -301,85 +381,112 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    if (password && !comparePassword(password, user.passwordHash) && user.role !== 'member') {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
+    // ── ADMIN LOGIN PATH (when password is provided) ──
+    if (password) {
+      let adminUser = null;
+      if (currentTenant) {
+        adminUser = allMatchingUsers.find(
+          u => u.role === 'tenant_admin' && u.tenantId && u.tenantId.toString() === currentTenant._id.toString()
+        ) || allMatchingUsers.find(u => u.role === 'super_admin');
+      }
+      if (!adminUser) {
+        adminUser = allMatchingUsers.find(u => u.role !== 'member');
+      }
 
-    if (!user.isActive) {
-      return res.status(403).json({ error: 'Account has been deactivated' });
-    }
-
-    // Super Admin can log in from anywhere
-    if (user.role === 'super_admin') {
-      const token = generateToken(user);
-      return res.json({
-        message: 'Super Admin Login successful',
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          tenantId: null,
-          phone: user.phone,
-          place: user.place,
-        },
-      });
-    }
-
-    // tenant_admin matching and validation
-    if (user.role === 'tenant_admin') {
-      const userTenant = user.tenantId ? await Tenant.findById(user.tenantId) : null;
-
-      // If a specific tenant slug was requested/contextualized, enforce slug matching with tenant_admin's tenant
-      if (currentTenant && userTenant && currentTenant._id.toString() !== userTenant._id.toString()) {
+      if (!adminUser) {
         return res.status(403).json({
-          error: `This admin account belongs to event "${userTenant.name}" (${userTenant.slug}). It cannot be used to log in under event "${currentTenant.name}" (${currentTenant.slug}).`,
-          code: 'TENANT_MISMATCH',
-          userTenantSlug: userTenant.slug,
-          requestedSlug: currentTenant.slug,
+          error: `No admin account found with identifier "${rawIdentifier}". Please check your email/phone or register an event team.`,
+          code: 'ADMIN_NOT_FOUND',
         });
       }
 
-      const targetTenant = currentTenant || userTenant;
-      if (!targetTenant) {
-        return res.status(400).json({ error: 'Tenant record for this admin account was not found.' });
+      if (!comparePassword(password, adminUser.passwordHash)) {
+        return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      if (targetTenant.status !== 'approved') {
-        return res.status(403).json({
-          error: `Event "${targetTenant.name}" is currently ${targetTenant.status.toUpperCase()}. Logging in is disabled until Super Admin approves the event.`,
-          code: 'TENANT_NOT_APPROVED',
-          status: targetTenant.status,
+      if (!adminUser.isActive) {
+        return res.status(403).json({ error: 'Account has been deactivated' });
+      }
+
+      // Super Admin login
+      if (adminUser.role === 'super_admin') {
+        const token = generateToken(adminUser);
+        return res.json({
+          message: 'Super Admin Login successful',
+          token,
+          user: {
+            id: adminUser._id,
+            name: adminUser.name,
+            email: adminUser.email,
+            role: adminUser.role,
+            tenantId: null,
+            phone: adminUser.phone,
+            place: adminUser.place,
+          },
         });
       }
 
-      const token = generateToken(user, targetTenant._id);
-      return res.json({
-        message: 'Login successful',
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          tenantId: targetTenant._id,
-          phone: user.phone,
-          place: user.place,
-        },
-        tenant: {
-          id: targetTenant._id,
-          name: targetTenant.name,
-          slug: targetTenant.slug,
-          subdomainUrl: `http://${targetTenant.slug}.${PLATFORM_ROOT_DOMAIN}:5173`,
-          status: targetTenant.status,
-          branding: targetTenant.branding,
-        },
-      });
+      // Tenant Admin login
+      if (adminUser.role === 'tenant_admin') {
+        const userTenant = adminUser.tenantId ? await Tenant.findById(adminUser.tenantId) : null;
+
+        if (currentTenant && userTenant && currentTenant._id.toString() !== userTenant._id.toString()) {
+          return res.status(403).json({
+            error: `This admin account belongs to event "${userTenant.name}" (${userTenant.slug}). It cannot be used to log in under event "${currentTenant.name}" (${currentTenant.slug}).`,
+            code: 'TENANT_MISMATCH',
+            userTenantSlug: userTenant.slug,
+            requestedSlug: currentTenant.slug,
+          });
+        }
+
+        const targetTenant = currentTenant || userTenant;
+        if (!targetTenant) {
+          return res.status(400).json({ error: 'Tenant record for this admin account was not found.' });
+        }
+
+        if (targetTenant.status !== 'approved') {
+          return res.status(403).json({
+            error: `Event "${targetTenant.name}" is currently ${targetTenant.status.toUpperCase()}. Logging in is disabled until Super Admin approves the event.`,
+            code: 'TENANT_NOT_APPROVED',
+            status: targetTenant.status,
+          });
+        }
+
+        const token = generateToken(adminUser, targetTenant._id);
+        return res.json({
+          message: 'Login successful',
+          token,
+          user: {
+            id: adminUser._id,
+            name: adminUser.name,
+            email: adminUser.email,
+            role: adminUser.role,
+            tenantId: targetTenant._id,
+            phone: adminUser.phone,
+            place: adminUser.place,
+          },
+          tenant: {
+            id: targetTenant._id,
+            name: targetTenant.name,
+            slug: targetTenant.slug,
+            subdomainUrl: `http://${targetTenant.slug}.${PLATFORM_ROOT_DOMAIN}:5173`,
+            status: targetTenant.status,
+            branding: targetTenant.branding,
+          },
+        });
+      }
     }
 
-    // Member role matching and registration validation
-    const targetTenant = currentTenant || (user.tenantId ? await Tenant.findById(user.tenantId) : null);
+    // ── MEMBER LOGIN PATH (when password is omitted) ──
+    // Filter members for the resolved tenant
+    const memberUsers = allMatchingUsers.filter(
+      u => u.role === 'member' && u.tenantId && currentTenant &&
+           u.tenantId.toString() === currentTenant._id.toString()
+    );
+
+    // Fallback: if no tenant context yet, use the user's own tenant
+    const targetTenant = currentTenant ||
+      (user.tenantId ? await Tenant.findById(user.tenantId) : null);
     if (!targetTenant) {
       return res.status(400).json({ error: 'Please select an event portal to log in.' });
     }
@@ -391,10 +498,53 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // STRICT REGISTRATION CHECK: If user exists but is NOT registered for targetTenant
+    // Filter by tenant more precisely
+    const tenantMembers = allMatchingUsers.filter(
+      u => u.role === 'member' && u.tenantId &&
+           u.tenantId.toString() === targetTenant._id.toString()
+    );
+
+    if (!tenantMembers.length) {
+      return res.status(403).json({
+        error: `You are not registered in event "${targetTenant.name}" yet. Please register first to join this event portal.`,
+        code: 'NOT_REGISTERED_IN_TENANT',
+        targetSlug: targetTenant.slug,
+      });
+    }
+
+    // Multiple accounts: require account selection
+    if (tenantMembers.length > 1) {
+      return res.status(200).json({
+        requiresAccountSelection: true,
+        message: 'Multiple accounts found. Please select an account to continue.',
+        accounts: tenantMembers.map(u => ({
+          id: u._id,
+          name: u.name,
+          phone: u.phone,
+          address: u.address || u.place || '',
+          initial: u.name ? u.name.charAt(0).toUpperCase() : '?',
+        })),
+        tenantSlug: targetTenant.slug,
+        phone: cleanPhone,
+        tenant: {
+          id: targetTenant._id,
+          name: targetTenant.name,
+          slug: targetTenant.slug,
+          branding: targetTenant.branding,
+        },
+      });
+    }
+
+    // Single member account — standard login
+    const memberUser = tenantMembers[0];
+    if (!memberUser.isActive) {
+      return res.status(403).json({ error: 'Account has been deactivated' });
+    }
+
+    // STRICT REGISTRATION CHECK
     const isRegistered = await Registration.findOne({
       tenantId: targetTenant._id,
-      userId: user._id,
+      userId: memberUser._id,
     });
 
     if (!isRegistered) {
@@ -405,35 +555,190 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const token = generateToken(user, targetTenant._id);
+    const token = generateToken(memberUser, targetTenant._id);
     return res.json({
       message: 'Login successful',
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        id: memberUser._id,
+        name: memberUser.name,
+        email: memberUser.email,
+        role: memberUser.role,
         tenantId: targetTenant._id,
-        phone: user.phone,
-        place: user.place,
+        phone: memberUser.phone,
+        place: memberUser.place,
       },
-      tenant: targetTenant
-        ? {
-            id: targetTenant._id,
-            name: targetTenant.name,
-            slug: targetTenant.slug,
-            subdomainUrl: `http://${targetTenant.slug}.${PLATFORM_ROOT_DOMAIN}:5173`,
-            status: targetTenant.status,
-            branding: targetTenant.branding,
-          }
-        : null,
+      tenant: {
+        id: targetTenant._id,
+        name: targetTenant.name,
+        slug: targetTenant.slug,
+        subdomainUrl: `http://${targetTenant.slug}.${PLATFORM_ROOT_DOMAIN}:5173`,
+        status: targetTenant.status,
+        branding: targetTenant.branding,
+      },
     });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error during login', details: err.message });
   }
 });
+
+// POST /api/auth/login-select - Finalize login after account selection
+router.post('/login-select', async (req, res) => {
+  try {
+    const { userId, phone, tenantSlug } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: 'Account not found' });
+    if (!user.isActive) return res.status(403).json({ error: 'Account has been deactivated' });
+
+    // Security: verify phone matches
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    if (cleanPhone && user.phone && user.phone !== cleanPhone) {
+      return res.status(403).json({ error: 'Phone number does not match this account' });
+    }
+
+    let targetTenant = tenantSlug ? await Tenant.findOne({ slug: tenantSlug.toLowerCase().trim() }) : null;
+    if (!targetTenant && user.tenantId) targetTenant = await Tenant.findById(user.tenantId);
+    if (!targetTenant) return res.status(400).json({ error: 'Event portal not found' });
+
+    if (targetTenant.status !== 'approved') {
+      return res.status(403).json({ error: `Event "${targetTenant.name}" is not approved yet.`, code: 'TENANT_NOT_APPROVED' });
+    }
+
+    const isRegistered = await Registration.findOne({ tenantId: targetTenant._id, userId: user._id });
+    if (!isRegistered) {
+      return res.status(403).json({ error: `You are not registered in event "${targetTenant.name}" yet.`, code: 'NOT_REGISTERED_IN_TENANT' });
+    }
+
+    let userAddress = (user.address || user.place || '').trim();
+    if (!userAddress && user.phone) {
+      const primaryUser = await User.findOne({ phone: user.phone, address: { $ne: '' } }).sort({ createdAt: 1 });
+      if (primaryUser) userAddress = (primaryUser.address || primaryUser.place || '').trim();
+    }
+
+    const token = generateToken(user, targetTenant._id);
+    return res.json({
+      message: 'Login successful',
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, tenantId: targetTenant._id, phone: user.phone, place: userAddress, address: userAddress },
+      tenant: { id: targetTenant._id, name: targetTenant.name, slug: targetTenant.slug, branding: targetTenant.branding },
+    });
+  } catch (err) {
+    console.error('Login-select error:', err);
+    res.status(500).json({ error: 'Server error during account selection login', details: err.message });
+  }
+});
+
+// POST /api/auth/add-account - Create an additional account with the same phone (authenticated)
+router.post('/add-account', requireAuth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.userId);
+    if (!currentUser) return res.status(404).json({ error: 'Current user not found' });
+
+    const { name, address } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required for the new account' });
+
+    const tenantId = req.user.tenantId || currentUser.tenantId;
+    if (!tenantId) return res.status(400).json({ error: 'No event tenant context found' });
+
+    const targetTenant = await Tenant.findById(tenantId);
+    if (!targetTenant) return res.status(404).json({ error: 'Event not found' });
+
+    if (!targetTenant.settings?.allowMultipleAccounts) {
+      return res.status(403).json({ error: 'Multiple accounts are not allowed for this event.', code: 'FEATURE_DISABLED' });
+    }
+
+    const phone = currentUser.phone;
+    const existingCount = phone
+      ? await User.countDocuments({ phone, tenantId: targetTenant._id, role: 'member' })
+      : 1;
+
+    if (existingCount >= 3) {
+      return res.status(409).json({ error: 'Maximum 3 accounts allowed per phone number for this event.', code: 'MAX_ACCOUNTS_REACHED' });
+    }
+
+    const uniqueEmail = await generateUniqueEmail(name, phone, targetTenant.slug);
+
+    let cleanAddress = (address || '').trim();
+    if (!cleanAddress && phone) {
+      const firstUserWithPhone = await User.findOne({ phone }).sort({ createdAt: 1 });
+      if (firstUserWithPhone) {
+        cleanAddress = (firstUserWithPhone.address || firstUserWithPhone.place || '').trim();
+      }
+    }
+    if (!cleanAddress) {
+      cleanAddress = (currentUser.address || currentUser.place || '').trim();
+    }
+
+    const newUser = await User.create({
+      name: name.trim(),
+      email: uniqueEmail,
+      passwordHash: currentUser.passwordHash,
+      role: 'member',
+      tenantId: targetTenant._id,
+      phone,
+      address: cleanAddress,
+      place: cleanAddress,
+      isRegisteredMember: true,
+    });
+
+    await Registration.create({
+      tenantId: targetTenant._id,
+      userId: newUser._id,
+      status: 'registered',
+      data: { name: name.trim(), phone, address: cleanAddress },
+    });
+
+    const token = generateToken(newUser, targetTenant._id);
+    return res.status(201).json({
+      message: `New account "${name.trim()}" created successfully!`,
+      token,
+      user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, tenantId: targetTenant._id, phone: newUser.phone, address: newUser.address, place: newUser.place },
+    });
+  } catch (err) {
+    console.error('Add-account error:', err);
+    res.status(500).json({ error: 'Server error creating new account', details: err.message });
+  }
+});
+
+// GET /api/auth/my-accounts - List all accounts for the current user's phone in their tenant
+router.get('/my-accounts', requireAuth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.userId);
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+    const tenantId = req.user.tenantId || currentUser.tenantId;
+    const phone = currentUser.phone;
+
+    if (!phone || !tenantId) {
+      return res.json({ accounts: [], currentUserId: currentUser._id });
+    }
+
+    const accounts = await User.find({ phone, tenantId, role: 'member' }).select('_id name phone address place createdAt');
+
+    const firstUser = await User.findOne({ phone, address: { $ne: '' } }).sort({ createdAt: 1 });
+    const sharedAddress = (firstUser?.address || firstUser?.place || '').trim();
+
+    return res.json({
+      accounts: accounts.map(u => ({
+        id: u._id,
+        name: u.name,
+        phone: u.phone,
+        address: (u.address || u.place || sharedAddress).trim(),
+        initial: u.name ? u.name.charAt(0).toUpperCase() : '?',
+        isCurrentAccount: u._id.toString() === currentUser._id.toString(),
+      })),
+      currentUserId: currentUser._id,
+      allowMultipleAccounts: (await Tenant.findById(tenantId))?.settings?.allowMultipleAccounts === true,
+    });
+  } catch (err) {
+    console.error('My-accounts error:', err);
+    res.status(500).json({ error: 'Server error fetching accounts', details: err.message });
+  }
+});
+
 
 // POST /api/auth/enroll-member - Allow admin user to register as a campaign member
 router.post('/enroll-member', requireAuth, async (req, res) => {

@@ -8,7 +8,7 @@ import InstallPrompt from './components/InstallPrompt.jsx';
 import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
-import Dashboard from './pages/Dashboard.jsx';
+import AddCount from './pages/AddCount.jsx';
 import HistoryPage from './pages/History.jsx';
 import Counter from './pages/Counter.jsx';
 import AdminLogin from './pages/AdminLogin.jsx';
@@ -16,6 +16,7 @@ import AdminPanel from './pages/AdminPanel.jsx';
 import EventTeamRegister from './pages/EventTeamRegister.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
 import NotFound from './pages/NotFound.jsx';
 import { WifiOff } from 'lucide-react';
 
@@ -102,6 +103,55 @@ function MemberProtectedRoute({ children }) {
   return children;
 }
 
+// Protected Route Component for Guest Pages (Prevents logged-in users from seeing Login / Signup)
+function GuestOnlyRoute({ children }) {
+  const { token, user, authenticating } = useAuth();
+
+  if (authenticating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 font-ml">
+        <div className="text-center space-y-2">
+          <div className="w-8 h-8 mx-auto rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-xs font-extrabold text-muted-foreground">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (token && user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+// Protected Route Component for Admin Login Page (Prevents logged-in admins from seeing Admin Login)
+function AdminGuestOnlyRoute({ children }) {
+  const { token, user, authenticating } = useAuth();
+  const storedRole = localStorage.getItem('userRole');
+  const role = user?.role || storedRole;
+
+  if (authenticating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 font-ml">
+        <div className="text-center space-y-2">
+          <div className="w-8 h-8 mx-auto rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-xs font-extrabold text-muted-foreground">Checking admin session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (token && (role === 'tenant_admin' || role === 'super_admin')) {
+    if (role === 'super_admin') {
+      return <Navigate to="/super-admin" replace />;
+    }
+    return <Navigate to="/admin/panel" replace />;
+  }
+
+  return children;
+}
+
 function SuperAdminWrapper() {
   const { token, logout } = useAuth();
 
@@ -156,15 +206,29 @@ function AppContent() {
       <InstallPrompt />
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/login"
+          element={
+            <GuestOnlyRoute>
+              <Login />
+            </GuestOnlyRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <GuestOnlyRoute>
+              <Signup />
+            </GuestOnlyRoute>
+          }
+        />
 
         {/* Protected Member Routes */}
         <Route
-          path="/dashboard"
+          path="/addcount"
           element={
             <MemberProtectedRoute>
-              <Dashboard />
+              <AddCount />
             </MemberProtectedRoute>
           }
         />
@@ -192,9 +256,24 @@ function AppContent() {
             </MemberProtectedRoute>
           }
         />
+        <Route
+          path="/settings"
+          element={
+            <MemberProtectedRoute>
+              <SettingsPage />
+            </MemberProtectedRoute>
+          }
+        />
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLogin />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminGuestOnlyRoute>
+              <AdminLogin />
+            </AdminGuestOnlyRoute>
+          }
+        />
         <Route
           path="/admin/panel"
           element={

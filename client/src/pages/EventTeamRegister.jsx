@@ -171,7 +171,7 @@ Register Swalath Campain        </h1>
 
               {/* Subdomain Slug */}
               <div className="space-y-1.5">
-                <Label>Subdomain Slug:</Label>
+                <Label>Event Short Code / URL:</Label>
                 <div className="relative flex items-center">
                   <Input
                     type="text"

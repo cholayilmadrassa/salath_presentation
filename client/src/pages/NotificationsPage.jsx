@@ -33,9 +33,6 @@ export default function NotificationsPage() {
       const res = await api('/notifications/inbox', { token });
       if (res && res.notifications) {
         setNotifications(res.notifications);
-        if (res.unreadCount > 0) {
-          markAllAsReadSilently();
-        }
       } else {
         setNotifications(Array.isArray(res) ? res : []);
       }
@@ -47,7 +44,7 @@ export default function NotificationsPage() {
     }
   };
 
-  const markAllAsReadSilently = async () => {
+  const markAllAsRead = async () => {
     if (!token) return;
     try {
       await api('/notifications/mark-read', {
@@ -148,9 +145,11 @@ export default function NotificationsPage() {
           <div>
             <h1 className="font-extrabold text-lg leading-tight text-foreground flex items-center gap-2">
               <span>അറിയിപ്പുകൾ</span>
-              <Badge variant="muted" className="font-mono text-[10px] py-0 px-1.5 h-4 font-bold">
-                {notifications.length}
-              </Badge>
+              {notifications.filter(n => !n.isRead).length > 0 && (
+                <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4 font-bold bg-primary text-primary-foreground animate-pulse">
+                  {notifications.filter(n => !n.isRead).length} NEW
+                </Badge>
+              )}
             </h1>
             <p className="text-[11px] text-muted-foreground font-medium">
               Notifications & Announcements
@@ -158,16 +157,28 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={fetchNotifications}
-          disabled={loading}
-          className="w-8.5 h-8.5 rounded-full shrink-0 shadow-2xs hover:border-primary/40 active:scale-95"
-          title="Refresh Feed"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
-        </Button>
+        <div className="flex items-center gap-2">
+          {notifications.some((n) => !n.isRead) && (
+            <Button
+              variant="soft"
+              size="sm"
+              onClick={markAllAsRead}
+              className="text-[11px] font-bold h-8 px-2.5"
+            >
+              Mark all as read
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={fetchNotifications}
+            disabled={loading}
+            className="w-8.5 h-8.5 rounded-full shrink-0 shadow-2xs hover:border-primary/40 active:scale-95"
+            title="Refresh Feed"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
 
       {/* Inline top error banner when refresh fails with existing list */}
@@ -239,22 +250,32 @@ export default function NotificationsPage() {
             return (
               <div
                 key={item._id}
-                className={`flex items-start gap-3.5 px-4 py-4 transition-colors duration-150 hover:bg-muted/30 active:bg-muted/40 ${
+                className={`flex items-start gap-3.5 px-4 py-4 transition-colors duration-150 relative ${
                   index < notifications.length - 1 ? 'border-b border-border/50' : ''
-                } ${!item.isRead ? 'bg-primary/[0.03]' : ''}`}
+                } ${!item.isRead ? 'bg-primary/10 border-l-4 border-l-primary font-medium' : 'hover:bg-muted/30'}`}
               >
                 {/* Circular Icon */}
-                <div className={`w-11 h-11 rounded-full ${bgColor} flex items-center justify-center shrink-0 mt-0.5 shadow-sm`}>
+                <div className={`w-11 h-11 rounded-full ${bgColor} flex items-center justify-center shrink-0 mt-0.5 shadow-sm relative`}>
                   <CategoryIcon className={`w-5 h-5 ${iconColor}`} />
+                  {!item.isRead && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary border-2 border-card shadow-sm" />
+                  )}
                 </div>
 
                 {/* Content */}
                 <div className="min-w-0 flex-1">
-                  {/* Title Row with Time */}
+                  {/* Title Row with Time & NEW Badge */}
                   <div className="flex items-start justify-between gap-2">
-                    <h2 className="font-bold text-[13px] sm:text-sm text-foreground leading-snug line-clamp-2">
-                      {item.title}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      {!item.isRead && (
+                        <Badge variant="default" className="text-[9px] px-1.5 py-0 h-4 font-extrabold bg-primary text-primary-foreground animate-pulse">
+                          NEW
+                        </Badge>
+                      )}
+                      <h2 className="font-bold text-[13px] sm:text-sm text-foreground leading-snug line-clamp-2">
+                        {item.title}
+                      </h2>
+                    </div>
                     <span className="text-[11px] text-muted-foreground/70 font-medium shrink-0 mt-0.5">
                       {formatTimeAgo(item.sentAt || item.createdAt)}
                     </span>

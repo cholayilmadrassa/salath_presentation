@@ -11,7 +11,7 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Phone, LogIn, Building2, AlertTriangle, UserPlus } from 'lucide-react';
+import { Phone, LogIn, Building2, AlertTriangle, UserPlus, Users, ChevronRight } from 'lucide-react';
 import { loginSchema } from '../schemas/validationSchemas.js';
 
 export default function Login() {
@@ -26,6 +26,11 @@ export default function Login() {
   const [notRegisteredError, setNotRegisteredError] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  // Account selection state
+  const [accountSelectionData, setAccountSelectionData] = useState(null); // { accounts, phone, tenantSlug }
+  const [selectLoading, setSelectLoading] = useState(false);
+  const [selectError, setSelectError] = useState('');
 
   const getSlugFromUrl = () => {
     if (typeof window === 'undefined') return '';
@@ -75,6 +80,7 @@ export default function Login() {
     setError('');
     setNotRegisteredError(false);
     setFieldErrors({});
+    setAccountSelectionData(null);
 
     const targetSlug = activeTenant ? activeTenant.slug : selectedTenantSlug;
     const sanitizedPhone = form.phone.replace(/\D/g, '');
@@ -111,6 +117,18 @@ export default function Login() {
       };
 
       const data = await api('/auth/login', { method: 'POST', body: payload });
+
+      // Multiple accounts: show account selection
+      if (data.requiresAccountSelection) {
+        setAccountSelectionData({
+          accounts: data.accounts,
+          phone: sanitizedPhone,
+          tenantSlug: targetSlug,
+          tenant: data.tenant,
+        });
+        return;
+      }
+
       login(data.token, data.user);
       navigate('/dashboard');
     } catch (e) {
@@ -123,6 +141,27 @@ export default function Login() {
     }
   };
 
+  const handleSelectAccount = async (account) => {
+    setSelectLoading(true);
+    setSelectError('');
+    try {
+      const data = await api('/auth/login-select', {
+        method: 'POST',
+        body: {
+          userId: account.id,
+          phone: accountSelectionData.phone,
+          tenantSlug: accountSelectionData.tenantSlug,
+        },
+      });
+      login(data.token, data.user);
+      navigate('/dashboard');
+    } catch (e) {
+      setSelectError(e.message || 'Failed to select account. Please try again.');
+    } finally {
+      setSelectLoading(false);
+    }
+  };
+
   const FieldError = ({ error }) => {
     if (!error) return null;
     return (
@@ -131,6 +170,70 @@ export default function Login() {
       </p>
     );
   };
+
+  // ── Account Selection Screen ──
+  if (accountSelectionData) {
+    return (
+      <main className="max-w-md mx-auto px-4 safe-top pb-8 sm:py-14 font-sans">
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-3">
+            <Users className="w-7 h-7 text-primary" />
+          </div>
+          <h1 className="text-xl font-bold text-foreground">Select Account</h1>
+          <p className="text-xs font-normal mt-1 text-muted-foreground">
+            Multiple accounts found for this phone number
+          </p>
+        </div>
+
+        <Card>
+          <CardContent className="p-5 space-y-3">
+            {selectError && <Alert variant="destructive">{selectError}</Alert>}
+
+            <p className="text-xs text-muted-foreground font-medium text-center pb-1">
+              Choose which account to log into:
+            </p>
+
+            <div className="space-y-2">
+              {accountSelectionData.accounts.map((account) => (
+                <button
+                  key={account.id}
+                  disabled={selectLoading}
+                  onClick={() => handleSelectAccount(account)}
+                  className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-border bg-card hover:bg-primary/5 hover:border-primary/40 active:scale-[0.98] transition-all text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-base shrink-0 shadow-sm">
+                    {account.initial}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-extrabold text-sm text-foreground truncate">{account.name}</p>
+                    {account.address && (
+                      <p className="text-[11px] text-muted-foreground truncate">{account.address}</p>
+                    )}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
+              ))}
+            </div>
+
+            {selectLoading && (
+              <p className="text-center text-xs text-muted-foreground animate-pulse pt-1">Logging in...</p>
+            )}
+
+            <Separator />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs font-bold"
+              onClick={() => setAccountSelectionData(null)}
+            >
+              ← Back to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main className="max-w-md mx-auto px-4 safe-top pb-8 sm:py-14 font-sans">
@@ -155,11 +258,8 @@ export default function Login() {
             <div className="p-3 rounded-xl flex items-center justify-between text-xs font-medium bg-background text-secondary border border-secondary/20">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary" />
-                <span>{activeTenant.name}</span>
+                <span className="font-extrabold text-foreground">{activeTenant.name}</span>
               </div>
-              <Badge variant="muted" className="font-mono text-[10px]">
-                {activeTenant.slug}
-              </Badge>
             </div>
           ) : (
             approvedEvents.length > 0 && (

@@ -164,21 +164,15 @@ export default function AdminLogin({ onLoginSuccess }) {
             <div className="p-3 rounded-xl flex items-center justify-between text-xs font-medium bg-background text-secondary border border-secondary/20">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary" />
-                <span>{activeTenant.name}</span>
+                <span className="font-extrabold text-foreground">{activeTenant.name}</span>
               </div>
-              <Badge variant="muted" className="font-mono text-[10px]">
-                {activeTenant.slug}
-              </Badge>
             </div>
           ) : detectedSlug ? (
             <div className="p-3 rounded-xl flex items-center justify-between text-xs font-medium bg-background text-secondary border border-secondary/20">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary" />
-                <span>Event Portal</span>
+                <span className="font-extrabold text-foreground">Event Portal</span>
               </div>
-              <Badge variant="muted" className="font-mono text-[10px]">
-                {detectedSlug}
-              </Badge>
             </div>
           ) : null}
 
@@ -189,11 +183,11 @@ export default function AdminLogin({ onLoginSuccess }) {
           {statusNotice && (
             <Alert variant={statusNotice.type === 'pending' ? 'warning' : 'destructive'}>
               <div className="space-y-1">
-                <div className="font-bold text-sm">Event Subdomain Status</div>
+                <div className="font-bold text-sm">Event Team Status</div>
                 <p>{statusNotice.message}</p>
                 {statusNotice.type === 'pending' && (
                   <p className="text-[11px] opacity-80">
-                    Super Admin approval is required before you can log in and customize your event subdomain.
+                    Super Admin approval is required before you can log in and manage your event team.
                   </p>
                 )}
               </div>
@@ -202,17 +196,17 @@ export default function AdminLogin({ onLoginSuccess }) {
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-1.5">
-              <Label className="uppercase tracking-wide font-medium">Admin Email</Label>
+              <Label className="uppercase tracking-wide font-medium">Admin Email or Mobile Number</Label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => {
                     if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: null }));
                     setEmail(e.target.value);
                   }}
-                  placeholder="admin@example.com"
+                  placeholder="admin@example.com or 10-digit mobile"
                   className={`pl-9 ${fieldErrors.email ? 'border-2 border-red-500 bg-red-50/20 ring-4 ring-red-500/15' : ''}`}
                 />
               </div>
@@ -238,7 +232,7 @@ export default function AdminLogin({ onLoginSuccess }) {
             </div>
 
             <Button type="submit" disabled={loading} className="w-full" size="default">
-              {loading ? <span>Authenticating Subdomain...</span> : <span>Sign In to Admin Portal</span>}
+              {loading ? <span>Signing In...</span> : <span>Sign In to Admin Portal</span>}
             </Button>
           </form>
 

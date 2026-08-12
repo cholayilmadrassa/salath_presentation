@@ -21,7 +21,7 @@ export default function Navbar() {
   };
 
   const title = activeTenant?.branding?.title || activeTenant?.name || 'സ്വലാത്ത് ക്യാമ്പയിൻ';
-  const tagline = activeTenant?.branding?.tagline || (activeTenant ? `Subdomain: ${activeTenant.slug}` : 'Multi-Tenant Event Platform');
+  const tagline = activeTenant?.branding?.tagline || 'സ്വലാത്ത് ക്യാമ്പയിൻ ഡിജിറ്റൽ പോർട്ടൽ';
 
   return (
     <header className="hidden md:block sticky top-0 z-30 bg-card/95 backdrop-blur-md border-b border-border text-foreground select-none">
@@ -42,16 +42,9 @@ export default function Navbar() {
             />
           )}
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base tracking-tight text-foreground leading-none">
-                {title}
-              </span>
-              {activeTenant && (
-                <Badge variant="muted" className="font-mono text-[10px]">
-                  {activeTenant.slug}
-                </Badge>
-              )}
-            </div>
+            <span className="font-extrabold text-base tracking-tight text-foreground leading-none">
+              {title}
+            </span>
             <span className="text-[10px] text-muted-foreground font-medium tracking-wide">
               {tagline}
             </span>
@@ -84,12 +77,20 @@ export default function Navbar() {
           {user ? (
             <>
               <NavLink
-                to="/dashboard"
+                to="/addcount"
                 className={({ isActive }) =>
                   isActive ? 'text-primary font-extrabold border-b-2 border-primary pb-0.5' : 'hover:text-foreground transition'
                 }
               >
-                Dashboard
+                Add Count
+              </NavLink>
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                  isActive ? 'text-primary font-extrabold border-b-2 border-primary pb-0.5' : 'hover:text-foreground transition'
+                }
+              >
+                Settings
               </NavLink>
               <div className="flex items-center gap-3 pl-3 border-l border-border">
                 <Badge variant="muted" className="text-xs px-3 py-1">

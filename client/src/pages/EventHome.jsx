@@ -11,10 +11,9 @@ import { Alert } from "@/components/ui/alert";
 import {
   Crown, Sparkles, Settings, ArrowUpRight, Star, Calendar, Award,
   TrendingUp, Plus, Heart, Users, BookOpen, Flame, Moon,
-  ChevronRight, Zap, Target, LogIn
+  ChevronRight, Zap, Target, LogIn, Bell
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
-import SettingsModal from "../components/SettingsModal.jsx";
 import SwalathCard from "../components/SwalathCard.jsx";
 import QuickActionGrid from "../components/QuickActionGrid.jsx";
 import LeaderboardSection from "../components/LeaderboardSection.jsx";
@@ -71,14 +70,14 @@ function DigitCountTicker({ value, isLoading }) {
 
 export default function EventHome() {
   const { activeTenant } = useTenant();
-  const { user: authUser } = useAuth();
+  const { user: authUser, token } = useAuth();
   const navigate = useNavigate();
   const [leaders, setLeaders] = useState([]);
   const [totalEventCount, setTotalEventCount] = useState(0);
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const hijri = getHijriDate();
 
@@ -87,6 +86,16 @@ export default function EventHome() {
     if (savedUser) setUser(JSON.parse(savedUser));
 
     setLoading(true);
+
+    if (token) {
+      api('/notifications/inbox', { token })
+        .then((res) => {
+          if (res && typeof res.unreadCount === 'number') {
+            setUnreadCount(res.unreadCount);
+          }
+        })
+        .catch(() => {});
+    }
 
     if (activeTenant) {
       api("/counts/leaderboard/today?limit=5")
@@ -103,7 +112,7 @@ export default function EventHome() {
         .catch(() => { })
         .finally(() => setLoading(false));
     }
-  }, [activeTenant]);
+  }, [activeTenant, token]);
 
   const medalEmoji = ['🥇', '🥈', '🥉'];
 
@@ -135,11 +144,16 @@ export default function EventHome() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setSettingsOpen(true)}
-              className="rounded-2xl border-primary/30 active:scale-95 transition-transform"
-              aria-label="Settings"
+              onClick={() => navigate(user ? '/notifications' : '/login')}
+              className="rounded-2xl border-primary/30 active:scale-95 transition-transform relative"
+              aria-label="Notifications"
             >
-              <Settings className="w-5 h-5 text-primary" />
+              <Bell className="w-5 h-5 text-primary" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[9px] font-extrabold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1 border-2 border-card shadow-sm animate-pulse">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </Button>
           </div>
         </div>
@@ -267,7 +281,6 @@ export default function EventHome() {
       </main>
 
       <Footer />
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

@@ -167,6 +167,24 @@ export default function AdminPanel() {
     }
   };
 
+  const handleToggleMultipleAccounts = async (value) => {
+    setError('');
+    setSaveSuccess('');
+    try {
+      const currentSettings = tenant?.settings || {};
+      const res = await api('/admin/me/tenant', {
+        method: 'PATCH',
+        token,
+        body: { settings: { ...currentSettings, allowMultipleAccounts: value } },
+      });
+      if (res && res.tenant) setTenant(res.tenant);
+      setSaveSuccess(value ? 'Multiple accounts enabled!' : 'Multiple accounts disabled.');
+      setTimeout(() => setSaveSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to update setting');
+    }
+  };
+
   const handleUpdateSwalath = async (e) => {
     e.preventDefault();
     setError('');
@@ -498,7 +516,7 @@ export default function AdminPanel() {
           </TabsTrigger>
           <TabsTrigger value="branding" className="flex items-center gap-1.5 shrink-0 text-xs px-3 py-2 font-extrabold rounded-xl">
             <Palette className="w-4 h-4 text-primary" />
-            <span>Branding</span>
+            <span>Settings</span>
           </TabsTrigger>
           <TabsTrigger value="domain" className="flex items-center gap-1.5 shrink-0 text-xs px-3 py-2 font-extrabold rounded-xl">
             <Globe className="w-4 h-4 text-primary" />
@@ -550,7 +568,7 @@ export default function AdminPanel() {
           />
         </TabsContent>
 
-        {/* ──────── TAB 3: BRANDING CUSTOMIZATION ──────── */}
+        {/* ──────── TAB 3: SETTINGS (Branding + Event Settings) ──────── */}
         <TabsContent value="branding">
           <AdminBrandingTab
             brandingForm={brandingForm}
@@ -559,6 +577,8 @@ export default function AdminPanel() {
             fieldErrors={fieldErrors}
             saveSuccess={saveSuccess}
             error={error}
+            tenant={tenant}
+            onToggleMultipleAccounts={handleToggleMultipleAccounts}
           />
         </TabsContent>
 

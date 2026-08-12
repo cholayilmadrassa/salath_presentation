@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
-import { Home, Plus, History, Bell, Disc } from 'lucide-react';
+import { Home, Plus, History, Bell, Disc, Settings } from 'lucide-react';
 
 export default function BottomNav() {
   const { user, token } = useAuth();
@@ -69,7 +69,7 @@ export default function BottomNav() {
         {/* 3. Center Floating Plus Button */}
         <div className="relative -top-6 flex flex-col items-center">
           <button
-            onClick={() => navigate(user ? '/dashboard' : '/login')}
+            onClick={() => navigate(user ? '/addcount' : '/login')}
             className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl border-4 border-card active:scale-90 transition-transform"
             aria-label="Submit Swalath Count"
           >
@@ -90,22 +90,15 @@ export default function BottomNav() {
           )}
         </NavLink>
 
-        {/* 5. Notifications Tab */}
+        {/* 5. Settings Tab */}
         <NavLink
-          to={user ? "/notifications" : "/login"}
-          className="flex flex-col items-center gap-1 py-1 px-2.5 transition active:scale-95 relative"
+          to={user ? "/settings" : "/login"}
+          className="flex flex-col items-center gap-1 py-1 px-2.5 transition active:scale-95"
         >
           {({ isActive }) => (
             <>
-              <div className="relative">
-                <Bell className={`w-6 h-6 stroke-[2.2] ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1.5 bg-destructive text-destructive-foreground font-extrabold text-[9px] min-w-[16px] h-4 rounded-full flex items-center justify-center px-1 border-2 border-card shadow-sm animate-pulse">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </div>
-              <span className={`text-[11px] font-bold tracking-tight ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>Alerts</span>
+              <Settings className={`w-6 h-6 stroke-[2.2] ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className={`text-[11px] font-bold tracking-tight ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>Settings</span>
             </>
           )}
         </NavLink>

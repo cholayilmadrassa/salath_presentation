@@ -13,8 +13,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Calendar, Trash2, Plus, ArrowLeft, Star, Clock, AlertTriangle, History as HistoryIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Calendar, Trash2, Plus, ArrowLeft, Star, Clock, AlertTriangle, History as HistoryIcon, Bell } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 function todayKey() {
   const d = new Date();
@@ -44,7 +44,8 @@ function getCalendarDays() {
 }
 
 export default function HistoryPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const navigate = useNavigate();
   const [calendarDays] = useState(getCalendarDays());
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [dayData, setDayData] = useState({ date: todayKey(), dayTotal: 0, entries: [] });
@@ -53,7 +54,20 @@ export default function HistoryPage() {
   const [error, setError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const activeDateRef = useRef(null);
+
+  useEffect(() => {
+    if (token) {
+      api('/notifications/inbox', { token })
+        .then((res) => {
+          if (res && typeof res.unreadCount === 'number') {
+            setUnreadCount(res.unreadCount);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [token]);
 
   const loadDayData = (dateStr) => {
     setLoading(true);
@@ -121,6 +135,21 @@ export default function HistoryPage() {
             </span>
           </div>
         </div>
+
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(user ? '/notifications' : '/login')}
+          className="rounded-2xl border-primary/30 active:scale-95 transition-transform relative"
+          aria-label="Notifications"
+        >
+          <Bell className="w-5 h-5 text-primary" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[9px] font-extrabold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1 border-2 border-card shadow-sm animate-pulse">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
       </div>
 
       {/* Horizontal Scrollable Calendar Date Bar */}
