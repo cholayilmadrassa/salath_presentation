@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../api';
+import { WifiOff, RefreshCw } from 'lucide-react';
 
 const TenantCtx = createContext(null);
 
@@ -64,8 +65,15 @@ export function TenantProvider({ children }) {
         setActiveTenant(null);
       }
     } catch (err) {
-      const host = window.location.hostname.toLowerCase();
-      setError(err.message || `Event domain "${host}" is invalid or pending approval.`);
+      const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+      const isNetworkErr = isOffline || (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('Load failed') || err.message.includes('No internet')));
+
+      if (isNetworkErr) {
+        setError('No internet connection. Please check your network.');
+      } else {
+        setActiveTenant(null);
+        setError(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -73,7 +81,13 @@ export function TenantProvider({ children }) {
 
   useEffect(() => {
     resolveCurrentTenant();
-  }, []);
+
+    const handleOnline = () => {
+      if (error) resolveCurrentTenant();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [error]);
 
   const switchTenantSlug = (newSlug) => {
     if (newSlug) {
@@ -98,59 +112,32 @@ export function TenantProvider({ children }) {
               />
               <div className="absolute inset-0 rounded-2xl border-2 border-primary border-t-transparent animate-spin" />
             </div>
-            {/* <div className="text-center space-y-1">
-              <h2 className="text-sm font-extrabold text-foreground">സ്വലാത്ത് ക്യാമ്പയിൻ</h2>
-              <p className="text-xs text-muted-foreground font-medium animate-pulse">Checking event subdomain status...</p>
-            </div> */}
           </div>
         </div>
-      ) : error && !isPlatformAdminRoute ? (
+      ) : error ? (
         <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-ml">
-          <div className="max-w-md w-full bg-card rounded-3xl p-8 text-center space-y-5 shadow-2xl border border-border">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold bg-destructive/10 text-destructive border border-destructive/20">
-              ✕
+          <div className="max-w-md w-full bg-card rounded-3xl p-6 text-center space-y-5 shadow-xl border border-border">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto bg-destructive/10 text-destructive border border-destructive/20 shadow-sm">
+              <WifiOff className="w-6 h-6" />
             </div>
-            <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-destructive bg-destructive/10 px-3 py-1 rounded-full">
-                404 Not Found
-              </span>
-              <h1 className="text-xl font-extrabold text-foreground pt-2">Event Subdomain Not Found</h1>
+            <div className="">
+              <h1 className="text-xl font-extrabold text-foreground">
+                ഇന്റർനെറ്റ് കണക്ഷൻ ലഭ്യമല്ല
+              </h1>
+              <p className="text-xs text-muted-foreground font-medium  max-w-xs mx-auto">
+                ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച ശേഷം വീണ്ടും ശ്രമിക്കുക.
+              </p>
             </div>
-            <p className="text-xs p-3 rounded-xl font-mono leading-relaxed bg-muted/10 text-muted-foreground border border-border">
-              {error}
-            </p>
-            <p className="text-xs font-medium text-muted-foreground">
-              The event subdomain you requested does not exist or may be awaiting Super Admin approval.
-            </p>
 
-            <div className="space-y-2 pt-2">
+            <div className="pt-2">
               <button
                 onClick={() => {
-                  localStorage.removeItem('activeTenantSlug');
-                  window.location.href = '/';
+                  resolveCurrentTenant();
                 }}
-                className="w-full py-3 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md transition active:scale-95"
+                className="w-full py-3 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2"
               >
-                Return to Platform Home
-              </button>
-
-              <button
-                onClick={() => {
-                  localStorage.removeItem('activeTenantSlug');
-                  window.location.href = '/register-team';
-                }}
-                className="w-full py-3 font-bold text-xs rounded-xl border border-border bg-muted/10 text-foreground transition"
-              >
-                Register New Swalath Campaign
-              </button>
-
-              <button
-                onClick={() => {
-                  window.location.href = '/super-admin';
-                }}
-                className="w-full py-2 font-semibold text-[11px] text-muted-foreground hover:underline"
-              >
-                Super Admin Login (Approve Pending Team)
+                <RefreshCw className="w-4 h-4" />
+                <span>വീണ്ടും ശ്രമിക്കുക (Retry)</span>
               </button>
             </div>
           </div>
