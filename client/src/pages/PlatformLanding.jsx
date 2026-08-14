@@ -88,7 +88,7 @@ export default function PlatformLanding() {
   return (
     <div className="min-h-screen flex flex-col font-ml">
       {/* Platform Top Bar */}
-      <header className="sticky top-0 z-30 px-4 py-3 bg-background/90 backdrop-blur-md border-b border-border">
+      <header className="px-4 py-3 safe-top bg-background md:sticky md:top-0 md:z-30 md:bg-background/90 md:backdrop-blur-md md:border-b md:border-border">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
