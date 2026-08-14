@@ -113,8 +113,8 @@ export default function AddCount() {
             return;
         }
 
-        const todayEntry = items.find((it) => it.date === todayKey());
-        const currentTodayTotal = todayEntry ? Number(todayEntry.value) || 0 : 0;
+        const todayEntries = items.filter((it) => it.date === todayKey());
+        const currentTodayTotal = todayEntries.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
         if (currentTodayTotal + num > 100000) {
             const remaining = Math.max(0, 100000 - currentTodayTotal);
             setError(`Daily total limit of 100,000 (1 Lakh) reached! You recorded ${currentTodayTotal.toLocaleString('en-IN')} today (Remaining: ${remaining.toLocaleString('en-IN')}).`);
@@ -136,8 +136,9 @@ export default function AddCount() {
     };
 
     const totalCountSum = items.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-    const selectedEntry = items.find((it) => it.date === selectedDate);
-    const selectedDateSum = selectedEntry ? Number(selectedEntry.value) : 0;
+    const selectedDateItems = items.filter((it) => it.date === selectedDate);
+    const selectedDateSum = selectedDateItems.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+    const uniqueDaysCount = new Set(items.map((it) => it.date)).size;
     const isTodaySelected = selectedDate === todayKey();
 
     return (
@@ -235,7 +236,7 @@ export default function AddCount() {
                     </span>
                     <div className="flex items-center gap-1 text-xs font-bold bg-black/25 px-3 py-1 rounded-full text-[#D4AF37]">
                         <Star className="w-3.5 h-3.5 fill-[#D4AF37]" />
-                        <span>{items.length} Days Active</span>
+                        <span>{uniqueDaysCount} Days Active</span>
                     </div>
                 </div>
 
@@ -337,29 +338,31 @@ export default function AddCount() {
             </Card>
 
             {/* History List for User */}
+            {/* History List for User - Selected Date Only */}
             <section className="space-y-3">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 text-muted-foreground">
                         <History className="w-4 h-4" />
-                        <span>Swalath Count History</span>
+                        <span>Swalath Count History ({selectedDate})</span>
                     </h2>
-                    <span className="text-[10px] font-bold text-muted-foreground">Total {items.length} Days</span>
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                        {selectedDateItems.length} {selectedDateItems.length === 1 ? 'Entry' : 'Entries'}
+                    </span>
                 </div>
 
-                {items.length === 0 ? (
+                {selectedDateItems.length === 0 ? (
                     <Card>
                         <CardContent className="p-6 text-center text-xs font-medium space-y-1">
-                            <p className="font-bold text-foreground">No entries recorded yet.</p>
-                            <p className="text-muted-foreground">Enter your Swalath count above and click Save Count.</p>
+                            <p className="font-bold text-foreground">No entries recorded for {selectedDate}.</p>
+                            <p className="text-muted-foreground">Select another date or enter your Swalath count above to record.</p>
                         </CardContent>
                     </Card>
                 ) : (
                     <div className="space-y-2">
-                        {items.map((item) => (
+                        {selectedDateItems.map((item) => (
                             <div
                                 key={item._id}
-                                className={`p-3.5 rounded-xl flex items-center justify-between bg-card transition border ${item.date === selectedDate ? 'border-primary ring-1 ring-primary/30' : 'border-border'
-                                    }`}
+                                className="p-3.5 rounded-xl flex items-center justify-between bg-card transition border border-primary ring-1 ring-primary/30"
                             >
                                 <div>
                                     <span className="text-xs font-extrabold block text-foreground">{item.date}</span>
