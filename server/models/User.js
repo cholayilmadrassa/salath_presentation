@@ -29,6 +29,8 @@ const userSchema = new mongoose.Schema(
     notifiedMilestones: { type: [Number], default: [] },
     readNotifications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'NotificationHistory' }],
     isRegisteredMember: { type: Boolean, default: false },
+    mustChangePassword: { type: Boolean, default: false },
+    passwordExpiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

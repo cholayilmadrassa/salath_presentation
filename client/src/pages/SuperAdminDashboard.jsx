@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { ShieldCheck, CheckCircle, PlusCircle, ExternalLink, AlertCircle, Bell, Building2 } from 'lucide-react';
+import { ShieldCheck, CheckCircle, PlusCircle, ExternalLink, AlertCircle, Bell, Building2, KeyRound, Copy, Check } from 'lucide-react';
 import { superAdminTenantSchema } from '../schemas/validationSchemas.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import AdminNotificationsTab from '../components/AdminNotificationsTab.jsx';
@@ -28,6 +28,33 @@ export default function SuperAdminDashboard({ token, onLogout }) {
   const [actionMessage, setActionMessage] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [resetModalData, setResetModalData] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const handleResetPassword = async (owner) => {
+    if (!owner || !owner._id) return;
+    if (!window.confirm(`Are you sure you want to reset password for admin "${owner.name || owner.email}"?`)) return;
+
+    try {
+      setError('');
+      setActionMessage('');
+      const res = await api(`/super-admin/admins/${owner._id}/reset-password`, {
+        method: 'POST',
+        token,
+      });
+
+      if (res && res.temporaryPassword) {
+        setResetModalData({
+          adminName: owner.name || 'Admin',
+          email: owner.email,
+          temporaryPassword: res.temporaryPassword,
+        });
+        setCopySuccess(false);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to reset password');
+    }
+  };
 
   const [newForm, setNewForm] = useState({
     name: '',
@@ -372,13 +399,26 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                         )}
 
                         {t.status === 'approved' && (
-                          <Button
-                            variant="soft"
-                            size="sm"
-                            onClick={() => handleSuspend(t._id)}
-                          >
-                            Suspend Subdomain
-                          </Button>
+                          <>
+                            <Button
+                              variant="soft"
+                              size="sm"
+                              onClick={() => handleSuspend(t._id)}
+                            >
+                              Suspend Subdomain
+                            </Button>
+                            {t.ownerId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleResetPassword(t.ownerId)}
+                                className="border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 gap-1"
+                              >
+                                <KeyRound className="w-3.5 h-3.5" />
+                                <span>Reset Password</span>
+                              </Button>
+                            )}
+                          </>
                         )}
 
                         {t.status === 'suspended' && (
@@ -402,6 +442,44 @@ export default function SuperAdminDashboard({ token, onLogout }) {
             <AdminNotificationsTab token={token} />
           </TabsContent>
         </Tabs>
+
+        {/* Temporary Password Display Modal */}
+        <Dialog open={Boolean(resetModalData)} onOpenChange={() => setResetModalData(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                <KeyRound className="w-5 h-5" />
+                <span>Temporary Password Generated</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Send this temporary password to <strong>{resetModalData?.adminName}</strong> ({resetModalData?.email}). They will be forced to change it on their next login.
+              </p>
+              <div className="p-3 bg-muted/60 rounded-xl flex items-center justify-between font-mono text-sm border border-border">
+                <span className="font-extrabold tracking-wider text-foreground select-all">
+                  {resetModalData?.temporaryPassword}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(resetModalData?.temporaryPassword || '');
+                    setCopySuccess(true);
+                    setTimeout(() => setCopySuccess(false), 2000);
+                  }}
+                  className="gap-1 h-8 text-xs font-bold"
+                >
+                  {copySuccess ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copySuccess ? 'Copied!' : 'Copy'}</span>
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setResetModalData(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

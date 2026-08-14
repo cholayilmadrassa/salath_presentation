@@ -28,6 +28,7 @@ function generateToken(user, tenantIdOverride = null) {
       name: user.name,
       email: user.email,
       isRegisteredMember: isMember,
+      mustChangePassword: Boolean(user.mustChangePassword),
     },
     JWT_SECRET,
     { expiresIn: '7d' }
@@ -408,6 +409,17 @@ router.post('/login', async (req, res) => {
         return res.status(403).json({ error: 'Account has been deactivated' });
       }
 
+      if (
+        adminUser.mustChangePassword &&
+        adminUser.passwordExpiresAt &&
+        Date.now() > new Date(adminUser.passwordExpiresAt).getTime()
+      ) {
+        return res.status(403).json({
+          error: 'Temporary password has expired. Please contact Super Admin to request a password reset.',
+          code: 'TEMPORARY_PASSWORD_EXPIRED',
+        });
+      }
+
       // Super Admin login
       if (adminUser.role === 'super_admin') {
         const token = generateToken(adminUser);
@@ -422,6 +434,7 @@ router.post('/login', async (req, res) => {
             tenantId: null,
             phone: adminUser.phone,
             place: adminUser.place,
+            mustChangePassword: Boolean(adminUser.mustChangePassword),
           },
         });
       }
@@ -464,6 +477,7 @@ router.post('/login', async (req, res) => {
             tenantId: targetTenant._id,
             phone: adminUser.phone,
             place: adminUser.place,
+            mustChangePassword: Boolean(adminUser.mustChangePassword),
           },
           tenant: {
             id: targetTenant._id,
@@ -811,11 +825,60 @@ router.get('/me', requireAuth, async (req, res) => {
         address: user.address || user.place,
         place: user.place || user.address,
         isRegisteredMember: isMember,
+        mustChangePassword: Boolean(user.mustChangePassword),
       },
       tenant,
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch current user profile' });
+  }
+});
+
+// POST /api/auth/change-password - Change password for authenticated user (e.g. forced temp password change)
+router.post('/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User account not found' });
+    }
+
+    if (!comparePassword(currentPassword, user.passwordHash)) {
+      return res.status(400).json({ error: 'Incorrect current/temporary password' });
+    }
+
+    user.passwordHash = hashPassword(newPassword);
+    user.mustChangePassword = false;
+    user.passwordExpiresAt = null;
+    await user.save();
+
+    const targetTenantId = req.user.tenantId || user.tenantId;
+    const token = generateToken(user, targetTenantId);
+
+    return res.json({
+      message: 'Password updated successfully!',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tenantId: targetTenantId,
+        phone: user.phone,
+        place: user.place,
+        mustChangePassword: false,
+      },
+    });
+  } catch (err) {
+    console.error('Change password error:', err);
+    return res.status(500).json({ error: 'Failed to update password', details: err.message });
   }
 });
 

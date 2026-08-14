@@ -191,4 +191,49 @@ router.post('/tenants/:id/suspend', async (req, res) => {
   }
 });
 
+// Helper to generate a secure random 8-character temporary password
+function generateTempPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let pass = 'Tmp#';
+  for (let i = 0; i < 6; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+}
+
+// POST /api/super-admin/admins/:id/reset-password - Generate temporary password for an Admin user
+router.post('/admins/:id/reset-password', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Admin user not found' });
+    }
+
+    if (user.role === 'member') {
+      return res.status(400).json({ error: 'Password reset is only applicable to admin users' });
+    }
+
+    const tempPassword = generateTempPassword();
+    user.passwordHash = hashPassword(tempPassword);
+    user.mustChangePassword = true;
+    user.passwordExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hour expiry
+    await user.save();
+
+    res.json({
+      message: `Temporary password created for ${user.name}. Inform the admin to log in with this temporary password.`,
+      temporaryPassword: tempPassword,
+      expiresAt: user.passwordExpiresAt,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error('SuperAdmin reset password error:', err);
+    res.status(500).json({ error: 'Server error resetting password', details: err.message });
+  }
+});
+
 export default router;

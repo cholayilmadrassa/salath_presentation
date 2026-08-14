@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import Registration from '../models/Registration.js';
 import Count from '../models/Count.js';
 import { requireAuth, requireRole, requireTenantMatch } from '../middleware/auth.js';
+import { hashPassword } from '../utils/hash.js';
 import { TARGET_A_RECORD, TARGET_CNAME_RECORD, VERCEL_AUTH_TOKEN, VERCEL_PROJECT_ID, VERCEL_TEAM_ID } from '../config.js';
 
 const router = express.Router();
@@ -750,6 +751,57 @@ router.delete('/me/tenant/domain', async (req, res) => {
   } catch (err) {
     console.error('Cancel domain error:', err);
     res.status(500).json({ error: 'Server error cancelling custom domain' });
+  }
+});
+
+// Helper to generate a secure random 8-character temporary password
+function generateTempPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let pass = 'Tmp#';
+  for (let i = 0; i < 6; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+}
+
+// POST /api/tenant-admin/admins/:id/reset-password - Generate temporary password for co-admin user
+router.post('/admins/:id/reset-password', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Admin user not found' });
+    }
+
+    if (user.role === 'member') {
+      return res.status(400).json({ error: 'Password reset is only applicable to admin users' });
+    }
+
+    // Verify tenant match
+    const tenantId = req.tenant?._id || req.user.tenantId;
+    if (user.tenantId && user.tenantId.toString() !== tenantId.toString()) {
+      return res.status(403).json({ error: 'Cannot reset password for admin of another tenant' });
+    }
+
+    const tempPassword = generateTempPassword();
+    user.passwordHash = hashPassword(tempPassword);
+    user.mustChangePassword = true;
+    user.passwordExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hour expiry
+    await user.save();
+
+    res.json({
+      message: `Temporary password created for ${user.name}. Inform the admin to log in with this temporary password.`,
+      temporaryPassword: tempPassword,
+      expiresAt: user.passwordExpiresAt,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error('TenantAdmin reset password error:', err);
+    res.status(500).json({ error: 'Server error resetting password', details: err.message });
   }
 });
 

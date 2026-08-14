@@ -16,6 +16,7 @@ import AdminPanel from './pages/AdminPanel.jsx';
 import EventTeamRegister from './pages/EventTeamRegister.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
+import AdminChangePassword from './pages/AdminChangePassword.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import NotFound from './pages/NotFound.jsx';
 import { WifiOff } from 'lucide-react';
@@ -54,6 +55,10 @@ function AdminProtectedRoute({ children }) {
     return <Navigate to="/admin" replace />;
   }
 
+  if (user?.mustChangePassword) {
+    return <Navigate to="/admin/change-password" replace />;
+  }
+
   return children;
 }
 
@@ -76,6 +81,10 @@ function SuperAdminProtectedRoute({ children }) {
 
   if (!token || role !== 'super_admin') {
     return <Navigate to="/admin" replace />;
+  }
+
+  if (user?.mustChangePassword) {
+    return <Navigate to="/admin/change-password" replace />;
   }
 
   return children;
@@ -282,6 +291,7 @@ function AppContent() {
             </AdminProtectedRoute>
           }
         />
+        <Route path="/admin/change-password" element={<AdminChangePassword />} />
 
         <Route path="/register-team" element={<EventTeamRegister />} />
         <Route
