@@ -753,6 +753,81 @@ router.get('/my-accounts', requireAuth, async (req, res) => {
   }
 });
 
+// PUT /api/auth/update-account/:accountId - Update name/address for user's account
+router.put('/update-account/:accountId', requireAuth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.userId);
+    if (!currentUser) return res.status(404).json({ error: 'Current user session not found' });
+
+    const targetAccountId = req.params.accountId;
+    const targetUser = await User.findById(targetAccountId);
+    if (!targetUser) return res.status(404).json({ error: 'Target account not found' });
+
+    // Auth check: target user must be current user OR share same phone in same tenant
+    const isSelf = currentUser._id.toString() === targetUser._id.toString();
+    const isSamePhoneTenant =
+      currentUser.phone &&
+      targetUser.phone &&
+      currentUser.phone === targetUser.phone &&
+      (currentUser.tenantId?.toString() === targetUser.tenantId?.toString() ||
+        req.user.tenantId?.toString() === targetUser.tenantId?.toString());
+
+    if (!isSelf && !isSamePhoneTenant) {
+      return res.status(403).json({ error: 'Not authorized to update this account' });
+    }
+
+    const { name, address, place } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Account name cannot be empty' });
+    }
+
+    targetUser.name = name.trim();
+    if (address !== undefined) {
+      targetUser.address = address.trim();
+    }
+    if (place !== undefined) {
+      targetUser.place = place.trim();
+    } else if (address !== undefined) {
+      targetUser.place = address.trim();
+    }
+
+    await targetUser.save();
+
+    // Also update Registration record data if exists
+    if (targetUser.tenantId) {
+      await Registration.findOneAndUpdate(
+        { tenantId: targetUser.tenantId, userId: targetUser._id },
+        { $set: { 'data.name': targetUser.name, 'data.address': targetUser.address } }
+      );
+    }
+
+    // If updating current active account session, generate updated token
+    let freshToken = null;
+    if (isSelf) {
+      freshToken = generateToken(targetUser, req.user.tenantId || targetUser.tenantId);
+    }
+
+    return res.json({
+      message: `Account "${targetUser.name}" updated successfully!`,
+      token: freshToken,
+      account: {
+        id: targetUser._id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: targetUser.role,
+        tenantId: req.user.tenantId || targetUser.tenantId,
+        phone: targetUser.phone,
+        address: targetUser.address || targetUser.place,
+        place: targetUser.place || targetUser.address,
+        isRegisteredMember: targetUser.role === 'member' || Boolean(targetUser.isRegisteredMember),
+      },
+    });
+  } catch (err) {
+    console.error('Update-account error:', err);
+    res.status(500).json({ error: 'Server error updating account', details: err.message });
+  }
+});
+
 
 // POST /api/auth/enroll-member - Allow admin user to register as a campaign member
 router.post('/enroll-member', requireAuth, async (req, res) => {

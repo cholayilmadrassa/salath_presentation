@@ -402,7 +402,7 @@ export default function AdminPanel() {
 
           <div>
             <h1 className="font-extrabold text-lg sm:text-2xl text-foreground tracking-tight leading-tight">
-              {tenant ? tenant.name : 'Event Admin Panel'}
+              {tenant?.branding?.title || 'Event Admin Panel'}
             </h1>
             <div className="flex flex-wrap items-center gap-2 mt-0.5">
               <Badge variant="muted" className="font-mono text-[10px]">
@@ -543,8 +543,10 @@ export default function AdminPanel() {
             filteredUsers={filteredUsers}
             token={token}
             tenant={tenant}
+            fetchUsers={fetchUsers}
           />
         </TabsContent>
+
 
         {/* ──────── TAB: ARABIC SWALATH MANAGEMENT ──────── */}
         <TabsContent value="swalath">

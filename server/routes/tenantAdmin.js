@@ -805,5 +805,57 @@ router.post('/admins/:id/reset-password', async (req, res) => {
   }
 });
 
+// PUT /api/admin/users/:id - Update member details by tenant admin
+router.put('/users/:id', async (req, res) => {
+  try {
+    const tenantId = req.tenant?._id || req.user.tenantId;
+    if (!tenantId) return res.status(400).json({ error: 'Tenant context required' });
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'Member not found' });
+
+    if (user.tenantId && user.tenantId.toString() !== tenantId.toString()) {
+      return res.status(403).json({ error: 'Cannot edit member of another event' });
+    }
+
+    const { name, phone, address, place } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Member name is required' });
+    }
+
+    user.name = name.trim();
+    if (phone !== undefined) user.phone = phone.trim();
+    if (address !== undefined) user.address = address.trim();
+    if (place !== undefined) user.place = place.trim();
+    else if (address !== undefined) user.place = address.trim();
+
+    await user.save();
+
+    // Also update Registration document if present
+    await Registration.findOneAndUpdate(
+      { tenantId, userId: user._id },
+      { $set: { 'data.name': user.name, 'data.phone': user.phone, 'data.address': user.address } }
+    );
+
+    return res.json({
+      message: `Member "${user.name}" updated successfully!`,
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        place: user.place,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error('TenantAdmin edit member error:', err);
+    res.status(500).json({ error: 'Server error editing member', details: err.message });
+  }
+});
+
 export default router;
+
 

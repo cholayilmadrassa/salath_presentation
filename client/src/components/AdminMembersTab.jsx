@@ -4,11 +4,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Alert } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
   Search, ArrowUpDown, ChevronRight, ArrowLeft,
   Clock, Calendar, Star, History, Award, TrendingUp,
-  FileSpreadsheet, FileText, Download,
+  FileSpreadsheet, FileText, Download, Pencil,
 } from 'lucide-react';
 import {
   exportMembersToExcel,
@@ -25,6 +33,7 @@ export default function AdminMembersTab({
   filteredUsers = [],
   token,
   tenant,
+  fetchUsers,
 }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberHistory, setMemberHistory] = useState([]);
@@ -32,7 +41,73 @@ export default function AdminMembersTab({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
 
-  const eventName = tenant?.name || 'Salath Presentation';
+  // Member edit state
+  const [editingMember, setEditingMember] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', phone: '', address: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
+
+  const handleOpenEditMember = (e, member) => {
+    e?.stopPropagation?.();
+    setEditingMember(member);
+    setEditForm({
+      name: member.name || '',
+      phone: member.phone || '',
+      address: member.address || member.place || '',
+    });
+    setEditError('');
+    setEditSuccess('');
+  };
+
+  const handleSaveMemberEdit = async (e) => {
+    e.preventDefault();
+    if (!editForm.name.trim()) {
+      setEditError('Member name is required');
+      return;
+    }
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+
+    try {
+      const memberId = editingMember._id || editingMember.id;
+      const res = await api(`/admin/users/${memberId}`, {
+        method: 'PUT',
+        token,
+        body: {
+          name: editForm.name.trim(),
+          phone: editForm.phone.trim(),
+          address: editForm.address.trim(),
+          place: editForm.address.trim(),
+        },
+      });
+
+      setEditSuccess('Member details updated successfully!');
+      if (fetchUsers) await fetchUsers();
+      if (selectedMember && ((selectedMember._id || selectedMember.id) === memberId)) {
+        setSelectedMember((prev) => ({
+          ...prev,
+          name: res.user.name,
+          phone: res.user.phone,
+          address: res.user.address,
+          place: res.user.place,
+        }));
+      }
+
+      setTimeout(() => {
+        setEditingMember(null);
+        setEditSuccess('');
+      }, 1000);
+    } catch (err) {
+      setEditError(err.message || 'Failed to update member');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+
+  const eventName = tenant?.branding?.title || tenant?.name || 'Salath Presentation';
   const totalAllSwalath = filteredUsers.reduce((sum, u) => sum + (Number(u.totalCount) || 0), 0);
 
   const handleSelectMember = async (user) => {
@@ -159,8 +234,18 @@ export default function AdminMembersTab({
             </div>
           </div>
 
-          {/* Export Buttons for Member Details */}
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+          {/* Export & Edit Buttons for Member Details */}
+          <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => handleOpenEditMember(e, selectedMember)}
+              className="text-xs font-bold gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
+              title="Edit Member Details"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span>Edit Member</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -182,6 +267,7 @@ export default function AdminMembersTab({
               <span>Export PDF</span>
             </Button>
           </div>
+
         </div>
 
         {/* Summary Stats Banner */}
@@ -406,6 +492,16 @@ export default function AdminMembersTab({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleOpenEditMember(e, u)}
+                    className="h-8 px-2 text-[11px] font-bold gap-1 text-primary hover:bg-primary/15 rounded-xl"
+                    title="Edit Member Details"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Edit</span>
+                  </Button>
                   <Badge variant="success" className="text-xs font-extrabold">
                     {u.totalCount.toLocaleString('en-IN')} Salath
                   </Badge>
@@ -416,6 +512,83 @@ export default function AdminMembersTab({
           ))
         )}
       </div>
+
+      {/* ── Admin Edit Member Modal ── */}
+      <Dialog open={Boolean(editingMember)} onOpenChange={(open) => !open && setEditingMember(null)}>
+        <DialogContent className="max-w-sm font-sans">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                <Pencil className="w-4 h-4 text-primary" />
+              </div>
+              <span>Edit Member Details</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveMemberEdit} className="space-y-3.5 pt-1">
+            {editError && <Alert variant="destructive" className="text-xs py-2">{editError}</Alert>}
+            {editSuccess && <Alert variant="success" className="text-xs py-2">{editSuccess}</Alert>}
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Member Name *</Label>
+              <Input
+                type="text"
+                placeholder="e.g. Muhammed"
+                value={editForm.name}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                className="text-xs"
+                disabled={editLoading}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Phone Number</Label>
+              <Input
+                type="text"
+                placeholder="e.g. 9876543210"
+                value={editForm.phone}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))}
+                className="text-xs"
+                disabled={editLoading}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Address / Place</Label>
+              <Input
+                type="text"
+                placeholder="e.g. Kozhikode"
+                value={editForm.address}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))}
+                className="text-xs"
+                disabled={editLoading}
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEditingMember(null)}
+                className="text-xs font-bold rounded-xl"
+                disabled={editLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={editLoading}
+                className="text-xs font-bold px-4 rounded-xl"
+              >
+                {editLoading ? 'Saving...' : 'Save Member'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

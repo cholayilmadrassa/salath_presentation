@@ -181,7 +181,7 @@ export default function AdminNotificationsTab({ token, tenant }) {
               <div>
                 <span className="block text-foreground leading-tight">Send Notification to Members</span>
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  {tenant ? `Broadcast notification to members of ${tenant.name}` : 'Broadcast notification to all members'}
+                  {tenant ? `Broadcast notification to members of ${tenant?.branding?.title || tenant?.name}` : 'Broadcast notification to all members'}
                 </span>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function AdminNotificationsTab({ token, tenant }) {
                 <span>Recipients:</span>
               </span>
               <Badge variant="outline" className="text-xs font-bold">
-                {tenant ? `${tenant.name} Members` : 'All Subscribed Members'}
+                {tenant ? `${tenant?.branding?.title || tenant?.name} Members` : 'All Subscribed Members'}
               </Badge>
             </div>
 
@@ -467,7 +467,7 @@ export default function AdminNotificationsTab({ token, tenant }) {
             </div>
             <div>
               <span className="font-bold">Recipients:</span>{' '}
-              {tenant ? `${tenant.name} Members` : 'All Subscribed Members'}
+              {tenant ? `${tenant?.branding?.title || tenant?.name} Members` : 'All Subscribed Members'}
             </div>
           </div>
 

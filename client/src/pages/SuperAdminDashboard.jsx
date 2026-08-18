@@ -349,7 +349,7 @@ export default function SuperAdminDashboard({ token, onLogout }) {
                     <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="space-y-1.5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-base font-bold text-foreground">{t.name}</h2>
+                          <h2 className="text-base font-bold text-foreground">{t?.branding?.title || t?.name}</h2>
                           <a
                             href={`http://${t.slug}.${rootDomain}`}
                             target="_blank"

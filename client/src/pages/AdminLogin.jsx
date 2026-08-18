@@ -99,7 +99,7 @@ export default function AdminLogin({ onLoginSuccess }) {
         if (tenantStatus === 'pending') {
           setStatusNotice({
             type: 'pending',
-            message: `Your event team application "${data.tenant?.name || ''}" (${slug}) is PENDING approval by Super Admin.`,
+            message: `Your event team application "${data?.tenant?.branding?.title || data?.tenant?.name || ''}" (${slug}) is PENDING approval by Super Admin.`,
           });
           return;
         }
@@ -107,7 +107,7 @@ export default function AdminLogin({ onLoginSuccess }) {
         if (tenantStatus === 'rejected') {
           setStatusNotice({
             type: 'rejected',
-            message: `Your event team application "${data.tenant?.name || ''}" was REJECTED by Super Admin.`,
+            message: `Your event team application "${data?.tenant?.branding?.title || data?.tenant?.name || ''}" was REJECTED by Super Admin.`,
           });
           return;
         }
