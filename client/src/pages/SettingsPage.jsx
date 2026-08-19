@@ -13,13 +13,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { LogOut, MapPin, Phone, ShieldCheck, LogIn, UserPlus, Download, Share, Bell, AlertCircle, Users, Plus, ChevronRight, ArrowLeftRight, X, Settings as SettingsIcon, Pencil } from 'lucide-react';
+import { LogOut, MapPin, Phone, ShieldCheck, LogIn, UserPlus, Download, Share, Bell, AlertCircle, Users, Plus, ChevronRight, ArrowLeftRight, X, Settings as SettingsIcon, Pencil, Clock } from 'lucide-react';
 import { api } from '../api.js';
 import {
   subscribeUserToPush,
   unsubscribeUserFromPush,
   getPushSubscriptionState,
 } from '../utils/pushManager.js';
+import {
+  isPrayerNotifEnabled,
+  enablePrayerNotifications,
+  disablePrayerNotifications,
+} from '../utils/prayerTimeNotifier.js';
 
 export default function SettingsPage() {
   const { user, token, login, logout } = useAuth();
@@ -31,6 +36,11 @@ export default function SettingsPage() {
   const [pushState, setPushState] = useState({ isSubscribed: false, isIOS: false, isStandalone: true });
   const [pushLoading, setPushLoading] = useState(false);
   const [pushError, setPushError] = useState('');
+
+  // Prayer time notification state
+  const [prayerEnabled, setPrayerEnabled] = useState(false);
+  const [prayerLoading, setPrayerLoading] = useState(false);
+  const [prayerError, setPrayerError] = useState('');
 
   // Multi-account state
   const [allowMultipleAccounts, setAllowMultipleAccounts] = useState(false);
@@ -114,7 +124,7 @@ export default function SettingsPage() {
       api('/auth/my-accounts', { token }).then((res) => {
         setMyAccounts(res.accounts || []);
         setAllowMultipleAccounts(res.allowMultipleAccounts || false);
-      }).catch(() => {});
+      }).catch(() => { });
       // Fetch inbox for notification unread count badge
       api('/notifications/inbox', { token })
         .then((res) => {
@@ -122,9 +132,29 @@ export default function SettingsPage() {
             setUnreadCount(res.unreadCount);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
+    // Load prayer notification preference
+    setPrayerEnabled(isPrayerNotifEnabled());
   }, [token]);
+
+  const togglePrayerNotifications = async () => {
+    setPrayerLoading(true);
+    setPrayerError('');
+    try {
+      if (prayerEnabled) {
+        disablePrayerNotifications();
+        setPrayerEnabled(false);
+      } else {
+        await enablePrayerNotifications();
+        setPrayerEnabled(true);
+      }
+    } catch (err) {
+      setPrayerError(err.message || 'Failed to set up prayer time notifications.');
+    } finally {
+      setPrayerLoading(false);
+    }
+  };
 
   const togglePushSubscription = async () => {
     setPushLoading(true);
@@ -220,7 +250,7 @@ export default function SettingsPage() {
   };
 
   const handleSwitchAccount = async (account) => {
-    if (account.isCurrentAccount) return;
+    if (account.isCurrentAccount || String(account.id) === String(user?.id)) return;
     setSwitchLoading(true);
     setSwitchError('');
     try {
@@ -229,13 +259,15 @@ export default function SettingsPage() {
         token,
         body: {
           userId: account.id,
-          phone: user?.phone,
+          phone: user?.phone || account.phone,
           tenantSlug: null,
         },
       });
       login(data.token, data.user);
       setShowSwitchAccount(false);
-      navigate('/');
+      // Refresh accounts list with new token so current active and other accounts update immediately
+      const freshAccounts = await api('/auth/my-accounts', { token: data.token });
+      setMyAccounts(freshAccounts.accounts || []);
     } catch (err) {
       setSwitchError(err.message || 'Failed to switch account');
     } finally {
@@ -243,6 +275,7 @@ export default function SettingsPage() {
     }
   };
 
+  const otherAccounts = myAccounts.filter(acc => !acc.isCurrentAccount && String(acc.id) !== String(user?.id));
   const canAddMore = allowMultipleAccounts && myAccounts.length < 3;
   const hasMultipleAccounts = myAccounts.length > 1;
 
@@ -280,28 +313,33 @@ export default function SettingsPage() {
           {/* User Profile Details */}
           {user ? (
             <div className="space-y-4">
-              <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 space-y-3">
+              <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 space-y-4 shadow-sm">
+                {/* Profile Header */}
                 <div className="flex items-center justify-between pb-3 border-b border-primary/20">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-sm">
                       {user.name.charAt(0)}
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-foreground text-sm">{user.name}</h4>
-                      <Badge variant="success" className="mt-0.5">
-                        Registered Member
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-extrabold text-foreground text-sm">{user.name}</h4>
+                        <Badge variant="success" className="text-[9px] py-0 px-1 font-mono">Active</Badge>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground block font-medium">Registered Member</span>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenEditAccount({ id: user.id, name: user.name, address: user.address || user.place })}
-                    className="h-8 text-xs font-bold gap-1 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    <span>Edit</span>
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenEditAccount({ id: user.id, name: user.name, address: user.address || user.place })}
+                      className="h-8 text-xs font-bold gap-1 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Profile Details List */}
@@ -329,179 +367,30 @@ export default function SettingsPage() {
                     </div>
                   )}
                 </div>
+
+                {/* ── Switch Account Button (Opens Modal) ── */}
+                <div className="border-t border-primary/20 pt-3">
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={() => { setShowSwitchAccount(true); setSwitchError(''); }}
+                    className="w-full h-9 text-xs font-bold gap-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm flex items-center justify-center"
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                    <span>Switch Account</span>
+                    <span className="bg-primary-foreground/25 text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-mono font-extrabold">
+                      {myAccounts.length || 1}
+                    </span>
+                  </Button>
+                </div>
               </div>
 
-              {/* ── Accounts List & Edit Section ── */}
-              <div className="bg-card border border-border rounded-xl p-3.5 space-y-3 shadow-sm">
-                <div className="flex items-center justify-between pb-1.5 border-b border-border">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Users className="w-3.5 h-3.5 text-primary" />
-                    </div>
-                    <h4 className="font-bold text-xs text-foreground">My Accounts</h4>
-                  </div>
-                  <Badge variant="muted" className="text-[10px] font-mono">{myAccounts.length || 1} Account(s)</Badge>
-                </div>
-
-                {/* Accounts List with Edit Buttons */}
-                <div className="space-y-2">
-                  {myAccounts.length > 0 ? (
-                    myAccounts.map((acc) => (
-                      <div
-                        key={acc.id}
-                        className={` flex items-center justify-between p-2.5 rounded-xl border transition-all ${
-                          acc.isCurrentAccount
-                            ? 'bg-primary/10 border-primary/40'
-                            : 'bg-card border-border hover:border-primary/30'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                            acc.isCurrentAccount ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                          }`}>
-                            {acc.initial}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-extrabold text-xs text-foreground truncate">{acc.name}</span>
-                              {acc.isCurrentAccount && (
-                                <Badge variant="success" className="text-[9px] py-0 px-1 font-mono">Active</Badge>
-                              )}
-                            </div>
-                            {acc.address && (
-                              <p className="text-[10px] text-muted-foreground truncate">{acc.address}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenEditAccount(acc)}
-                          className="h-7 px-2.5 text-[11px] font-bold gap-1 text-primary hover:bg-primary/15 rounded-lg shrink-0"
-                          title="Edit Account Name"
-                        >
-                          <Pencil className="w-3 h-3 text-primary" />
-                          <span>Edit</span>
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex items-center justify-between p-2.5 rounded-xl border border-primary/40 bg-primary/10">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">
-                          {user.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-extrabold text-xs text-foreground">{user.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{user.address || user.place}</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenEditAccount({ id: user.id, name: user.name, address: user.address || user.place })}
-                        className="h-7 px-2.5 text-[11px] font-bold gap-1 text-primary hover:bg-primary/15 rounded-lg"
-                      >
-                        <Pencil className="w-3 h-3" />
-                        <span>Edit</span>
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Account Action Buttons */}
-                {allowMultipleAccounts && (
-                  <div className="pt-1.5 space-y-2 border-t border-border/60">
-                    {hasMultipleAccounts && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => { setShowSwitchAccount(true); setSwitchError(''); }}
-                        className="w-full text-xs font-bold gap-2 h-9 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                      >
-                        <ArrowLeftRight className="w-3.5 h-3.5" />
-                        <span>Switch Account</span>
-                      </Button>
-                    )}
-
-                    {canAddMore && !showAddAccount && (
-                      <Button
-                        variant="soft"
-                        size="sm"
-                        onClick={() => { setShowAddAccount(true); setAddAccountError(''); setAddAccountSuccess(''); }}
-                        className="w-full text-xs font-bold gap-2 h-9"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Make Another Account</span>
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                  {/* Add Account Form (inline) */}
-                  {showAddAccount && (
-                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-3.5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-extrabold text-foreground">New Account Details</span>
-                        <button
-                          onClick={() => { setShowAddAccount(false); setAddAccountError(''); }}
-                          className="w-6 h-6 rounded-full bg-muted/40 flex items-center justify-center"
-                        >
-                          <X className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
-                      </div>
-
-                      {addAccountError && <Alert variant="destructive" className="text-xs py-2">{addAccountError}</Alert>}
-                      {addAccountSuccess && <Alert variant="success" className="text-xs py-2">{addAccountSuccess}</Alert>}
-
-                      <form onSubmit={handleAddAccount} className="space-y-2.5">
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-bold">Full Name *</Label>
-                          <Input
-                            type="text"
-                            placeholder="e.g. Muhammed Faisal"
-                            value={addAccountForm.name}
-                            onChange={(e) => setAddAccountForm(f => ({ ...f, name: e.target.value }))}
-                            className="h-8 text-xs"
-                            disabled={addAccountLoading}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-bold">Address (optional)</Label>
-                          <Input
-                            type="text"
-                            placeholder="House name, place..."
-                            value={addAccountForm.address}
-                            onChange={(e) => setAddAccountForm(f => ({ ...f, address: e.target.value }))}
-                            className="h-8 text-xs"
-                            disabled={addAccountLoading}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 text-[10px] text-muted-foreground">
-                            <Phone className="w-3 h-3 inline mr-1 text-primary" />
-                            {user.phone} (same phone)
-                          </div>
-                          <Button
-                            type="submit"
-                            size="sm"
-                            disabled={addAccountLoading}
-                            className="h-8 text-xs font-bold px-4"
-                          >
-                            {addAccountLoading ? 'Creating...' : 'Create'}
-                          </Button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
-                </div>
-
-              {/* Web Push Notifications Settings */}
-              <div className="bg-card border border-border rounded-xl p-3.5 space-y-3 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+              {/* ── Combined Notifications Card (Push + Prayer) ── */}
+              <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                {/* Push Notifications row */}
+                <div className="flex items-center justify-between p-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <Bell className="w-4 h-4 text-primary" />
                     </div>
                     <div>
@@ -524,7 +413,7 @@ export default function SettingsPage() {
                 </div>
 
                 {pushState.isIOS && !pushState.isStandalone && (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-2.5 text-[11px] font-medium space-y-1">
+                  <div className="mx-3.5 mb-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-2.5 text-[11px] font-medium space-y-1">
                     <div className="flex items-center gap-1 font-bold text-amber-800">
                       <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span>iOS Setup Required</span>
@@ -536,7 +425,7 @@ export default function SettingsPage() {
                 )}
 
                 {pushState.permission === 'denied' && (
-                  <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg p-2.5 text-[11px] font-medium space-y-1">
+                  <div className="mx-3.5 mb-2 bg-destructive/10 border border-destructive/30 text-destructive rounded-lg p-2.5 text-[11px] font-medium space-y-1">
                     <div className="flex items-center gap-1 font-bold">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0 text-destructive" />
                       <span>Notification Permission Blocked</span>
@@ -548,8 +437,41 @@ export default function SettingsPage() {
                 )}
 
                 {pushError && (
-                  <div className="text-[11px] text-destructive font-medium bg-destructive/10 p-2 rounded-lg">
+                  <div className="mx-3.5 mb-2 text-[11px] text-destructive font-medium bg-destructive/10 p-2 rounded-lg">
                     {pushError}
+                  </div>
+                )}
+
+                {/* Divider */}
+                <div className="border-t border-border/60 mx-3.5" />
+
+                {/* Prayer Time Reminders row */}
+                <div className="flex items-center justify-between p-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-foreground">Prayer Time Reminders</h4>
+                      <span className="text-[10px] text-muted-foreground block">
+                        {prayerEnabled ? 'Reminders active · alerts at each prayer' : 'Get notified at each prayer time'}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={prayerEnabled ? 'outline' : 'default'}
+                    disabled={prayerLoading}
+                    onClick={togglePrayerNotifications}
+                    className={`h-8 text-xs font-bold px-3 ${!prayerEnabled ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-0' : ''
+                      }`}
+                  >
+                    {prayerLoading ? 'Setting up...' : prayerEnabled ? 'Disable' : 'Enable'}
+                  </Button>
+                </div>
+                {prayerError && (
+                  <div className="mx-3.5 mb-3 text-[11px] text-destructive font-medium bg-destructive/10 p-2 rounded-lg">
+                    {prayerError}
                   </div>
                 )}
               </div>
@@ -621,117 +543,188 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* ── Switch Account Modal ── */}
+      {/* ── Switch & View Accounts Modal ── */}
       <Dialog open={showSwitchAccount} onOpenChange={(open) => !open && setShowSwitchAccount(false)}>
-        <DialogContent className="max-w-sm font-sans">
+        <DialogContent className="max-w-sm font-sans max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-foreground">
-              <ArrowLeftRight className="w-5 h-5 text-primary" />
-              <span>Switch Account</span>
+            <DialogTitle className="flex items-center gap-2.5 text-foreground">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center text-primary shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="block font-bold text-sm">My Accounts</span>
+                <span className="block text-[11px] font-normal text-muted-foreground">Tap an account to switch or edit</span>
+              </div>
             </DialogTitle>
           </DialogHeader>
 
-         <div className="space-y-2 pt-1">
-  {switchError && (
-    <Alert variant="destructive" className="text-xs py-2">
-      {switchError}
-    </Alert>
-  )}
+          <div className="space-y-3 pt-1">
+            {switchError && (
+              <Alert variant="destructive" className="text-xs py-2">
+                {switchError}
+              </Alert>
+            )}
 
-  {myAccounts.map((account) => (
-    <div
-      key={account.id}
-      className={`w-full  flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left overflow-hidden ${
-        account.isCurrentAccount
-          ? 'border-primary bg-primary/10'
-          : 'border-border bg-card hover:bg-primary/5 hover:border-primary/40'
-      }`}
-    >
-      {/* Account */}
-      <button
-        disabled={switchLoading || account.isCurrentAccount}
-        onClick={() => handleSwitchAccount(account)}
-        className="flex-1 min-w-0 max-w-full flex items-center gap-3 text-left disabled:opacity-60 cursor-pointer overflow-hidden"
-      >
-        {/* Avatar */}
-        <div
-          className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 shadow-sm ${
-            account.isCurrentAccount
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
-          }`}
-        >
-          {account.initial}
-        </div>
+            {/* List of Accounts */}
+            <div className="space-y-2">
+              {myAccounts.map((account) => {
+                const isActive = account.isCurrentAccount || String(account.id) === String(user?.id);
+                return (
+                  <div
+                    key={account.id}
+                    onClick={() => {
+                      if (!isActive && !switchLoading) {
+                        handleSwitchAccount(account);
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                      isActive
+                        ? 'border-primary/50 bg-primary/10 shadow-xs'
+                        : 'border-border bg-card hover:border-primary/40 hover:bg-primary/5 cursor-pointer active:scale-[0.99]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {/* Avatar */}
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {account.initial}
+                      </div>
 
-        {/* Account information */}
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <p className="font-extrabold text-xs text-foreground truncate">
-            {account.name}
-          </p>
+                      {/* Account Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-xs text-foreground truncate">
+                            {account.name}
+                          </span>
+                          {isActive && (
+                            <Badge variant="success" className="text-[9px] py-0 px-1 font-mono">
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+                        {account.address && (
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {account.address}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-          {account.address && (
-            <p className="text-[10px] max-w-[150px] text-muted-foreground truncate">
-              {account.address}
-            </p>
-          )}
-        </div>
+                    {/* Status & Edit Pencil */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {!isActive && (
+                        <div className="text-muted-foreground flex items-center gap-1 px-1">
+                          <ArrowLeftRight className="w-3.5 h-3.5 text-primary/70" />
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSwitchAccount(false);
+                          handleOpenEditAccount(account);
+                        }}
+                        className="w-7 h-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/15 shrink-0"
+                        title="Edit Account Name"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-        {/* Status / Arrow */}
-        <div className="shrink-0">
-          {account.isCurrentAccount ? (
-            <Badge
-              variant="success"
-              className="text-[10px] whitespace-nowrap"
-            >
-              Active
-            </Badge>
-          ) : (
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          )}
-        </div>
-      </button>
+            {switchLoading && (
+              <p className="text-center text-xs text-muted-foreground animate-pulse pt-1">
+                Switching account...
+              </p>
+            )}
 
-      {/* Edit */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => {
-          setShowSwitchAccount(false);
-          handleOpenEditAccount(account);
-        }}
-        className="w-8 h-8 min-w-8 rounded-lg text-primary hover:bg-primary/15 shrink-0"
-        title="Edit Account Name"
-      >
-        <Pencil className="w-3.5 h-3.5" />
-      </Button>
-    </div>
-  ))}
+            {/* Add Another Account (inside modal) */}
+            {canAddMore && !showAddAccount && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddAccount(true);
+                  setAddAccountError('');
+                  setAddAccountSuccess('');
+                }}
+                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-dashed border-primary/40 hover:bg-primary/5 transition-all text-left"
+              >
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Plus className="w-4 h-4 text-primary" />
+                </div>
+                <p className="font-bold text-xs text-primary truncate">
+                  + Add Another Account
+                </p>
+              </button>
+            )}
 
-  {canAddMore && (
-    <button
-      onClick={() => {
-        setShowSwitchAccount(false);
-        setShowAddAccount(true);
-      }}
-      className="w-full max-w-full min-w-0 flex items-center gap-3 p-3 rounded-xl border border-dashed border-primary/40 hover:bg-primary/5 transition-all text-left overflow-hidden"
-    >
-      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-        <Plus className="w-4 h-4 text-primary" />
-      </div>
+            {/* Inline Add Account Form inside Modal */}
+            {showAddAccount && (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-foreground">New Account Details</span>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddAccount(false); setAddAccountError(''); }}
+                    className="w-6 h-6 rounded-full bg-muted/40 hover:bg-muted flex items-center justify-center"
+                  >
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                </div>
 
-      <p className="font-bold text-xs text-primary truncate">
-        + Add Another Account
-      </p>
-    </button>
-  )}
+                {addAccountError && <Alert variant="destructive" className="text-xs py-2">{addAccountError}</Alert>}
+                {addAccountSuccess && <Alert variant="success" className="text-xs py-2">{addAccountSuccess}</Alert>}
 
-  {switchLoading && (
-    <p className="text-center text-xs text-muted-foreground animate-pulse pt-1">
-      Switching account...
-    </p>
-  )}
-</div>
+                <form onSubmit={handleAddAccount} className="space-y-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold">Full Name *</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. Muhammed Faisal"
+                      value={addAccountForm.name}
+                      onChange={(e) => setAddAccountForm(f => ({ ...f, name: e.target.value }))}
+                      className="h-8 text-xs"
+                      disabled={addAccountLoading}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold">Address (optional)</Label>
+                    <Input
+                      type="text"
+                      placeholder="House name, place..."
+                      value={addAccountForm.address}
+                      onChange={(e) => setAddAccountForm(f => ({ ...f, address: e.target.value }))}
+                      className="h-8 text-xs"
+                      disabled={addAccountLoading}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="flex-1 text-[10px] text-muted-foreground">
+                      <Phone className="w-3 h-3 inline mr-1 text-primary" />
+                      {user.phone}
+                    </div>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={addAccountLoading}
+                      className="h-8 text-xs font-bold px-3"
+                    >
+                      {addAccountLoading ? 'Creating...' : 'Create'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

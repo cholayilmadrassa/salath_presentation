@@ -61,6 +61,8 @@ export default function AdminPanel() {
     showLeaderboard: true,
     showSwalath: true,
     showQuickActions: true,
+    showPrayerTimes: true,
+    homeSectionOrder: ['swalath', 'prayerTimes', 'leaderboard'],
   });
   const [domainInput, setDomainInput] = useState('');
   const [domainDnsInfo, setDomainDnsInfo] = useState(null);
@@ -132,6 +134,10 @@ export default function AdminPanel() {
           showLeaderboard: data.settings.showLeaderboard !== false,
           showSwalath: data.settings.showSwalath !== false,
           showQuickActions: data.settings.showQuickActions !== false,
+          showPrayerTimes: data.settings.showPrayerTimes !== false,
+          homeSectionOrder: Array.isArray(data.settings.homeSectionOrder) && data.settings.homeSectionOrder.length
+            ? data.settings.homeSectionOrder
+            : ['swalath', 'prayerTimes', 'leaderboard'],
         });
       }
       if (data.customDomain) {
@@ -164,6 +170,30 @@ export default function AdminPanel() {
       // Revert if API failed
       setDisplaySettings(displaySettings);
       setError(err.message || 'Failed to update section visibility');
+    }
+  };
+
+  const handleReorderSections = async (newOrder) => {
+    setError('');
+    setSaveSuccess('');
+    const updatedSettings = {
+      ...displaySettings,
+      homeSectionOrder: newOrder,
+    };
+    setDisplaySettings(updatedSettings);
+
+    try {
+      const res = await api('/admin/me/tenant', {
+        method: 'PATCH',
+        token,
+        body: { settings: updatedSettings },
+      });
+      if (res && res.tenant) setTenant(res.tenant);
+      setSaveSuccess('Home page section order updated!');
+      setTimeout(() => setSaveSuccess(''), 3000);
+    } catch (err) {
+      setDisplaySettings(displaySettings);
+      setError(err.message || 'Failed to update section order');
     }
   };
 
@@ -565,6 +595,7 @@ export default function AdminPanel() {
           <AdminDisplayControlsTab
             displaySettings={displaySettings}
             handleToggleDisplaySetting={handleToggleDisplaySetting}
+            handleReorderSections={handleReorderSections}
             saveSuccess={saveSuccess}
             error={error}
           />

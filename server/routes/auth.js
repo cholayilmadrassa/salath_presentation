@@ -57,6 +57,27 @@ async function generateUniqueEmail(name, phone, tenantSlug) {
   return `${sanitizedName}${last4}.${Date.now()}@${tenantSlug}.swalath.online`;
 }
 
+// Helper to generate variations of a phone number (e.g. "9876543210", "+919876543210", "919876543210", "09876543210")
+function getPhoneVariations(phone) {
+  if (!phone) return [];
+  const str = String(phone).trim();
+  const digits = str.replace(/\D/g, '');
+  const variations = new Set();
+  if (str) variations.add(str);
+  if (digits) {
+    variations.add(digits);
+    const last10 = digits.slice(-10);
+    if (last10.length === 10) {
+      variations.add(last10);
+      variations.add(`+91${last10}`);
+      variations.add(`+91 ${last10}`);
+      variations.add(`91${last10}`);
+      variations.add(`0${last10}`);
+    }
+  }
+  return Array.from(variations);
+}
+
 // POST /api/auth/register - Register member under an active approved event
 router.post('/register', async (req, res) => {
   try {
@@ -358,12 +379,13 @@ router.post('/login', async (req, res) => {
     }
 
     const emailPrefix = rawIdentifier.includes('@') ? rawIdentifier.split('@')[0] : '';
+    const phoneVariations = getPhoneVariations(cleanPhone || rawIdentifier);
 
-    // Find ALL users matching email, phone, or email prefix
+    // Find ALL users matching email, phone variations, or email prefix
     const queryOr = [
       { email: rawIdentifier },
       ...(emailPrefix && emailPrefix.length >= 3 ? [{ email: new RegExp(`^${emailPrefix}`, 'i') }] : []),
-      ...(cleanPhone ? [{ phone: cleanPhone }] : []),
+      ...(phoneVariations.length > 0 ? [{ phone: { $in: phoneVariations } }] : []),
       ...(cleanPhone ? [{ email: `${cleanPhone}@member.salath` }] : []),
       ...(cleanPhone ? [{ email: new RegExp(`^${cleanPhone}\\.`, 'i') }] : []),
     ];
@@ -514,7 +536,7 @@ router.post('/login', async (req, res) => {
 
     // Filter by tenant more precisely
     const tenantMembers = allMatchingUsers.filter(
-      u => u.role === 'member' && u.tenantId &&
+      u => (u.role === 'member' || u.isRegisteredMember || u.role === 'user') && u.tenantId &&
            u.tenantId.toString() === targetTenant._id.toString()
     );
 
@@ -607,28 +629,45 @@ router.post('/login-select', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Account not found' });
     if (!user.isActive) return res.status(403).json({ error: 'Account has been deactivated' });
 
-    // Security: verify phone matches
-    const cleanPhone = String(phone || '').replace(/\D/g, '');
-    if (cleanPhone && user.phone && user.phone !== cleanPhone) {
-      return res.status(403).json({ error: 'Phone number does not match this account' });
+    // Phone verification: flexible matching across variations
+    if (phone && user.phone) {
+      const userPhoneVariations = getPhoneVariations(user.phone);
+      const reqPhoneVariations = getPhoneVariations(phone);
+      const hasMatch = reqPhoneVariations.some(v => userPhoneVariations.includes(v));
+      const reqLast10 = String(phone).replace(/\D/g, '').slice(-10);
+      const userLast10 = String(user.phone).replace(/\D/g, '').slice(-10);
+      if (!hasMatch && reqLast10 && userLast10 && reqLast10 !== userLast10) {
+        return res.status(403).json({ error: 'Phone number does not match this account' });
+      }
     }
 
     let targetTenant = tenantSlug ? await Tenant.findOne({ slug: tenantSlug.toLowerCase().trim() }) : null;
     if (!targetTenant && user.tenantId) targetTenant = await Tenant.findById(user.tenantId);
+    if (!targetTenant && req.user?.tenantId) targetTenant = await Tenant.findById(req.user.tenantId);
     if (!targetTenant) return res.status(400).json({ error: 'Event portal not found' });
 
     if (targetTenant.status !== 'approved') {
       return res.status(403).json({ error: `Event "${targetTenant.name}" is not approved yet.`, code: 'TENANT_NOT_APPROVED' });
     }
 
-    const isRegistered = await Registration.findOne({ tenantId: targetTenant._id, userId: user._id });
+    let isRegistered = await Registration.findOne({ tenantId: targetTenant._id, userId: user._id });
     if (!isRegistered) {
-      return res.status(403).json({ error: `You are not registered in event "${targetTenant.name}" yet.`, code: 'NOT_REGISTERED_IN_TENANT' });
+      // Auto-register if user belongs to this tenant or has an authorized role
+      if (user.tenantId?.toString() === targetTenant._id.toString() || user.role === 'tenant_admin' || user.role === 'super_admin' || user.role === 'member') {
+        isRegistered = await Registration.create({
+          tenantId: targetTenant._id,
+          userId: user._id,
+          status: 'registered',
+          data: { name: user.name, phone: user.phone, address: user.address || user.place },
+        });
+      } else {
+        return res.status(403).json({ error: `You are not registered in event "${targetTenant.name}" yet.`, code: 'NOT_REGISTERED_IN_TENANT' });
+      }
     }
 
     let userAddress = (user.address || user.place || '').trim();
     if (!userAddress && user.phone) {
-      const primaryUser = await User.findOne({ phone: user.phone, address: { $ne: '' } }).sort({ createdAt: 1 });
+      const primaryUser = await User.findOne({ phone: { $in: getPhoneVariations(user.phone) }, address: { $ne: '' } }).sort({ createdAt: 1 });
       if (primaryUser) userAddress = (primaryUser.address || primaryUser.place || '').trim();
     }
 
@@ -636,7 +675,17 @@ router.post('/login-select', async (req, res) => {
     return res.json({
       message: 'Login successful',
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, tenantId: targetTenant._id, phone: user.phone, place: userAddress, address: userAddress },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tenantId: targetTenant._id,
+        phone: user.phone,
+        place: userAddress,
+        address: userAddress,
+        isRegisteredMember: user.role === 'member' || Boolean(user.isRegisteredMember),
+      },
       tenant: { id: targetTenant._id, name: targetTenant.name, slug: targetTenant.slug, branding: targetTenant.branding },
     });
   } catch (err) {
@@ -665,8 +714,13 @@ router.post('/add-account', requireAuth, async (req, res) => {
     }
 
     const phone = currentUser.phone;
-    const existingCount = phone
-      ? await User.countDocuments({ phone, tenantId: targetTenant._id, role: 'member' })
+    const phoneVariations = getPhoneVariations(phone);
+
+    const existingCount = phoneVariations.length > 0
+      ? await User.countDocuments({
+          phone: { $in: phoneVariations },
+          $or: [{ tenantId: targetTenant._id }, { tenantId: targetTenant._id.toString() }],
+        })
       : 1;
 
     if (existingCount >= 3) {
@@ -677,7 +731,10 @@ router.post('/add-account', requireAuth, async (req, res) => {
 
     let cleanAddress = (address || '').trim();
     if (!cleanAddress && phone) {
-      const firstUserWithPhone = await User.findOne({ phone }).sort({ createdAt: 1 });
+      const firstUserWithPhone = await User.findOne({
+        phone: { $in: phoneVariations },
+        address: { $ne: '' },
+      }).sort({ createdAt: 1 });
       if (firstUserWithPhone) {
         cleanAddress = (firstUserWithPhone.address || firstUserWithPhone.place || '').trim();
       }
@@ -692,7 +749,7 @@ router.post('/add-account', requireAuth, async (req, res) => {
       passwordHash: currentUser.passwordHash,
       role: 'member',
       tenantId: targetTenant._id,
-      phone,
+      phone: currentUser.phone, // keep same phone reference
       address: cleanAddress,
       place: cleanAddress,
       isRegisteredMember: true,
@@ -702,14 +759,24 @@ router.post('/add-account', requireAuth, async (req, res) => {
       tenantId: targetTenant._id,
       userId: newUser._id,
       status: 'registered',
-      data: { name: name.trim(), phone, address: cleanAddress },
+      data: { name: name.trim(), phone: currentUser.phone, address: cleanAddress },
     });
 
     const token = generateToken(newUser, targetTenant._id);
     return res.status(201).json({
       message: `New account "${name.trim()}" created successfully!`,
       token,
-      user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, tenantId: targetTenant._id, phone: newUser.phone, address: newUser.address, place: newUser.place },
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        tenantId: targetTenant._id,
+        phone: newUser.phone,
+        address: newUser.address,
+        place: newUser.place,
+        isRegisteredMember: true,
+      },
     });
   } catch (err) {
     console.error('Add-account error:', err);
@@ -726,13 +793,39 @@ router.get('/my-accounts', requireAuth, async (req, res) => {
     const tenantId = req.user.tenantId || currentUser.tenantId;
     const phone = currentUser.phone;
 
-    if (!phone || !tenantId) {
-      return res.json({ accounts: [], currentUserId: currentUser._id });
+    const phoneVariations = getPhoneVariations(phone);
+
+    // Find all accounts matching the phone variations OR current user ID
+    let accounts = [];
+    if (phoneVariations.length > 0 && tenantId) {
+      accounts = await User.find({
+        $and: [
+          {
+            $or: [
+              { phone: { $in: phoneVariations } },
+              { _id: currentUser._id },
+            ],
+          },
+          {
+            $or: [
+              { tenantId: tenantId },
+              { tenantId: tenantId.toString() },
+              { _id: currentUser._id },
+            ],
+          },
+        ],
+      }).select('_id name email phone address place role createdAt isRegisteredMember').sort({ createdAt: 1 });
+    } else {
+      accounts = [currentUser];
     }
 
-    const accounts = await User.find({ phone, tenantId, role: 'member' }).select('_id name phone address place createdAt');
+    // Ensure currentUser is always included in the accounts list
+    const hasCurrent = accounts.some(u => u._id.toString() === currentUser._id.toString());
+    if (!hasCurrent) {
+      accounts.unshift(currentUser);
+    }
 
-    const firstUser = await User.findOne({ phone, address: { $ne: '' } }).sort({ createdAt: 1 });
+    const firstUser = accounts.find(u => (u.address || u.place || '').trim().length > 0);
     const sharedAddress = (firstUser?.address || firstUser?.place || '').trim();
 
     return res.json({
