@@ -1,26 +1,10 @@
 /**
  * Prayer Time Notification Utility
- * Fetches daily prayer times from Aladhan API strictly based on user's real geolocation.
+ * Fetches daily prayer times strictly from live Aladhan API based on user's real geolocation.
+ * Identifies city/locality directly from GPS latitude & longitude coordinates.
  * Uses ServiceWorker registration on mobile/Android/PWA and local Notification API fallback on Desktop.
  * Method 1 = Muslim World League (standard for India/Kerala)
  */
-
-/**
- * ─────────────────────────────────────────────────────────────
- * ⏱️ EASY TEST TIME CONFIGURATION (ഇവിടെ സമയം മാറ്റാം)
- * Set `USE_CUSTOM_TEST_TIMES = true` to test with custom times!
- * Format: "HH:MM" in 24-hour format (e.g. "18:40", "18:41", "18:42")
- * ─────────────────────────────────────────────────────────────
- */
-export const USE_CUSTOM_TEST_TIMES = true; // 👈 Set to true for test times, false for real API times
-
-export const CUSTOM_TEST_TIMES = {
-  Fajr: '18:40',    // ഫജ്ർ ടെസ്റ്റ് സമയം
-  Dhuhr: '18:41',   // ളുഹ്ർ ടെസ്റ്റ് സമയം
-  Asr: '18:42',     // അസ്ർ ടെസ്റ്റ് സമയം
-  Maghrib: '18:43', // മഗ്‌രിബ് ടെസ്റ്റ് സമയം
-  Isha: '18:44',    // ഇശ ടെസ്റ്റ് സമയം
-};
 
 const PRAYER_TIME_KEY = 'prayerTimeNotifEnabled';
 const PRAYER_TIMES_CACHE_KEY = 'prayerTimesCache';
@@ -31,13 +15,13 @@ const PRAYER_CITY_CACHE_KEY = 'prayerCityName';
 // Method 1: Muslim World League (Fajr 18°, Isha 17° - Standard for Kerala/India)
 const ALADHAN_METHOD = 1;
 
-/** Islamic prayer names with Malayalam labels */
+/** Islamic prayer names with Malayalam and English labels */
 export const PRAYER_NAMES = [
   { key: 'Fajr',    label: 'ഫജ്ർ',    en: 'Fajr',    icon: 'Sunrise' },
-  { key: 'Dhuhr',   label: 'ളുഹ്ർ',    en: 'Dhuhr',   icon: 'Sun'     },
+  { key: 'Luhr',    label: 'ളുഹ്ർ',    en: 'Luhr',    icon: 'Sun'     },
   { key: 'Asr',     label: 'അസ്ർ',     en: 'Asr',     icon: 'CloudSun'},
   { key: 'Maghrib', label: 'മഗ്‌രിബ്', en: 'Maghrib', icon: 'Sunset'  },
-  { key: 'Isha',    label: 'ഇശ',       en: 'Isha',    icon: 'Moon'    },
+  { key: 'Isha',    label: 'ഇശാഅ്',   en: 'Isha',    icon: 'Moon'    },
 ];
 
 /** Get today's date string YYYY-MM-DD */
@@ -61,7 +45,54 @@ export function formatTo12Hour(timeStr) {
   return `${h}:${m} ${ampm}`;
 }
 
-/** Get city/place name for notification body (e.g. "Kozhikode") */
+/**
+ * Identify exact City / Locality from Latitude and Longitude coordinates
+ * Uses BigDataCloud reverse geocoding API with Nominatim OpenStreetMap fallback.
+ */
+export async function fetchCityFromCoordinates(lat, lon) {
+  if (!lat || !lon) return 'Kozhikode';
+
+  // 1. Primary: BigDataCloud Reverse Geocoding Client API
+  try {
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const detectedCity = data.city || data.locality || data.principalSubdivision;
+      if (detectedCity && typeof detectedCity === 'string') {
+        const cleanCity = detectedCity.trim();
+        localStorage.setItem(PRAYER_CITY_CACHE_KEY, cleanCity);
+        console.log(`[Prayer Location]: 📍 Identified City from (${lat}, ${lon}) -> ${cleanCity}`);
+        return cleanCity;
+      }
+    }
+  } catch (err) {
+    console.warn('[Prayer Location BigDataCloud Error]:', err?.message);
+  }
+
+  // 2. Fallback: OpenStreetMap Nominatim
+  try {
+    const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=10`;
+    const res = await fetch(osmUrl, { headers: { 'Accept-Language': 'en' } });
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      const detectedCity = addr.city || addr.town || addr.village || addr.suburb || addr.county || addr.state_district;
+      if (detectedCity) {
+        const cleanCity = detectedCity.trim();
+        localStorage.setItem(PRAYER_CITY_CACHE_KEY, cleanCity);
+        console.log(`[Prayer Location]: 📍 Identified City from OSM -> ${cleanCity}`);
+        return cleanCity;
+      }
+    }
+  } catch (err) {
+    console.warn('[Prayer Location OSM Error]:', err?.message);
+  }
+
+  return localStorage.getItem(PRAYER_CITY_CACHE_KEY) || 'Kozhikode';
+}
+
+/** Get city/place name for notification body (e.g. "Kozhikode", "Malappuram") */
 export function getPrayerCityName() {
   try {
     const cachedCity = localStorage.getItem(PRAYER_CITY_CACHE_KEY);
@@ -85,7 +116,7 @@ export function getPrayerCityName() {
  */
 export function buildPrayerNotificationContent(prayerKey, timeStr) {
   const pObj = PRAYER_NAMES.find(p => p.key === prayerKey) || { en: prayerKey };
-  const englishName = pObj.en || prayerKey;
+  const englishName = pObj.en || (prayerKey === 'Luhr' ? 'Luhr' : prayerKey);
   const formattedTime = formatTo12Hour(timeStr);
   const city = getPrayerCityName();
 
@@ -105,7 +136,6 @@ export function clearPrayerTimesCache() {
 
 /** Check if coordinates are already cached */
 export function hasCachedLocation() {
-  if (USE_CUSTOM_TEST_TIMES) return true;
   try {
     const cached = localStorage.getItem(PRAYER_COORDS_CACHE_KEY);
     if (cached) {
@@ -124,18 +154,20 @@ function prayerTimeToDate(timeStr) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours || 0, minutes || 0, 0, 0);
 }
 
-/** Get user coordinates strictly via browser Geolocation API */
+/** Get user coordinates strictly via browser Geolocation API and identify city */
 export async function getUserLocation(forcePrompt = false) {
-  if (USE_CUSTOM_TEST_TIMES) {
-    return { lat: 10.8505, lon: 76.2711 };
-  }
-
   if (!forcePrompt) {
     try {
       const cached = localStorage.getItem(PRAYER_COORDS_CACHE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed?.lat && parsed?.lon) return parsed;
+        if (parsed?.lat && parsed?.lon) {
+          // Identify city in background if not yet cached
+          if (!localStorage.getItem(PRAYER_CITY_CACHE_KEY)) {
+            fetchCityFromCoordinates(parsed.lat, parsed.lon).catch(() => {});
+          }
+          return parsed;
+        }
       }
     } catch {}
   }
@@ -150,14 +182,8 @@ export async function getUserLocation(forcePrompt = false) {
         const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
         try {
           localStorage.setItem(PRAYER_COORDS_CACHE_KEY, JSON.stringify(coords));
-          // Reverse geocode city name in background
-          fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.lat}&longitude=${coords.lon}&localityLanguage=en`)
-            .then(r => r.json())
-            .then(d => {
-              const city = d.city || d.locality || d.principalSubdivision;
-              if (city) localStorage.setItem(PRAYER_CITY_CACHE_KEY, city);
-            })
-            .catch(() => {});
+          // Reverse geocode exact city from latitude & longitude
+          await fetchCityFromCoordinates(coords.lat, coords.lon).catch(() => {});
         } catch {}
         resolve(coords);
       },
@@ -177,15 +203,15 @@ export async function getUserLocation(forcePrompt = false) {
   });
 }
 
-/** Fetch prayer times (or use CUSTOM_TEST_TIMES if enabled) */
+/** Fetch real prayer times from live Aladhan API with caching */
 async function fetchPrayerTimes(lat, lon) {
-  if (USE_CUSTOM_TEST_TIMES) {
-    console.log('[Prayer Notif]: ⏱️ Using CUSTOM_TEST_TIMES override:', CUSTOM_TEST_TIMES);
-    return { ...CUSTOM_TEST_TIMES };
-  }
-
   if (!lat || !lon) {
     throw new Error('Valid location coordinates are required.');
+  }
+
+  // Ensure city is identified from lat & lon
+  if (!localStorage.getItem(PRAYER_CITY_CACHE_KEY)) {
+    fetchCityFromCoordinates(lat, lon).catch(() => {});
   }
 
   const today = getTodayStr();
@@ -209,7 +235,7 @@ async function fetchPrayerTimes(lat, lon) {
   const timings = json?.data?.timings || {};
   const prayerMap = {};
   for (const p of PRAYER_NAMES) {
-    const raw = timings[p.key] || (p.key === 'Dhuhr' || p.key === 'Luhr' ? (timings.Dhuhr || timings.Luhr) : '') || '';
+    const raw = timings[p.key] || (p.key === 'Luhr' || p.key === 'Dhuhr' ? (timings.Dhuhr || timings.Luhr) : '') || '';
     prayerMap[p.key] = raw.replace(/\s*\(.*\)/, '').trim() || null;
   }
 
@@ -299,55 +325,6 @@ export function scheduleNotification(prayerKey, timeStr) {
 
   scheduledTimeouts.push(timeoutId);
   console.log(`[Prayer Notif]: Scheduled ${title} in ${Math.round(msUntilPrayer / 60000)} min`);
-}
-
-/**
- * Send an immediate Test Prayer Notification (matches exact style in screenshot)
- */
-export async function sendTestPrayerNotification(prayerKey = 'Asr', timeStr = '15:37') {
-  const { title, body } = buildPrayerNotificationContent(prayerKey, timeStr);
-  return showPrayerNotification(title, body, `prayer-test-${Date.now()}`);
-}
-
-/**
- * Send test notifications for ALL 5 prayers in sequence (matches exact style in screenshot)
- */
-export async function sendAllPrayerNotificationsNow() {
-  const sampleTimes = {
-    Fajr: '05:12',
-    Dhuhr: '12:31',
-    Asr: '15:37',
-    Maghrib: '18:42',
-    Isha: '19:55',
-  };
-
-  for (let i = 0; i < PRAYER_NAMES.length; i++) {
-    const { key } = PRAYER_NAMES[i];
-    const timeStr = sampleTimes[key] || '12:00';
-    const { title, body } = buildPrayerNotificationContent(key, timeStr);
-
-    setTimeout(async () => {
-      await showPrayerNotification(
-        title,
-        body,
-        `prayer-test-all-${key}-${Date.now()}`
-      );
-    }, i * 1500);
-  }
-}
-
-/**
- * Schedule a test notification for X minutes from now
- */
-export function scheduleCustomTestPrayer(minutesFromNow = 1, prayerKey = 'Asr') {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() + minutesFromNow);
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
-  const timeStr = `${hh}:${mm}`;
-
-  scheduleNotification(prayerKey, timeStr);
-  return formatTo12Hour(timeStr);
 }
 
 /**
@@ -455,9 +432,6 @@ export function disablePrayerNotifications() {
 
 /** Get cached prayer times for today (if available) */
 export function getCachedPrayerTimes() {
-  if (USE_CUSTOM_TEST_TIMES) {
-    return { ...CUSTOM_TEST_TIMES };
-  }
   if (typeof localStorage === 'undefined') return null;
   const today = getTodayStr();
   if (localStorage.getItem(PRAYER_TIMES_CACHE_DATE_KEY) === today) {
@@ -470,12 +444,9 @@ export function getCachedPrayerTimes() {
 }
 
 /**
- * Fetch and cache today's prayer times.
+ * Fetch and cache today's prayer times from live API.
  */
 export async function fetchAndCachePrayerTimes(forcePrompt = false) {
-  if (USE_CUSTOM_TEST_TIMES) {
-    return { ...CUSTOM_TEST_TIMES };
-  }
   const { lat, lon } = await getUserLocation(forcePrompt);
   return fetchPrayerTimes(lat, lon);
 }
