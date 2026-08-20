@@ -1,43 +1,89 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
- * Animated number ticker that counts up from 0 to `value` with an ease-out curve.
- * Shows a pulse placeholder while `isLoading` is true.
+ * Animated number ticker with smooth transitions and cached value support.
+ * - Displays non-zero initial values immediately without layout flash or reset.
+ * - When target updates (e.g. from cache to background fetch), animates smoothly from current value.
+ * - Shows pulsing skeleton only when `isLoading` is true (no cache available).
  */
-export default function DigitCountTicker({ value, isLoading }) {
-  const [displayValue, setDisplayValue] = useState(0);
+export default function DigitCountTicker({
+  value = 0,
+  isLoading = false,
+  textColor = 'text-white',
+  className = '',
+  inline = false,
+}) {
+  const target = Number(value) || 0;
+  const [displayValue, setDisplayValue] = useState(() => (isLoading ? 0 : target));
+  const currentValRef = useRef(displayValue);
+  currentValRef.current = displayValue;
 
   useEffect(() => {
     if (isLoading) return;
-    const target = Number(value) || 0;
-    if (target === 0) { setDisplayValue(0); return; }
 
-    const duration = 1200;
+    const startVal = currentValRef.current;
+    if (startVal === target) return;
+
+    // Fast animation for small increments, longer for big count jumps
+    const isInitialCountUp = startVal === 0 && target > 0;
+    const duration = isInitialCountUp ? 1200 : 700;
     const startTime = performance.now();
 
+    let animationFrameId;
     const animate = (currentTime) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-      setDisplayValue(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(animate);
+      const nextVal = Math.floor(startVal + eased * (target - startVal));
+      setDisplayValue(nextVal);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(target);
+      }
     };
 
-    requestAnimationFrame(animate);
-  }, [value, isLoading]);
+    animationFrameId = requestAnimationFrame(animate);
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+  }, [target, isLoading]);
 
   if (isLoading) {
+    if (inline) {
+      return (
+        <span
+          className={`font-black font-mono tracking-wider opacity-30 animate-pulse select-none ${textColor} ${className}`}
+        >
+          00,000,000
+        </span>
+      );
+    }
+
     return (
       <div className="py-1 font-mono flex items-center justify-center">
-        <span className="text-3xl sm:text-5xl font-black text-white/30 animate-pulse tracking-wider select-none font-mono">
+        <span
+          className={`text-3xl sm:text-5xl font-black font-mono tracking-wider opacity-30 animate-pulse select-none ${textColor} ${className}`}
+        >
           00,000,000
         </span>
       </div>
     );
   }
 
+  if (inline) {
+    return (
+      <span className={`font-black font-mono ${textColor} ${className}`}>
+        {displayValue.toLocaleString('en-IN')}
+      </span>
+    );
+  }
+
   return (
-    <div className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-white py-1 font-mono">
+    <div
+      className={`text-3xl sm:text-5xl font-black tracking-tight leading-none py-1 font-mono ${textColor} ${className}`}
+    >
       {displayValue.toLocaleString('en-IN')}
     </div>
   );

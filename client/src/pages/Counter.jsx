@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
+import { incrementCachedTotalSwalath } from '../utils/swalathCache.js';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +20,7 @@ import { salathCountSchema } from '../schemas/validationSchemas.js';
 
 export default function Counter() {
   const { token, user, login } = useAuth();
+  const { activeTenant } = useTenant();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -136,6 +139,7 @@ export default function Counter() {
         token,
         body: { value: count },
       });
+      incrementCachedTotalSwalath(activeTenant, count);
       setSuccessMsg(`+${count.toLocaleString('en-IN')} Swalath submitted successfully!`);
       setCount(0);
     } catch (e) {

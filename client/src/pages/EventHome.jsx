@@ -13,6 +13,12 @@ import SwalathCard from "../components/SwalathCard.jsx";
 import LeaderboardSection from "../components/LeaderboardSection.jsx";
 import PrayerTimesWidget from "../components/PrayerTimesWidget.jsx";
 import DigitCountTicker from "../components/DigitCountTicker.jsx";
+import {
+  getCachedTotalSwalath,
+  fetchAndCacheTotalSwalath,
+  getTenantCacheKey,
+  CACHE_EVENT_NAME,
+} from "../utils/swalathCache.js";
 
 function formatTitleCase(str) {
   if (!str) return '';
@@ -24,11 +30,15 @@ export default function EventHome() {
   const { user: authUser, token } = useAuth();
   const navigate = useNavigate();
 
+  // Instant cache read for zero-loading counter
+  const cachedTotal = getCachedTotalSwalath(activeTenant);
+  const [totalEventCount, setTotalEventCount] = useState(() => cachedTotal?.total ?? 0);
+  const [totalCountLoading, setTotalCountLoading] = useState(() => cachedTotal === null);
+
   const [leaders, setLeaders] = useState([]);
-  const [totalEventCount, setTotalEventCount] = useState(0);
+  const [leaderLoading, setLeaderLoading] = useState(true);
   const [leaderError, setLeaderError] = useState("");
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const hijri = getHijriDate();
@@ -36,8 +46,6 @@ export default function EventHome() {
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) setUser(JSON.parse(savedUser));
-
-    setLoading(true);
 
     if (token) {
       api('/notifications/inbox', { token })
@@ -48,21 +56,46 @@ export default function EventHome() {
     }
 
     if (activeTenant) {
+      // 1. Immediately hydrate from tenant cache
+      const cached = getCachedTotalSwalath(activeTenant);
+      if (cached !== null) {
+        setTotalEventCount(cached.total);
+        setTotalCountLoading(false);
+      } else {
+        setTotalCountLoading(true);
+      }
+
+      // 2. Fetch Leaderboard for today
+      setLeaderLoading(true);
       api("/counts/leaderboard/today?limit=5")
         .then((res) => setLeaders(res || []))
-        .catch((e) => setLeaderError(e.message));
+        .catch((e) => setLeaderError(e.message))
+        .finally(() => setLeaderLoading(false));
 
-      api("/counts/leaderboard/all?limit=100")
-        .then((allRows) => {
-          if (Array.isArray(allRows)) {
-            const sum = allRows.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-            setTotalEventCount(sum);
+      // 3. Background fetch fresh total count and update state/cache
+      fetchAndCacheTotalSwalath(activeTenant)
+        .then((fresh) => {
+          if (fresh && typeof fresh.total === 'number') {
+            setTotalEventCount(fresh.total);
           }
         })
         .catch(() => {})
-        .finally(() => setLoading(false));
+        .finally(() => setTotalCountLoading(false));
     }
   }, [activeTenant, token]);
+
+  // Listen to optimistic / cross-tab total count updates
+  useEffect(() => {
+    const tenantKey = getTenantCacheKey(activeTenant);
+    const handleCacheUpdate = (e) => {
+      if (e.detail?.tenantKey === tenantKey && typeof e.detail?.total === 'number') {
+        setTotalEventCount(e.detail.total);
+        setTotalCountLoading(false);
+      }
+    };
+    window.addEventListener(CACHE_EVENT_NAME, handleCacheUpdate);
+    return () => window.removeEventListener(CACHE_EVENT_NAME, handleCacheUpdate);
+  }, [activeTenant]);
 
   if (!activeTenant) return null;
 
@@ -135,7 +168,7 @@ export default function EventHome() {
               </div>
               <span className="text-xs font-extrabold tracking-wider text-[#E6F4ED]">Total Swalath</span>
             </div>
-            <DigitCountTicker value={totalEventCount} isLoading={loading} />
+            <DigitCountTicker value={totalEventCount} isLoading={totalCountLoading} />
             <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-[#D4AF37]">
               <TrendingUp className="w-3.5 h-3.5" />
               <span>Verified Activity</span>
@@ -145,21 +178,20 @@ export default function EventHome() {
           {/* CTA Button */}
           <Button
             onClick={() => navigate(user || authUser ? '/counter' : '/login')}
-            className="relative z-10 w-full text-sm font-extrabold py-3.5 px-6 rounded-2xl shadow-xl border border-[#F5E6B3]/60 bg-[#F5E6B3] text-[#07351F] hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 h-auto"
-          >
+className="relative z-10 w-full max-w-sm mx-auto text-xs sm:text-sm font-extrabold h-11 px-4 rounded-xl shadow-md border border-[#F5E6B3]/40 bg-[#FFF449] text-[#07351F] hover:bg-[#FFDE42] active:scale-[0.98] transition-all flex items-center justify-center gap-2"          >
             {user || authUser ? (
               <>
-                <div className="w-7 h-7 rounded-full bg-[#07351F]/15 flex items-center justify-center shrink-0">
-                  <Plus className="w-4 h-4 stroke-[3] text-[#07351F]" />
+                <div className="w-6 h-6 rounded-lg bg-[#07351F]/15 flex items-center justify-center shrink-0">
+                  <Plus className="w-3.5 h-3.5 stroke-[3] text-[#07351F]" />
                 </div>
-                <span className="tracking-wide text-base">Submit Swalath</span>
+                <span className="tracking-wide">Submit Swalath</span>
               </>
             ) : (
               <>
-                <div className="w-7 h-7 rounded-full bg-[#07351F]/15 flex items-center justify-center shrink-0">
-                  <LogIn className="w-4 h-4 stroke-[2.5] text-[#07351F]" />
+                <div className="w-6 h-6 rounded-lg bg-[#07351F]/15 flex items-center justify-center shrink-0">
+                  <LogIn className="w-3.5 h-3.5 stroke-[2.5] text-[#07351F]" />
                 </div>
-                <span className="tracking-wide text-base">Login</span>
+                <span className="tracking-wide">Login</span>
               </>
             )}
           </Button>
@@ -198,7 +230,7 @@ export default function EventHome() {
           if (sectionId === 'leaderboard' && activeTenant?.settings?.showLeaderboard !== false) {
             return (
               <div key="leaderboard" className="max-w-xl mx-auto px-4 pt-3 w-full animate-slide-up">
-                <LeaderboardSection leaders={leaders} loading={loading} error={leaderError} />
+                <LeaderboardSection leaders={leaders} loading={leaderLoading} error={leaderError} />
               </div>
             );
           }

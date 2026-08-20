@@ -235,7 +235,37 @@ router.get('/leaderboard/today', async (req, res) => {
   }
 });
 
-// 6. Public: Overall Leaderboard across all time
+// 6. Public: Total Swalath and Member Count stats
+router.get('/total', async (req, res) => {
+  try {
+    const filter = {};
+    if (req.tenant) filter.tenantId = req.tenant._id;
+
+    const result = await Count.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$value' },
+          users: { $addToSet: '$user' },
+        },
+      },
+    ]);
+
+    if (result && result.length > 0) {
+      res.json({
+        total: Number(result[0].total) || 0,
+        memberCount: Array.isArray(result[0].users) ? result[0].users.length : 0,
+      });
+    } else {
+      res.json({ total: 0, memberCount: 0 });
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// 7. Public: Overall Leaderboard across all time
 router.get('/leaderboard/all', async (req, res) => {
   try {
     const limit = Number(req.query.limit || 10);

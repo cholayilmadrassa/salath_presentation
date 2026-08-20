@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
 import { getHijriDate } from "../utils/hijri.js";
 import { Link } from "react-router-dom";
 import { useTenant } from "../context/TenantContext.jsx";
@@ -11,68 +10,41 @@ import {
   Plus, ArrowRight, Bell, Trophy
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
-
-function DigitCountTicker({ value, isLoading, textColor = 'text-[#D4AF37]' }) {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    if (!isLoading) {
-      const target = Number(value) || 0;
-      if (target === 0) {
-        setDisplayValue(0);
-        return;
-      }
-      const duration = 1200;
-      const startTime = performance.now();
-
-      const animate = (currentTime) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-        setDisplayValue(Math.floor(easeProgress * target));
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-      };
-
-      requestAnimationFrame(animate);
-    }
-  }, [value, isLoading]);
-
-  if (isLoading) {
-    return (
-      <span className={`text-2xl sm:text-3xl font-black ${textColor} opacity-30 animate-pulse font-mono tracking-wider select-none`}>
-        00,000,000
-      </span>
-    );
-  }
-
-  return (
-    <span className={`text-2xl sm:text-3xl font-black ${textColor} font-mono`}>
-      {displayValue.toLocaleString('en-IN')}
-    </span>
-  );
-}
+import DigitCountTicker from "../components/DigitCountTicker.jsx";
+import {
+  getCachedTotalSwalath,
+  fetchAndCacheTotalSwalath,
+  getTenantCacheKey,
+  CACHE_EVENT_NAME,
+} from "../utils/swalathCache.js";
 
 export default function PlatformLanding() {
   const { activeTenant } = useTenant();
-  const [totalEventCount, setTotalEventCount] = useState(0);
-  const [totalMemberCount, setTotalMemberCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+
+  // Instant cache read for zero-loading counter
+  const cachedData = getCachedTotalSwalath(activeTenant);
+  const [totalEventCount, setTotalEventCount] = useState(() => cachedData?.total ?? 0);
+  const [totalMemberCount, setTotalMemberCount] = useState(() => cachedData?.memberCount ?? 0);
+  const [loading, setLoading] = useState(() => cachedData === null && Boolean(activeTenant));
 
   const hijri = activeTenant ? getHijriDate() : null;
 
   useEffect(() => {
-    setLoading(true);
-
     if (activeTenant) {
-      api("/counts/leaderboard/all?limit=100")
-        .then((allRows) => {
-          if (Array.isArray(allRows)) {
-            const sum = allRows.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-            setTotalEventCount(sum);
-            setTotalMemberCount(allRows.length);
+      const cached = getCachedTotalSwalath(activeTenant);
+      if (cached !== null) {
+        setTotalEventCount(cached.total);
+        setTotalMemberCount(cached.memberCount);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
+      fetchAndCacheTotalSwalath(activeTenant)
+        .then((fresh) => {
+          if (fresh) {
+            setTotalEventCount(fresh.total);
+            setTotalMemberCount(fresh.memberCount);
           }
         })
         .catch(() => { })
@@ -80,6 +52,20 @@ export default function PlatformLanding() {
     } else {
       setLoading(false);
     }
+  }, [activeTenant]);
+
+  // Sync cache changes
+  useEffect(() => {
+    const tenantKey = getTenantCacheKey(activeTenant);
+    const handleCacheUpdate = (e) => {
+      if (e.detail?.tenantKey === tenantKey) {
+        if (typeof e.detail.total === 'number') setTotalEventCount(e.detail.total);
+        if (typeof e.detail.memberCount === 'number') setTotalMemberCount(e.detail.memberCount);
+        setLoading(false);
+      }
+    };
+    window.addEventListener(CACHE_EVENT_NAME, handleCacheUpdate);
+    return () => window.removeEventListener(CACHE_EVENT_NAME, handleCacheUpdate);
   }, [activeTenant]);
 
   const rootDomain = import.meta.env.VITE_PLATFORM_ROOT_DOMAIN
@@ -137,7 +123,7 @@ export default function PlatformLanding() {
                 <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
                   Total Swalath Count
                 </span>
-                <DigitCountTicker value={totalEventCount} isLoading={loading} textColor="text-[#D4AF37]" />
+                <DigitCountTicker value={totalEventCount} isLoading={loading} textColor="text-[#D4AF37]" className="text-2xl sm:text-3xl" />
               </div>
 
               <div className="w-px h-8 bg-white/20 hidden sm:block" />
@@ -146,7 +132,7 @@ export default function PlatformLanding() {
                 <span className="text-[10px] uppercase tracking-wider font-extrabold block text-[#E6F4ED]">
                   Registered Members
                 </span>
-                <DigitCountTicker value={totalMemberCount} isLoading={loading} textColor="text-white" />
+                <DigitCountTicker value={totalMemberCount} isLoading={loading} textColor="text-white" className="text-2xl sm:text-3xl" />
               </div>
 
               <div className="w-px h-8 bg-white/20 hidden sm:block" />

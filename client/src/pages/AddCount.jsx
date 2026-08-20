@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
+import { incrementCachedTotalSwalath } from '../utils/swalathCache.js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +42,7 @@ function getCalendarDays() {
 
 export default function AddCount() {
     const { token, user } = useAuth();
+    const { activeTenant } = useTenant();
     const navigate = useNavigate();
     const [value, setValue] = useState('');
     const [items, setItems] = useState([]);
@@ -124,6 +127,7 @@ export default function AddCount() {
         setLoading(true);
         try {
             await api('/counts/me/today', { method: 'POST', token, body: { value: num } });
+            incrementCachedTotalSwalath(activeTenant, num);
             setSuccessMsg(`Successfully added +${num.toLocaleString('en-IN')} Swalath count for today!`);
             setValue('');
             setSelectedDate(todayKey());

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
+import { incrementCachedTotalSwalath } from '../utils/swalathCache.js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -45,6 +47,7 @@ function getCalendarDays() {
 
 export default function HistoryPage() {
   const { token, user } = useAuth();
+  const { activeTenant } = useTenant();
   const navigate = useNavigate();
   const [calendarDays] = useState(getCalendarDays());
   const [selectedDate, setSelectedDate] = useState(todayKey());
@@ -102,8 +105,10 @@ export default function HistoryPage() {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeletingId(deleteTarget._id);
+    const targetValue = Number(deleteTarget.value) || 0;
     try {
       await api(`/counts/entry/${deleteTarget._id}`, { method: 'DELETE', token });
+      incrementCachedTotalSwalath(activeTenant, -targetValue);
       setDeleteTarget(null);
       loadDayData(selectedDate);
       loadAllHistory();
