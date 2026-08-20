@@ -17,11 +17,11 @@ const ALADHAN_METHOD = 1;
 
 /** Islamic prayer names with Malayalam and English labels */
 export const PRAYER_NAMES = [
-  { key: 'Fajr',    label: 'ഫജ്ർ',    en: 'Fajr',    icon: 'Sunrise' },
-  { key: 'Luhr',    label: 'ളുഹ്ർ',    en: 'Luhr',    icon: 'Sun'     },
-  { key: 'Asr',     label: 'അസ്ർ',     en: 'Asr',     icon: 'CloudSun'},
-  { key: 'Maghrib', label: 'മഗ്‌രിബ്', en: 'Maghrib', icon: 'Sunset'  },
-  { key: 'Isha',    label: 'ഇശാഅ്',   en: 'Isha',    icon: 'Moon'    },
+  { key: 'Fajr', label: 'ഫജ്ർ', en: 'Fajr', icon: 'Sunrise' },
+  { key: 'Luhr', label: 'ളുഹ്ർ', en: 'Luhr', icon: 'Sun' },
+  { key: 'Asr', label: 'അസ്ർ', en: 'Asr', icon: 'CloudSun' },
+  { key: 'Maghrib', label: 'മഗ്‌രിബ്', en: 'Maghrib', icon: 'Sunset' },
+  { key: 'Isha', label: 'ഇശാഅ്', en: 'Isha', icon: 'Moon' },
 ];
 
 /** Get today's date string YYYY-MM-DD */
@@ -106,7 +106,7 @@ export function getPrayerCityName() {
 
     const tenant = JSON.parse(localStorage.getItem('activeTenant') || 'null');
     if (tenant?.city || tenant?.place) return tenant.city || tenant.place;
-  } catch {}
+  } catch { }
   return 'Kozhikode';
 }
 
@@ -131,7 +131,7 @@ export function clearPrayerTimesCache() {
   try {
     localStorage.removeItem(PRAYER_TIMES_CACHE_KEY);
     localStorage.removeItem(PRAYER_TIMES_CACHE_DATE_KEY);
-  } catch {}
+  } catch { }
 }
 
 /** Check if coordinates are already cached */
@@ -142,7 +142,7 @@ export function hasCachedLocation() {
       const parsed = JSON.parse(cached);
       return Boolean(parsed?.lat && parsed?.lon);
     }
-  } catch {}
+  } catch { }
   return false;
 }
 
@@ -164,12 +164,12 @@ export async function getUserLocation(forcePrompt = false) {
         if (parsed?.lat && parsed?.lon) {
           // Identify city in background if not yet cached
           if (!localStorage.getItem(PRAYER_CITY_CACHE_KEY)) {
-            fetchCityFromCoordinates(parsed.lat, parsed.lon).catch(() => {});
+            fetchCityFromCoordinates(parsed.lat, parsed.lon).catch(() => { });
           }
           return parsed;
         }
       }
-    } catch {}
+    } catch { }
   }
 
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -183,8 +183,8 @@ export async function getUserLocation(forcePrompt = false) {
         try {
           localStorage.setItem(PRAYER_COORDS_CACHE_KEY, JSON.stringify(coords));
           // Reverse geocode exact city from latitude & longitude
-          await fetchCityFromCoordinates(coords.lat, coords.lon).catch(() => {});
-        } catch {}
+          await fetchCityFromCoordinates(coords.lat, coords.lon).catch(() => { });
+        } catch { }
         resolve(coords);
       },
       (err) => {
@@ -211,7 +211,7 @@ async function fetchPrayerTimes(lat, lon) {
 
   // Ensure city is identified from lat & lon
   if (!localStorage.getItem(PRAYER_CITY_CACHE_KEY)) {
-    fetchCityFromCoordinates(lat, lon).catch(() => {});
+    fetchCityFromCoordinates(lat, lon).catch(() => { });
   }
 
   const today = getTodayStr();
@@ -224,7 +224,7 @@ async function fetchPrayerTimes(lat, lon) {
       if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
         return parsed;
       }
-    } catch {}
+    } catch { }
   }
 
   const url = `https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=${ALADHAN_METHOD}`;
@@ -242,7 +242,7 @@ async function fetchPrayerTimes(lat, lon) {
   try {
     localStorage.setItem(PRAYER_TIMES_CACHE_DATE_KEY, today);
     localStorage.setItem(PRAYER_TIMES_CACHE_KEY, JSON.stringify(prayerMap));
-  } catch {}
+  } catch { }
 
   return prayerMap;
 }
@@ -427,7 +427,7 @@ export async function enablePrayerNotifications() {
 /** Disable prayer time notifications */
 export function disablePrayerNotifications() {
   clearPrayerNotifications();
-  try { localStorage.setItem(PRAYER_TIME_KEY, 'false'); } catch {}
+  try { localStorage.setItem(PRAYER_TIME_KEY, 'false'); } catch { }
 }
 
 /** Get cached prayer times for today (if available) */
@@ -437,7 +437,7 @@ export function getCachedPrayerTimes() {
   if (localStorage.getItem(PRAYER_TIMES_CACHE_DATE_KEY) === today) {
     const data = localStorage.getItem(PRAYER_TIMES_CACHE_KEY);
     if (data) {
-      try { return JSON.parse(data); } catch {}
+      try { return JSON.parse(data); } catch { }
     }
   }
   return null;

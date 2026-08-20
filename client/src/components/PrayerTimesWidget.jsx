@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Navigation, AlertCircle, HelpCircle, X, CheckCircle2, Settings } from 'lucide-react';
+import { Clock, MapPin, Navigation, AlertCircle, HelpCircle, CheckCircle2, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   PRAYER_NAMES,
   getCachedPrayerTimes,
@@ -32,7 +33,7 @@ function PrayerTimesWidgetSkeleton() {
 
 /**
  * Self-contained prayer times widget for the home page.
- * Displays interactive Location Enable Popup Modal when location is needed.
+ * Uses clean non-overflowing Radix Dialog for location enablement.
  */
 export default function PrayerTimesWidget() {
   const [prayerTimes, setPrayerTimes] = useState(() => getCachedPrayerTimes());
@@ -87,7 +88,7 @@ export default function PrayerTimesWidget() {
     setShowLocationModal(false);
     try {
       sessionStorage.setItem('prayer_loc_dismissed', 'true');
-    } catch {}
+    } catch { }
   };
 
   if (loading && !prayerTimes) {
@@ -97,6 +98,8 @@ export default function PrayerTimesWidget() {
       </section>
     );
   }
+
+  const cityName = getPrayerCityName();
 
   return (
     <section className="px-4 pt-2 max-w-xl mx-auto w-full animate-slide-up">
@@ -111,10 +114,10 @@ export default function PrayerTimesWidget() {
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs sm:text-sm font-extrabold text-foreground tracking-tight">നമസ്കാര സമയം</span>
-                {getPrayerCityName() && (
+                {cityName && (
                   <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-0.5 bg-muted/60 px-1.5 py-0.5 rounded-md">
                     <MapPin className="w-2.5 h-2.5 text-primary" />
-                    <span>{getPrayerCityName()}</span>
+                    <span>{cityName}</span>
                   </span>
                 )}
               </div>
@@ -143,30 +146,26 @@ export default function PrayerTimesWidget() {
               return (
                 <div
                   key={key}
-                  className={`rounded-2xl p-2 sm:p-2.5 text-center space-y-1.5 transition-all ${
-                    isNext
-                      ? 'bg-primary text-primary-foreground ring-2 ring-primary/40 shadow-md scale-[1.02]'
-                      : 'bg-muted/40 border border-border/80 hover:bg-muted/60'
-                  }`}
+                  className={`rounded-2xl p-2 sm:p-2.5 text-center space-y-1.5 transition-all ${isNext
+                    ? 'bg-primary text-primary-foreground ring-2 ring-primary/40 shadow-md scale-[1.02]'
+                    : 'bg-muted/40 border border-border/80 hover:bg-muted/60'
+                    }`}
                 >
                   {/* Icon */}
-                  <div className={`w-7 h-7 rounded-xl flex items-center justify-center mx-auto ${
-                    isNext ? 'bg-white/20' : bg
-                  }`}>
+                  <div className={`w-7 h-7 rounded-xl flex items-center justify-center mx-auto ${isNext ? 'bg-white/20' : bg
+                    }`}>
                     <Icon className={`w-3.5 h-3.5 ${isNext ? 'text-white' : color}`} />
                   </div>
 
                   {/* Prayer Name */}
-                  <div className={`text-[10px] sm:text-[11px] font-bold tracking-tight ${
-                    isNext ? 'text-white/90 font-extrabold' : 'text-muted-foreground'
-                  }`}>
+                  <div className={`text-[10px] sm:text-[11px] font-bold tracking-tight ${isNext ? 'text-white/90 font-extrabold' : 'text-muted-foreground'
+                    }`}>
                     {label}
                   </div>
 
                   {/* Large Bold Prayer Time */}
-                  <div className={`text-xs sm:text-sm font-black tracking-tight font-mono ${
-                    isNext ? 'text-white' : 'text-foreground'
-                  }`}>
+                  <div className={`text-xs sm:text-sm font-black tracking-tight font-mono ${isNext ? 'text-white' : 'text-foreground'
+                    }`}>
                     {timeStr}
                   </div>
                 </div>
@@ -217,149 +216,133 @@ export default function PrayerTimesWidget() {
         </div>
       )}
 
-      {/* ── 📍 POPUP MODAL FOR LOCATION PERMISSION ── */}
-      {showLocationModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in font-sans">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center animate-scale-in relative text-foreground">
-            {/* Close / Dismiss button */}
+      {/* ── 📍 POPUP MODAL FOR LOCATION PERMISSION (Non-overflowing layout) ── */}
+      <Dialog open={showLocationModal} onOpenChange={(open) => { if (!open) handleDismissModal(); }}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-sm max-h-[85vh] overflow-y-auto p-5 sm:p-6 text-center rounded-3xl border border-border shadow-2xl flex flex-col gap-3 font-sans">
+          {/* Glowing MapPin Icon */}
+          <div className="w-12 h-12 rounded-2xl bg-primary/15 text-primary flex items-center justify-center mx-auto ring-4 ring-primary/10 shadow-xs mt-0.5 shrink-0">
+            <MapPin className="w-6 h-6 text-primary" />
+          </div>
+
+          {/* Modal Header */}
+          <DialogHeader className="space-y-1 text-center p-0 m-0">
+            <DialogTitle className="font-extrabold text-base text-foreground text-center">
+              ലൊക്കേഷൻ അനുവദിക്കുക
+            </DialogTitle>
+            <DialogDescription className="text-xs font-extrabold text-primary text-center">
+              Enable Location Access
+            </DialogDescription>
+          </DialogHeader>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            നിങ്ങളുടെ പ്രദേശത്തെ കൃത്യമായ നിസ്കാര സമയങ്ങൾ (ഫജ്ർ, ളുഹ്ർ, അസ്ർ, മഗ്‌രിബ്, ഇശാഅ്) അറിയാൻ ലൊക്കേഷൻ ഓൺ ചെയ്യുക.
+          </p>
+
+          {/* Error Display */}
+          {locationError && (
+            <div className="space-y-2 text-left w-full">
+              <Alert variant="destructive" className="text-xs py-2 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-snug">{locationError}</span>
+              </Alert>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowLocationModal(false);
+                  setShowSettingsGuide(true);
+                }}
+                className="w-full text-xs font-bold gap-1.5 h-8 border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>How to Allow in Browser </span>
+              </Button>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2 pt-1 w-full">
+            <Button
+              type="button"
+              disabled={loading}
+              onClick={handleEnableLocation}
+              className="w-full rounded-xl text-xs font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9.5 shadow-xs"
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>{loading ? 'Fetching Location...' : 'Allow Location / ലൊക്കേഷൻ ഓൺ ചെയ്യുക'}</span>
+            </Button>
+
             <Button
               type="button"
               variant="ghost"
-              size="icon"
               onClick={handleDismissModal}
-              className="absolute top-4 right-4 w-7 h-7 rounded-full text-muted-foreground hover:text-foreground"
+              className="w-full rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground h-8"
             >
-              <X className="w-4 h-4" />
-            </Button>
-
-            {/* Glowing MapPin Icon */}
-            <div className="w-14 h-14 rounded-2xl bg-primary/15 text-primary flex items-center justify-center mx-auto ring-8 ring-primary/10 shadow-sm mt-1">
-              <MapPin className="w-7 h-7 animate-bounce" />
-            </div>
-
-            {/* Modal Title & Text */}
-            <div className="space-y-1.5 pt-1">
-              <h3 className="font-extrabold text-base text-foreground leading-tight">
-                ലൊക്കേഷൻ അനുവദിക്കുക
-              </h3>
-              <p className="text-xs font-extrabold text-primary">
-                Enable Location Access
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                നിങ്ങളുടെ പ്രദേശത്തെ കൃത്യമായ നിസ്കാര സമയങ്ങൾ (ഫജ്ർ, ളുഹ്ർ, അസ്ർ, മഗ്‌രിബ്, ഇശാഅ്) അറിയാൻ ലൊക്കേഷൻ ഓൺ ചെയ്യുക.
-              </p>
-            </div>
-
-            {/* Error Display */}
-            {locationError && (
-              <div className="space-y-2 text-left">
-                <Alert variant="destructive" className="text-xs py-2 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span className="leading-snug">{locationError}</span>
-                </Alert>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSettingsGuide(true)}
-                  className="w-full text-xs font-bold gap-1.5 h-8 border-primary/30 text-primary hover:bg-primary/10"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>How to Allow in Browser (ബ്രൗസറിൽ ഓൺ ചെയ്യുന്ന വിധം)</span>
-                </Button>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="space-y-2 pt-2">
-              <Button
-                type="button"
-                disabled={loading}
-                onClick={handleEnableLocation}
-                className="w-full rounded-2xl text-xs font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 shadow-md"
-              >
-                <Navigation className="w-4 h-4" />
-                <span>{loading ? 'Fetching Location...' : 'Allow Location / ലൊക്കേഷൻ ഓൺ ചെയ്യുക'}</span>
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleDismissModal}
-                className="w-full rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground h-8"
-              >
-                Later (പിന്നീട്)
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 🔒 BROWSER SETTINGS GUIDE MODAL ── */}
-      {showSettingsGuide && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in font-sans">
-          <div className="bg-card border border-border rounded-3xl p-5 max-w-sm w-full shadow-2xl space-y-4 text-foreground animate-scale-in">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center text-primary">
-                  <Settings className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-foreground">Browser Permission Guide</h3>
-                  <p className="text-[10px] text-muted-foreground">How to allow Location access</p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSettingsGuide(false)}
-                className="w-7 h-7 rounded-full text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-muted/40 border border-border/70">
-                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
-                <p className="text-muted-foreground leading-relaxed">
-                  ബ്രൗസറിന്റെ മുകളിലുള്ള <strong className="text-foreground">🔒 (ലോക്ക് / Tune)</strong> ഐക്കണിൽ ക്ലിക്ക് ചെയ്യുക.
-                  <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Tap the 🔒 lock or settings icon in the browser address bar.</span>
-                </p>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-muted/40 border border-border/70">
-                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
-                <p className="text-muted-foreground leading-relaxed">
-                  <strong className="text-foreground">Permissions (അനുമതികൾ)</strong> എന്നതിൽ <strong className="text-emerald-600 dark:text-emerald-400">Location</strong> <strong className="text-foreground">Allow (അനുവദിക്കുക)</strong> ചെയ്യുക.
-                  <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Set Location to Allow.</span>
-                </p>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-muted/40 border border-border/70">
-                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
-                <p className="text-muted-foreground leading-relaxed">
-                  പേജ് ഒന്നുകൂടി <strong className="text-foreground">Reload / Refresh</strong> ചെയ്യുക.
-                  <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Refresh the page to activate.</span>
-                </p>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              onClick={() => {
-                setShowSettingsGuide(false);
-                handleEnableLocation();
-              }}
-              className="w-full rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 h-9"
-            >
-              <CheckCircle2 className="w-4 h-4 mr-1.5" />
-              Done, Try Again
+              Later (പിന്നീട്)
             </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── 🔒 BROWSER SETTINGS GUIDE MODAL (Non-overflowing layout) ── */}
+      <Dialog open={showSettingsGuide} onOpenChange={setShowSettingsGuide}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-sm max-h-[85vh] overflow-y-auto p-5 space-y-3 text-foreground rounded-3xl font-sans border border-border shadow-2xl flex flex-col gap-3">
+          <DialogHeader className="border-b border-border pb-2.5 text-left p-0 m-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center text-primary shrink-0">
+                <Settings className="w-4 h-4" />
+              </div>
+              <div>
+                <DialogTitle className="font-extrabold text-sm text-foreground">
+                  Browser Permission Guide
+                </DialogTitle>
+                <DialogDescription className="text-[10px] text-muted-foreground">
+                  How to allow Location access
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-2 text-xs">
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/70">
+              <span className="w-4.5 h-4.5 rounded-full bg-primary/20 text-primary font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
+              <p className="text-muted-foreground leading-relaxed text-[11px]">
+                ബ്രൗസറിന്റെ മുകളിലുള്ള <strong className="text-foreground">🔒 (ലോക്ക് / Tune)</strong> ഐക്കണിൽ ക്ലിക്ക് ചെയ്യുക.
+                <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Tap the 🔒 lock/settings icon in address bar.</span>
+              </p>
+            </div>
+
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/70">
+              <span className="w-4.5 h-4.5 rounded-full bg-primary/20 text-primary font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
+              <p className="text-muted-foreground leading-relaxed text-[11px]">
+                <strong className="text-foreground">Permissions</strong> എന്നതിൽ <strong className="text-emerald-600 dark:text-emerald-400">Location</strong> <strong className="text-foreground">Allow</strong> ചെയ്യുക.
+                <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Set Location to Allow.</span>
+              </p>
+            </div>
+
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/70">
+              <span className="w-4.5 h-4.5 rounded-full bg-primary/20 text-primary font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
+              <p className="text-muted-foreground leading-relaxed text-[11px]">
+                പേജ് ഒന്നുകൂടി <strong className="text-foreground">Reload / Refresh</strong> ചെയ്യുക.
+                <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Refresh the page to activate.</span>
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => {
+              setShowSettingsGuide(false);
+              handleEnableLocation();
+            }}
+            className="w-full rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 h-9 shrink-0 mt-1"
+          >
+            <CheckCircle2 className="w-4 h-4 mr-1.5" />
+            Done, Try Again
+          </Button>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

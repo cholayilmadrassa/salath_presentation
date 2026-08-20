@@ -12,8 +12,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
-import { LogOut, MapPin, Phone, ShieldCheck, LogIn, UserPlus, Download, Share, Bell, AlertCircle, Users, Plus, ChevronRight, ArrowLeftRight, X, Settings as SettingsIcon, Pencil, Clock } from 'lucide-react';
+import { LogOut, MapPin, Phone, ShieldCheck, LogIn, UserPlus, Download, Share, Bell, AlertCircle, Users, Plus, ChevronRight, ArrowLeftRight, X, Settings as SettingsIcon, Pencil, Clock, CheckCircle2, HelpCircle } from 'lucide-react';
 import { api } from '../api.js';
 import {
   subscribeUserToPush,
@@ -41,6 +42,9 @@ export default function SettingsPage() {
   const [prayerEnabled, setPrayerEnabled] = useState(false);
   const [prayerLoading, setPrayerLoading] = useState(false);
   const [prayerError, setPrayerError] = useState('');
+  const [showNotifPermissionModal, setShowNotifPermissionModal] = useState(false);
+  const [showNotifGuide, setShowNotifGuide] = useState(false);
+  const [notifModalError, setNotifModalError] = useState('');
 
   // Multi-account state
   const [allowMultipleAccounts, setAllowMultipleAccounts] = useState(false);
@@ -139,18 +143,48 @@ export default function SettingsPage() {
   }, [token]);
 
   const togglePrayerNotifications = async () => {
-    setPrayerLoading(true);
     setPrayerError('');
+    if (prayerEnabled) {
+      disablePrayerNotifications();
+      setPrayerEnabled(false);
+      return;
+    }
+
+    // If notifications are not yet allowed in browser, show permission modal
+    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+      setShowNotifPermissionModal(true);
+      return;
+    }
+
+    setPrayerLoading(true);
     try {
-      if (prayerEnabled) {
-        disablePrayerNotifications();
-        setPrayerEnabled(false);
-      } else {
-        await enablePrayerNotifications();
-        setPrayerEnabled(true);
-      }
+      await enablePrayerNotifications();
+      setPrayerEnabled(true);
     } catch (err) {
       setPrayerError(err.message || 'Failed to set up prayer time notifications.');
+    } finally {
+      setPrayerLoading(false);
+    }
+  };
+
+  const handleAllowNotificationFromModal = async () => {
+    setPrayerLoading(true);
+    setNotifModalError('');
+    try {
+      if (typeof Notification === 'undefined') {
+        throw new Error('Notifications are not supported on this browser/device.');
+      }
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        setNotifModalError('Notification permission was not granted. Please allow notifications in browser settings.');
+        return;
+      }
+      await enablePrayerNotifications();
+      setPrayerEnabled(true);
+      setShowNotifPermissionModal(false);
+      setShowNotifGuide(false);
+    } catch (err) {
+      setNotifModalError(err.message || 'Failed to enable notifications.');
     } finally {
       setPrayerLoading(false);
     }
@@ -822,6 +856,131 @@ export default function SettingsPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── 🔔 Prayer Notification Permission Modal (Radix Dialog) ── */}
+      <Dialog open={showNotifPermissionModal} onOpenChange={setShowNotifPermissionModal}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-sm max-h-[85vh] overflow-y-auto p-5 sm:p-6 text-center rounded-3xl border border-border shadow-2xl flex flex-col gap-3 font-sans">
+          {/* Glowing Bell Icon */}
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center mx-auto ring-4 ring-emerald-500/10 shadow-xs mt-0.5 shrink-0">
+            <Bell className="w-6 h-6" />
+          </div>
+
+          <DialogHeader className="space-y-1 text-center p-0 m-0">
+            <DialogTitle className="font-extrabold text-base text-foreground text-center">
+              നോട്ടിഫിക്കേഷൻ അനുവദിക്കുക
+            </DialogTitle>
+            <DialogDescription className="text-xs font-extrabold text-emerald-600 text-center">
+              Enable Prayer Notifications
+            </DialogDescription>
+          </DialogHeader>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            കൃത്യസമയത്ത് നിസ്കാര സമയങ്ങൾ (ഫജ്ർ, ളുഹ്ർ, അസ്ർ, മഗ്‌രിബ്, ഇശാഅ്) ഓർമ്മിപ്പിക്കാൻ നോട്ടിഫിക്കേഷൻ ഓൺ ചെയ്യുക.
+          </p>
+
+          {notifModalError && (
+            <div className="space-y-2 text-left w-full">
+              <Alert variant="destructive" className="text-xs py-2 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-snug">{notifModalError}</span>
+              </Alert>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowNotifPermissionModal(false);
+                  setShowNotifGuide(true);
+                }}
+                className="w-full text-xs font-bold gap-1.5 h-8 border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>How to Allow Notifications (സെറ്റിംഗ്സ് ഗൈഡ്)</span>
+              </Button>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 pt-1 w-full">
+            <Button
+              type="button"
+              disabled={prayerLoading}
+              onClick={handleAllowNotificationFromModal}
+              className="w-full rounded-xl text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-9.5 shadow-xs"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>{prayerLoading ? 'Enabling...' : 'Allow Notifications / ഓൺ ചെയ്യുക'}</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowNotifPermissionModal(false)}
+              className="w-full rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground h-8"
+            >
+              Cancel (റദ്ദാക്കുക)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── 🔒 Notification Settings Guide Dialog ── */}
+      <Dialog open={showNotifGuide} onOpenChange={setShowNotifGuide}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-sm max-h-[85vh] overflow-y-auto p-5 space-y-3 text-foreground rounded-3xl font-sans border border-border shadow-2xl flex flex-col gap-3">
+          <DialogHeader className="border-b border-border pb-2.5 text-left p-0 m-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-600 shrink-0">
+                <SettingsIcon className="w-4 h-4" />
+              </div>
+              <div>
+                <DialogTitle className="font-extrabold text-sm text-foreground">
+                  Notification Permission Guide
+                </DialogTitle>
+                <DialogDescription className="text-[10px] text-muted-foreground">
+                  How to allow Notifications in Settings
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-2 text-xs">
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/70">
+              <span className="w-4.5 h-4.5 rounded-full bg-emerald-500/20 text-emerald-600 font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
+              <p className="text-muted-foreground leading-relaxed text-[11px]">
+                ബ്രൗസറിന്റെ മുകളിലുള്ള <strong className="text-foreground">🔒 (ലോക്ക് / Tune)</strong> ഐക്കണിൽ അല്ലെങ്കിൽ ഫോൺ <strong className="text-foreground">App Info</strong> തുറക്കുക.
+                <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Tap lock icon or open Phone Settings → App Info.</span>
+              </p>
+            </div>
+
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/70">
+              <span className="w-4.5 h-4.5 rounded-full bg-emerald-500/20 text-emerald-600 font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
+              <p className="text-muted-foreground leading-relaxed text-[11px]">
+                <strong className="text-foreground">Notifications (അറിയിപ്പുകൾ)</strong> എന്നത് <strong className="text-emerald-600 dark:text-emerald-400">Allow (അനുവദിക്കുക)</strong> ചെയ്യുക.
+                <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Set Notifications to Allow.</span>
+              </p>
+            </div>
+
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/70">
+              <span className="w-4.5 h-4.5 rounded-full bg-emerald-500/20 text-emerald-600 font-mono font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
+              <p className="text-muted-foreground leading-relaxed text-[11px]">
+                ആപ്പിലേക്ക് തിരിച്ചുവന്ന് <strong className="text-foreground">Done, Try Again</strong> ക്ലിക്ക് ചെയ്യുക.
+                <span className="block text-[10px] text-muted-foreground/80 mt-0.5">Reopen and click Done below.</span>
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => {
+              setShowNotifGuide(false);
+              handleAllowNotificationFromModal();
+            }}
+            className="w-full rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white h-9 shrink-0 mt-1"
+          >
+            <CheckCircle2 className="w-4 h-4 mr-1.5" />
+            Done, Try Again
+          </Button>
         </DialogContent>
       </Dialog>
     </main>
