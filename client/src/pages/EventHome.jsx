@@ -177,8 +177,9 @@ export default function EventHome() {
 
           {/* CTA Button */}
           <Button
-            onClick={() => navigate(user || authUser ? '/counter' : '/login')}
-className="relative z-10 w-full max-w-sm mx-auto text-xs sm:text-sm font-extrabold h-11 px-4 rounded-xl shadow-md border border-[#F5E6B3]/40 bg-[#FFF449] text-[#07351F] hover:bg-[#FFDE42] active:scale-[0.98] transition-all flex items-center justify-center gap-2"          >
+            onClick={() => navigate(user || authUser ? '/addcount' : '/login')}
+            className="relative z-10 w-full max-w-sm mx-auto text-xs sm:text-sm font-extrabold h-11 px-4 rounded-xl shadow-md border border-[#F5E6B3]/40 bg-[#FFF449] text-[#07351F] hover:bg-[#FFDE42] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
             {user || authUser ? (
               <>
                 <div className="w-6 h-6 rounded-lg bg-[#07351F]/15 flex items-center justify-center shrink-0">

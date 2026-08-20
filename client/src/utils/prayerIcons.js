@@ -1,15 +1,16 @@
 /**
  * Shared prayer icon map used by PrayerTimesWidget and SettingsPage.
  * Maps the icon key from PRAYER_NAMES → { Icon (Lucide component), color, bg }.
+ * Uses consistent theme styling matching the application primary brand colors.
  */
 import { Sunrise, Sun, CloudSun, Sunset, Moon } from 'lucide-react';
 
 export const PRAYER_ICON_MAP = {
-  Sunrise:  { Icon: Sunrise,  color: 'text-indigo-400', bg: 'bg-indigo-500/15'  },
-  Sun:      { Icon: Sun,      color: 'text-amber-400',  bg: 'bg-amber-500/15'   },
-  CloudSun: { Icon: CloudSun, color: 'text-orange-400', bg: 'bg-orange-500/15'  },
-  Sunset:   { Icon: Sunset,   color: 'text-rose-400',   bg: 'bg-rose-500/15'    },
-  Moon:     { Icon: Moon,     color: 'text-violet-400', bg: 'bg-violet-500/15'  },
+  Sunrise:  { Icon: Sunrise,  color: 'text-primary', bg: 'bg-primary/10' },
+  Sun:      { Icon: Sun,      color: 'text-primary', bg: 'bg-primary/10' },
+  CloudSun: { Icon: CloudSun, color: 'text-primary', bg: 'bg-primary/10' },
+  Sunset:   { Icon: Sunset,   color: 'text-primary', bg: 'bg-primary/10' },
+  Moon:     { Icon: Moon,     color: 'text-primary', bg: 'bg-primary/10' },
 };
 
 /** Return which prayer key is next (or null if all prayers have passed today) */
