@@ -13,6 +13,7 @@ import SwalathCard from "../components/SwalathCard.jsx";
 import LeaderboardSection from "../components/LeaderboardSection.jsx";
 import PrayerTimesWidget from "../components/PrayerTimesWidget.jsx";
 import DigitCountTicker from "../components/DigitCountTicker.jsx";
+import SubmitSwalathModal from "../components/SubmitSwalathModal.jsx";
 import {
   getCachedTotalSwalath,
   fetchAndCacheTotalSwalath,
@@ -40,6 +41,7 @@ export default function EventHome() {
   const [leaderError, setLeaderError] = useState("");
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
 
   const hijri = getHijriDate();
 
@@ -177,7 +179,13 @@ export default function EventHome() {
 
           {/* CTA Button */}
           <Button
-            onClick={() => navigate(user || authUser ? '/addcount' : '/login')}
+            onClick={() => {
+              if (user || authUser) {
+                setShowSubmitModal(true);
+              } else {
+                navigate('/login');
+              }
+            }}
             className="relative z-10 w-full max-w-sm mx-auto text-xs sm:text-sm font-extrabold h-11 px-4 rounded-xl shadow-md border border-[#F5E6B3]/40 bg-[#FFF449] text-[#07351F] hover:bg-[#FFDE42] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
             {user || authUser ? (
@@ -279,6 +287,12 @@ export default function EventHome() {
           </ul>
         </section>
       </main>
+
+      {/* Quick Submit Swalath Modal */}
+      <SubmitSwalathModal
+        open={showSubmitModal}
+        onOpenChange={setShowSubmitModal}
+      />
 
       <Footer />
     </div>
