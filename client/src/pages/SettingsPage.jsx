@@ -24,6 +24,11 @@ import {
   isPrayerNotifEnabled,
   enablePrayerNotifications,
   disablePrayerNotifications,
+  sendTestPrayerNotification,
+  sendAllPrayerNotificationsNow,
+  scheduleCustomTestPrayer,
+  USE_CUSTOM_TEST_TIMES,
+  CUSTOM_TEST_TIMES,
 } from '../utils/prayerTimeNotifier.js';
 
 export default function SettingsPage() {
@@ -41,6 +46,35 @@ export default function SettingsPage() {
   const [prayerEnabled, setPrayerEnabled] = useState(false);
   const [prayerLoading, setPrayerLoading] = useState(false);
   const [prayerError, setPrayerError] = useState('');
+  const [testNotice, setTestNotice] = useState('');
+
+  const handleSendInstantTest = async () => {
+    setTestNotice('Sending test notification...');
+    try {
+      await sendTestPrayerNotification('ളുഹ്ർ');
+      setTestNotice('✅ Test notification sent! Check your notification bar/lockscreen.');
+      setTimeout(() => setTestNotice(''), 4000);
+    } catch (e) {
+      setTestNotice(`❌ Error: ${e.message}`);
+    }
+  };
+
+  const handleSendAllTest = async () => {
+    setTestNotice('Sending 5 prayer notifications (1.5s interval)...');
+    try {
+      await sendAllPrayerNotificationsNow();
+      setTestNotice('✅ All 5 prayer notifications queued!');
+      setTimeout(() => setTestNotice(''), 5000);
+    } catch (e) {
+      setTestNotice(`❌ Error: ${e.message}`);
+    }
+  };
+
+  const handleTestIn1Min = () => {
+    const scheduledTime = scheduleCustomTestPrayer(1, 'ടെസ്റ്റ് അദാൻ (+1 Min)');
+    setTestNotice(`⏰ Test prayer notification scheduled for ${scheduledTime}!`);
+    setTimeout(() => setTestNotice(''), 5000);
+  };
 
   // Multi-account state
   const [allowMultipleAccounts, setAllowMultipleAccounts] = useState(false);
@@ -469,6 +503,56 @@ export default function SettingsPage() {
                     {prayerLoading ? 'Setting up...' : prayerEnabled ? 'Disable' : 'Enable'}
                   </Button>
                 </div>
+
+                {/* Test Notification Actions */}
+                <div className="mx-3.5 mb-3 pt-2 border-t border-border/50 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground font-bold">
+                    <span>⚡ Test Adhan Notifications:</span>
+                    {USE_CUSTOM_TEST_TIMES && (
+                      <span className="text-[10px] text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded font-mono font-extrabold">
+                        Code Times Active ({CUSTOM_TEST_TIMES.Dhuhr})
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSendInstantTest}
+                      className="h-8 text-[11px] font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+                    >
+                      ⚡ Instant Test
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSendAllTest}
+                      className="h-8 text-[11px] font-bold border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      📢 Test All 5 Prayers
+                    </Button>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestIn1Min}
+                    className="w-full h-7 text-[10px] font-bold text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted/70 rounded-lg"
+                  >
+                    ⏰ Schedule Test Alert for Next Minute (+1 Min)
+                  </Button>
+
+                  {testNotice && (
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold animate-fade-in">
+                      {testNotice}
+                    </div>
+                  )}
+                </div>
+
                 {prayerError && (
                   <div className="mx-3.5 mb-3 text-[11px] text-destructive font-medium bg-destructive/10 p-2 rounded-lg">
                     {prayerError}
