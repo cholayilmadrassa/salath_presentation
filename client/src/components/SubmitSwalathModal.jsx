@@ -88,7 +88,7 @@ export default function SubmitSwalathModal({ open, onOpenChange, onSuccess }) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v); }}>
-      <DialogContent className="w-[calc(100%-2rem)] max-w-sm p-5 sm:p-6 rounded-3xl border border-border shadow-2xl font-sans">
+      <DialogContent className="top-14 sm:top-20 translate-y-0 w-[calc(100%-2rem)] max-w-sm p-5 sm:p-6 rounded-3xl border border-border shadow-2xl font-sans">
         <DialogHeader className="space-y-1.5 text-center">
           <div className="w-12 h-12 rounded-2xl bg-primary/15 text-primary flex items-center justify-center mx-auto mb-1 ring-4 ring-primary/10">
             <Plus className="w-6 h-6 stroke-[2.5]" />
