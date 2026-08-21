@@ -56,7 +56,7 @@ export async function registerServiceWorker() {
   }
 }
 
-export async function subscribeUserToPush(token) {
+export async function subscribeUserToPush(token, options = {}) {
   if (!isPushSupported()) {
     throw new Error('Push notifications are not supported by your current browser.');
   }
@@ -106,10 +106,29 @@ export async function subscribeUserToPush(token) {
       endpoint: subJson.endpoint,
       keys: subJson.keys,
       userAgent: navigator.userAgent,
+      prayerNotifEnabled: options.prayerNotifEnabled !== false,
+      location: options.location || null,
     },
   });
 
   return subscription;
+}
+
+export async function updatePushPreferences(token, preferences = {}) {
+  if (!isPushSupported()) return;
+  const swReg = await registerServiceWorker();
+  if (!swReg) return;
+  const subscription = await swReg.pushManager.getSubscription();
+  if (!subscription) return;
+
+  await api('/push/preferences', {
+    method: 'PATCH',
+    token,
+    body: {
+      endpoint: subscription.endpoint,
+      ...preferences,
+    },
+  }).catch(() => {});
 }
 
 export async function unsubscribeUserFromPush(token) {

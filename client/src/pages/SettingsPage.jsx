@@ -25,6 +25,8 @@ import {
   isPrayerNotifEnabled,
   enablePrayerNotifications,
   disablePrayerNotifications,
+  sendTestPrayerNotification,
+  getPrayerCityName,
 } from '../utils/prayerTimeNotifier.js';
 
 export default function SettingsPage() {
@@ -42,6 +44,8 @@ export default function SettingsPage() {
   const [prayerEnabled, setPrayerEnabled] = useState(false);
   const [prayerLoading, setPrayerLoading] = useState(false);
   const [prayerError, setPrayerError] = useState('');
+  const [testAlertLoading, setTestAlertLoading] = useState(false);
+  const [testAlertSuccess, setTestAlertSuccess] = useState('');
   const [showNotifPermissionModal, setShowNotifPermissionModal] = useState(false);
   const [showNotifGuide, setShowNotifGuide] = useState(false);
   const [notifModalError, setNotifModalError] = useState('');
@@ -145,7 +149,7 @@ export default function SettingsPage() {
   const togglePrayerNotifications = async () => {
     setPrayerError('');
     if (prayerEnabled) {
-      disablePrayerNotifications();
+      await disablePrayerNotifications(token);
       setPrayerEnabled(false);
       return;
     }
@@ -158,7 +162,7 @@ export default function SettingsPage() {
 
     setPrayerLoading(true);
     try {
-      await enablePrayerNotifications();
+      await enablePrayerNotifications(token);
       setPrayerEnabled(true);
     } catch (err) {
       setPrayerError(err.message || 'Failed to set up prayer time notifications.');
@@ -179,7 +183,7 @@ export default function SettingsPage() {
         setNotifModalError('Notification permission was not granted. Please allow notifications in browser settings.');
         return;
       }
-      await enablePrayerNotifications();
+      await enablePrayerNotifications(token);
       setPrayerEnabled(true);
       setShowNotifPermissionModal(false);
       setShowNotifGuide(false);
@@ -187,6 +191,25 @@ export default function SettingsPage() {
       setNotifModalError(err.message || 'Failed to enable notifications.');
     } finally {
       setPrayerLoading(false);
+    }
+  };
+
+  const handleSendTestPrayerAlert = async () => {
+    setTestAlertLoading(true);
+    setTestAlertSuccess('');
+    setPrayerError('');
+    try {
+      const shown = await sendTestPrayerNotification('Asr', '15:37');
+      if (shown) {
+        setTestAlertSuccess('Test prayer alert sent! Check your notification bar.');
+        setTimeout(() => setTestAlertSuccess(''), 4000);
+      } else {
+        setPrayerError('Could not display notification. Please check browser permission.');
+      }
+    } catch (err) {
+      setPrayerError(err.message || 'Failed to send test alert');
+    } finally {
+      setTestAlertLoading(false);
     }
   };
 
@@ -480,34 +503,71 @@ export default function SettingsPage() {
                 <div className="border-t border-border/60 mx-3.5" />
 
                 {/* Prayer Time Reminders row */}
-                <div className="flex items-center justify-between p-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <Clock className="w-4 h-4 text-emerald-600" />
+                <div className="p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        <Clock className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-bold text-xs text-foreground">Prayer Time Reminders</h4>
+                          {prayerEnabled && (
+                            <span className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] px-1.5 py-0.2 font-extrabold rounded-md">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground block">
+                          {prayerEnabled
+                            ? `Daily alerts for all 5 prayers · ${getPrayerCityName()}`
+                            : 'Get notified at each daily prayer time'}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-foreground">Prayer Time Reminders</h4>
-                      <span className="text-[10px] text-muted-foreground block">
-                        {prayerEnabled ? 'Reminders active · alerts at each prayer' : 'Get notified at each prayer time'}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={prayerEnabled ? 'outline' : 'default'}
-                    disabled={prayerLoading}
-                    onClick={togglePrayerNotifications}
-                    className={`h-8 text-xs font-bold px-3 ${!prayerEnabled ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-0' : ''
+                    <Button
+                      size="sm"
+                      variant={prayerEnabled ? 'outline' : 'default'}
+                      disabled={prayerLoading}
+                      onClick={togglePrayerNotifications}
+                      className={`h-8 text-xs font-bold px-3 ${
+                        !prayerEnabled ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-0' : ''
                       }`}
-                  >
-                    {prayerLoading ? 'Setting up...' : prayerEnabled ? 'Disable' : 'Enable'}
-                  </Button>
-                </div>
-                {prayerError && (
-                  <div className="mx-3.5 mb-3 text-[11px] text-destructive font-medium bg-destructive/10 p-2 rounded-lg">
-                    {prayerError}
+                    >
+                      {prayerLoading ? 'Setting up...' : prayerEnabled ? 'Disable' : 'Enable'}
+                    </Button>
                   </div>
-                )}
+
+                  {prayerEnabled && (
+                    <div className="pt-1 flex flex-wrap items-center justify-between gap-2 border-t border-border/40">
+                      <span className="text-[10px] text-muted-foreground">
+                        ⚡ Background & closed-app delivery enabled
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={testAlertLoading}
+                        onClick={handleSendTestPrayerAlert}
+                        className="h-6 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 px-2 rounded-md"
+                      >
+                        {testAlertLoading ? 'Sending test...' : '🔔 Test Prayer Alert'}
+                      </Button>
+                    </div>
+                  )}
+
+                  {testAlertSuccess && (
+                    <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 p-2 rounded-lg">
+                      {testAlertSuccess}
+                    </div>
+                  )}
+
+                  {prayerError && (
+                    <div className="text-[11px] text-destructive font-medium bg-destructive/10 p-2 rounded-lg">
+                      {prayerError}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Install App Button */}

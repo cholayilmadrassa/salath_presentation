@@ -2,15 +2,22 @@
  * Prayer Time Notification Utility
  * Fetches daily prayer times strictly from live Aladhan API based on user's real geolocation.
  * Identifies city/locality directly from GPS latitude & longitude coordinates.
- * Uses ServiceWorker registration on mobile/Android/PWA and local Notification API fallback on Desktop.
+ * Seamlessly integrates client-side alarms with server-side Web Push for background delivery when app is closed.
  * Method 1 = Muslim World League (standard for India/Kerala)
  */
+
+import { subscribeUserToPush, updatePushPreferences } from './pushManager.js';
 
 const PRAYER_TIME_KEY = 'prayerTimeNotifEnabled';
 const PRAYER_TIMES_CACHE_KEY = 'prayerTimesCache';
 const PRAYER_TIMES_CACHE_DATE_KEY = 'prayerTimesCacheDate';
 const PRAYER_COORDS_CACHE_KEY = 'prayerCoordsCache';
 const PRAYER_CITY_CACHE_KEY = 'prayerCityName';
+const PRAYER_TRIGGERED_PREFIX = 'prayer_triggered_';
+
+// Default fallback coordinates (Kozhikode, Kerala, India)
+const DEFAULT_COORDS = { lat: 11.2588, lon: 75.7804 };
+const DEFAULT_CITY = 'Kozhikode';
 
 // Method 1: Muslim World League (Fajr 18°, Isha 17° - Standard for Kerala/India)
 const ALADHAN_METHOD = 1;
@@ -25,7 +32,7 @@ export const PRAYER_NAMES = [
 ];
 
 /** Get today's date string YYYY-MM-DD */
-function getTodayStr() {
+export function getTodayStr() {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -45,12 +52,22 @@ export function formatTo12Hour(timeStr) {
   return `${h}:${m} ${ampm}`;
 }
 
+/** Normalize time string to strict "HH:MM" (24h) */
+export function normalizeTimeStr(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const clean = raw.replace(/\s*\(.*\)/, '').trim();
+  if (clean.includes(':')) {
+    const [h, m] = clean.split(':');
+    return `${h.padStart(2, '0')}:${m.slice(0, 2).padStart(2, '0')}`;
+  }
+  return null;
+}
+
 /**
  * Identify exact City / Locality from Latitude and Longitude coordinates
- * Uses BigDataCloud reverse geocoding API with Nominatim OpenStreetMap fallback.
  */
 export async function fetchCityFromCoordinates(lat, lon) {
-  if (!lat || !lon) return 'Kozhikode';
+  if (!lat || !lon) return DEFAULT_CITY;
 
   // 1. Primary: BigDataCloud Reverse Geocoding Client API
   try {
@@ -89,10 +106,10 @@ export async function fetchCityFromCoordinates(lat, lon) {
     console.warn('[Prayer Location OSM Error]:', err?.message);
   }
 
-  return localStorage.getItem(PRAYER_CITY_CACHE_KEY) || 'Kozhikode';
+  return localStorage.getItem(PRAYER_CITY_CACHE_KEY) || DEFAULT_CITY;
 }
 
-/** Get city/place name for notification body (e.g. "Kozhikode", "Malappuram") */
+/** Get city/place name for notification body */
 export function getPrayerCityName() {
   try {
     const cachedCity = localStorage.getItem(PRAYER_CITY_CACHE_KEY);
@@ -107,22 +124,20 @@ export function getPrayerCityName() {
     const tenant = JSON.parse(localStorage.getItem('activeTenant') || 'null');
     if (tenant?.city || tenant?.place) return tenant.city || tenant.place;
   } catch { }
-  return 'Kozhikode';
+  return DEFAULT_CITY;
 }
 
-/** Build notification title & body formatted like:
- * Title: "3:37 PM Asr"
- * Body: "It's time for Asr prayer in Kozhikode"
- */
+/** Build notification title & body */
 export function buildPrayerNotificationContent(prayerKey, timeStr) {
-  const pObj = PRAYER_NAMES.find(p => p.key === prayerKey) || { en: prayerKey };
+  const pObj = PRAYER_NAMES.find(p => p.key === prayerKey) || { en: prayerKey, label: prayerKey };
   const englishName = pObj.en || (prayerKey === 'Luhr' ? 'Luhr' : prayerKey);
+  const malayalamName = pObj.label || prayerKey;
   const formattedTime = formatTo12Hour(timeStr);
   const city = getPrayerCityName();
 
   return {
     title: `${formattedTime} ${englishName}`,
-    body: `It's time for ${englishName} prayer in ${city}`,
+    body: `${malayalamName} നമസ്കാര സമയമായി 🕌 · It's time for ${englishName} prayer in ${city}`,
   };
 }
 
@@ -147,14 +162,14 @@ export function hasCachedLocation() {
 }
 
 /** Convert prayer time string (HH:MM) to today's Date object in LOCAL time */
-function prayerTimeToDate(timeStr) {
+export function prayerTimeToDate(timeStr) {
   if (!timeStr) return null;
   const [hours, minutes] = timeStr.split(':').map(Number);
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours || 0, minutes || 0, 0, 0);
 }
 
-/** Get user coordinates strictly via browser Geolocation API and identify city */
+/** Get user coordinates with cache check and non-blocking fallback */
 export async function getUserLocation(forcePrompt = false) {
   if (!forcePrompt) {
     try {
@@ -162,7 +177,6 @@ export async function getUserLocation(forcePrompt = false) {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed?.lat && parsed?.lon) {
-          // Identify city in background if not yet cached
           if (!localStorage.getItem(PRAYER_CITY_CACHE_KEY)) {
             fetchCityFromCoordinates(parsed.lat, parsed.lon).catch(() => { });
           }
@@ -173,45 +187,43 @@ export async function getUserLocation(forcePrompt = false) {
   }
 
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    throw new Error('Geolocation is not supported by your browser.');
+    console.warn('[Prayer Location]: Geolocation unsupported, using default Kerala coordinates.');
+    return DEFAULT_COORDS;
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
         try {
           localStorage.setItem(PRAYER_COORDS_CACHE_KEY, JSON.stringify(coords));
-          // Reverse geocode exact city from latitude & longitude
           await fetchCityFromCoordinates(coords.lat, coords.lon).catch(() => { });
         } catch { }
         resolve(coords);
       },
       (err) => {
-        let msg = 'Location permission is required to calculate prayer times.';
-        if (err.code === 1) {
-          msg = 'Location access denied. Please allow location access in your browser settings to view prayer times.';
-        } else if (err.code === 2) {
-          msg = 'Location unavailable. Please verify device GPS or network.';
-        } else if (err.code === 3) {
-          msg = 'Location request timed out. Please try again.';
+        console.warn('[Prayer Location]: Geolocation error/denied (' + err.message + '). Falling back to default.');
+        const cached = localStorage.getItem(PRAYER_COORDS_CACHE_KEY);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed?.lat && parsed?.lon) return resolve(parsed);
+          } catch { }
         }
-        reject(new Error(msg));
+        resolve(DEFAULT_COORDS);
       },
-      { timeout: 12000, enableHighAccuracy: false, maximumAge: 3600000 }
+      { timeout: 8000, enableHighAccuracy: false, maximumAge: 3600000 }
     );
   });
 }
 
-/** Fetch real prayer times from live Aladhan API with caching */
-async function fetchPrayerTimes(lat, lon) {
-  if (!lat || !lon) {
-    throw new Error('Valid location coordinates are required.');
-  }
+/** Fetch real prayer times from live Aladhan API with daily caching */
+export async function fetchPrayerTimes(lat, lon) {
+  const effectiveLat = lat || DEFAULT_COORDS.lat;
+  const effectiveLon = lon || DEFAULT_COORDS.lon;
 
-  // Ensure city is identified from lat & lon
   if (!localStorage.getItem(PRAYER_CITY_CACHE_KEY)) {
-    fetchCityFromCoordinates(lat, lon).catch(() => { });
+    fetchCityFromCoordinates(effectiveLat, effectiveLon).catch(() => { });
   }
 
   const today = getTodayStr();
@@ -221,22 +233,22 @@ async function fetchPrayerTimes(lat, lon) {
   if (cachedDate === today && cachedData) {
     try {
       const parsed = JSON.parse(cachedData);
-      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length >= 5) {
         return parsed;
       }
     } catch { }
   }
 
-  const url = `https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=${ALADHAN_METHOD}`;
+  const url = `https://api.aladhan.com/v1/timings?latitude=${effectiveLat}&longitude=${effectiveLon}&method=${ALADHAN_METHOD}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch prayer times from server.');
+  if (!res.ok) throw new Error('Failed to fetch prayer times from Aladhan API.');
   const json = await res.json();
 
   const timings = json?.data?.timings || {};
   const prayerMap = {};
   for (const p of PRAYER_NAMES) {
     const raw = timings[p.key] || (p.key === 'Luhr' || p.key === 'Dhuhr' ? (timings.Dhuhr || timings.Luhr) : '') || '';
-    prayerMap[p.key] = raw.replace(/\s*\(.*\)/, '').trim() || null;
+    prayerMap[p.key] = normalizeTimeStr(raw) || null;
   }
 
   try {
@@ -251,7 +263,6 @@ async function fetchPrayerTimes(lat, lon) {
 export async function showPrayerNotification(title, body, tag = 'prayer-notif') {
   if (typeof window === 'undefined' || typeof Notification === 'undefined') return false;
 
-  // Request permission if not already granted
   if (Notification.permission !== 'granted') {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') return false;
@@ -268,19 +279,20 @@ export async function showPrayerNotification(title, body, tag = 'prayer-notif') 
     data: { url: '/' },
   };
 
-  // 1. Try ServiceWorkerRegistration.showNotification (Mobile Android, PWA, Chrome)
+  // 1. ServiceWorkerRegistration.showNotification (PWA / Android / Chrome / iOS standalone)
   if ('serviceWorker' in navigator) {
     try {
-      let reg = await navigator.serviceWorker.getRegistration();
+      let reg = await navigator.serviceWorker.ready;
       if (!reg) {
-        reg = await navigator.serviceWorker.ready;
+        reg = await navigator.serviceWorker.getRegistration('/');
       }
       if (reg && typeof reg.showNotification === 'function') {
         await reg.showNotification(title, options);
+        console.log(`[Prayer Notif SW]: Displayed "${title}"`);
         return true;
       }
     } catch (err) {
-      console.warn('[Prayer Notif SW Fallback]:', err);
+      console.warn('[Prayer Notif SW Error]:', err);
     }
   }
 
@@ -288,6 +300,7 @@ export async function showPrayerNotification(title, body, tag = 'prayer-notif') 
   try {
     const notif = new Notification(title, options);
     setTimeout(() => notif.close(), 15000);
+    console.log(`[Prayer Notif Window]: Displayed "${title}"`);
     return true;
   } catch (err) {
     console.warn('[Prayer Notif Window Error]:', err);
@@ -298,6 +311,7 @@ export async function showPrayerNotification(title, body, tag = 'prayer-notif') 
 // In-memory active timeouts and heartbeat monitor
 let scheduledTimeouts = [];
 let heartbeatInterval = null;
+let activeListenersBound = false;
 
 /** Clear all active prayer timeouts and monitors */
 export function clearPrayerNotifications() {
@@ -309,18 +323,41 @@ export function clearPrayerNotifications() {
   }
 }
 
+/** Helper to get set of triggered prayer keys for today from localStorage */
+function getTriggeredPrayersToday() {
+  try {
+    const raw = localStorage.getItem(`${PRAYER_TRIGGERED_PREFIX}${getTodayStr()}`);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch { }
+  return new Set();
+}
+
+/** Record a prayer key as triggered today in localStorage */
+function markPrayerTriggeredToday(prayerKey) {
+  try {
+    const today = getTodayStr();
+    const set = getTriggeredPrayersToday();
+    set.add(prayerKey);
+    localStorage.setItem(`${PRAYER_TRIGGERED_PREFIX}${today}`, JSON.stringify([...set]));
+  } catch { }
+}
+
 /** Schedule a notification for a single prayer time */
 export function scheduleNotification(prayerKey, timeStr) {
   const prayerDate = prayerTimeToDate(timeStr);
   if (!prayerDate) return;
 
   const msUntilPrayer = prayerDate.getTime() - Date.now();
-  if (msUntilPrayer <= 0) return; // already passed today
+  if (msUntilPrayer <= 0) return; // already passed
 
   const { title, body } = buildPrayerNotificationContent(prayerKey, timeStr);
 
   const timeoutId = setTimeout(async () => {
-    await showPrayerNotification(title, body, `prayer-${prayerKey}-${getTodayStr()}`);
+    const triggered = getTriggeredPrayersToday();
+    if (!triggered.has(prayerKey)) {
+      markPrayerTriggeredToday(prayerKey);
+      await showPrayerNotification(title, body, `prayer-${prayerKey}-${getTodayStr()}`);
+    }
   }, msUntilPrayer);
 
   scheduledTimeouts.push(timeoutId);
@@ -328,12 +365,10 @@ export function scheduleNotification(prayerKey, timeStr) {
 }
 
 /**
- * Start heartbeat monitor to trigger notifications for ALL prayer times
+ * Robust heartbeat monitor: Checks every 15s, catches missed prayer windows (15 min), and handles day rollover
  */
 function startPrayerHeartbeat(prayerMap) {
   if (heartbeatInterval) clearInterval(heartbeatInterval);
-
-  const triggeredToday = new Set();
 
   heartbeatInterval = setInterval(async () => {
     if (!isPrayerNotifEnabled()) {
@@ -341,27 +376,74 @@ function startPrayerHeartbeat(prayerMap) {
       return;
     }
 
-    const now = new Date();
-    const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const todayStr = getTodayStr();
+    const cachedDate = localStorage.getItem(PRAYER_TIMES_CACHE_DATE_KEY);
+
+    // Day rollover: automatically re-initialize for the new day
+    if (cachedDate && cachedDate !== todayStr) {
+      console.log('[Prayer Notif]: Day rollover detected. Re-initializing for today...');
+      clearPrayerTimesCache();
+      initPrayerTimeNotifications(false, false).catch(() => { });
+      return;
+    }
+
+    const now = new Date();
+    const nowMs = now.getTime();
+    const triggeredSet = getTriggeredPrayersToday();
 
     for (const { key } of PRAYER_NAMES) {
       const pTime = prayerMap[key];
-      const trigKey = `${key}-${todayStr}-${pTime}`;
+      if (!pTime || triggeredSet.has(key)) continue;
 
-      if (pTime && pTime === currentHHMM && !triggeredToday.has(trigKey)) {
-        triggeredToday.add(trigKey);
+      const pDate = prayerTimeToDate(pTime);
+      if (!pDate) continue;
+
+      const diffMs = nowMs - pDate.getTime();
+
+      // Trigger if current time is within [prayerTime, prayerTime + 15 minutes]
+      if (diffMs >= 0 && diffMs <= 15 * 60 * 1000) {
+        markPrayerTriggeredToday(key);
         const { title, body } = buildPrayerNotificationContent(key, pTime);
         await showPrayerNotification(title, body, `prayer-${key}-${todayStr}`);
       }
     }
-  }, 15000); // Check every 15 seconds
+  }, 15000);
+
+  // Bind visibility and focus event listeners once
+  if (!activeListenersBound && typeof window !== 'undefined') {
+    activeListenersBound = true;
+    const recheckHandler = () => {
+      if (isPrayerNotifEnabled()) {
+        const cached = getCachedPrayerTimes();
+        if (cached) {
+          const nowMs = Date.now();
+          const triggeredSet = getTriggeredPrayersToday();
+          for (const { key } of PRAYER_NAMES) {
+            const pTime = cached[key];
+            if (!pTime || triggeredSet.has(key)) continue;
+            const pDate = prayerTimeToDate(pTime);
+            if (pDate && nowMs >= pDate.getTime() && nowMs - pDate.getTime() <= 15 * 60 * 1000) {
+              markPrayerTriggeredToday(key);
+              const { title, body } = buildPrayerNotificationContent(key, pTime);
+              showPrayerNotification(title, body, `prayer-${key}-${getTodayStr()}`);
+            }
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') recheckHandler();
+    });
+    window.addEventListener('focus', recheckHandler);
+  }
 }
 
 /**
- * Initialize prayer time notifications for ALL prayer times today.
+ * Initialize prayer time notifications for ALL daily prayers.
+ * Non-blocking by default (uses cached coords on startup).
  */
-export async function initPrayerTimeNotifications(sendWelcomeNotice = false) {
+export async function initPrayerTimeNotifications(sendWelcomeNotice = false, forcePrompt = false) {
   clearPrayerNotifications();
 
   if (typeof window === 'undefined' || typeof Notification === 'undefined') {
@@ -376,7 +458,7 @@ export async function initPrayerTimeNotifications(sendWelcomeNotice = false) {
     }
   }
 
-  const { lat, lon } = await getUserLocation(true);
+  const { lat, lon } = await getUserLocation(forcePrompt);
   const prayerMap = await fetchPrayerTimes(lat, lon);
 
   // Schedule future prayer times for ALL 5 prayers
@@ -398,11 +480,12 @@ export async function initPrayerTimeNotifications(sendWelcomeNotice = false) {
     const nextTime = nextPrayer ? prayerMap[nextPrayer.key] : '05:12';
     const nextFormatted = formatTo12Hour(nextTime);
     const englishName = nextPrayer?.en || 'Fajr';
+    const malayalamName = nextPrayer?.label || 'ഫജ്ർ';
     const city = getPrayerCityName();
 
     await showPrayerNotification(
       `${nextFormatted} ${englishName}`,
-      `It's time for ${englishName} prayer in ${city}`,
+      `നമസ്കാര അറിയിപ്പുകൾ പ്രവർത്തനക്ഷമമാക്കി (${city}) 🕌 · ${malayalamName} അടുത്തുതന്നെ`,
       'prayer-welcome'
     );
   }
@@ -416,18 +499,41 @@ export function isPrayerNotifEnabled() {
   return localStorage.getItem(PRAYER_TIME_KEY) === 'true';
 }
 
-/** Enable prayer time notifications */
-export async function enablePrayerNotifications() {
+/**
+ * Enable prayer notifications:
+ * 1. Activates client-side precision timers & heartbeat.
+ * 2. Seamlessly subscribes to server Web Push so notifications are delivered even when the app is completely closed.
+ */
+export async function enablePrayerNotifications(token = null) {
   clearPrayerTimesCache();
-  const prayerMap = await initPrayerTimeNotifications(true);
+  const prayerMap = await initPrayerTimeNotifications(true, true);
   localStorage.setItem(PRAYER_TIME_KEY, 'true');
+
+  // Register with backend Web Push for closed-app delivery
+  try {
+    const coords = await getUserLocation(false);
+    const city = getPrayerCityName();
+    await subscribeUserToPush(token, {
+      prayerNotifEnabled: true,
+      location: { lat: coords.lat, lon: coords.lon, city },
+    });
+    console.log('[Prayer Notif]: Web Push background subscription registered for closed app delivery.');
+  } catch (err) {
+    console.warn('[Prayer Notif Web Push Setup Warn]:', err?.message || err);
+  }
+
   return prayerMap;
 }
 
 /** Disable prayer time notifications */
-export function disablePrayerNotifications() {
+export async function disablePrayerNotifications(token = null) {
   clearPrayerNotifications();
   try { localStorage.setItem(PRAYER_TIME_KEY, 'false'); } catch { }
+
+  // Update backend preferences
+  try {
+    await updatePushPreferences(token, { prayerNotifEnabled: false });
+  } catch { }
 }
 
 /** Get cached prayer times for today (if available) */
@@ -449,4 +555,10 @@ export function getCachedPrayerTimes() {
 export async function fetchAndCachePrayerTimes(forcePrompt = false) {
   const { lat, lon } = await getUserLocation(forcePrompt);
   return fetchPrayerTimes(lat, lon);
+}
+
+/** Send immediate test prayer alert */
+export async function sendTestPrayerNotification(prayerKey = 'Asr', timeStr = '15:37') {
+  const { title, body } = buildPrayerNotificationContent(prayerKey, timeStr);
+  return showPrayerNotification(title, body, `prayer-test-${Date.now()}`);
 }

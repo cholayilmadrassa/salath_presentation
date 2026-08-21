@@ -20,6 +20,23 @@ export function requireAuth(req, res, next) {
 }
 
 /**
+ * Optional authentication middleware - populates req.user if token is present and valid
+ */
+export function optionalAuth(req, _res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return next();
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = payload;
+  } catch {
+    // Continue without req.user
+  }
+  next();
+}
+
+/**
  * Require specific user role(s)
  */
 export function requireRole(...roles) {

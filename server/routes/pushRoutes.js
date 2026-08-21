@@ -2,7 +2,7 @@ import express from 'express';
 import PushSubscription from '../models/PushSubscription.js';
 import NotificationHistory from '../models/NotificationHistory.js';
 import User from '../models/User.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { VAPID_PUBLIC_KEY } from '../config.js';
 
 const router = express.Router();
@@ -17,19 +17,23 @@ router.get('/debug', async (req, res) => {
   try {
     const totalSubs = await PushSubscription.countDocuments();
     const activeSubs = await PushSubscription.countDocuments({ enabled: true });
+    const prayerSubs = await PushSubscription.countDocuments({ enabled: true, prayerNotifEnabled: { $ne: false } });
     const sampleSubs = await PushSubscription.find()
       .limit(5)
-      .select('endpoint enabled failureCount createdAt lastSuccessAt userAgent');
+      .select('endpoint enabled prayerNotifEnabled location failureCount createdAt lastSuccessAt userAgent');
 
     res.json({
       vapidPublicKeyConfigured: !!VAPID_PUBLIC_KEY,
       vapidPublicKeyPrefix: VAPID_PUBLIC_KEY ? VAPID_PUBLIC_KEY.slice(0, 15) + '...' : 'NONE',
       totalSubscriptionsInDB: totalSubs,
       activeSubscriptionsInDB: activeSubs,
+      activePrayerSubscribers: prayerSubs,
       sampleEndpoints: sampleSubs.map((s) => ({
         id: s._id,
         host: new URL(s.endpoint).hostname,
         enabled: s.enabled,
+        prayerNotifEnabled: s.prayerNotifEnabled,
+        city: s.location?.city || 'Kozhikode',
         failureCount: s.failureCount,
         lastSuccessAt: s.lastSuccessAt,
       })),
@@ -39,43 +43,57 @@ router.get('/debug', async (req, res) => {
   }
 });
 
-// All endpoints below require authentication
-router.use(requireAuth);
-
-// POST /api/push/subscribe - Register or update a Web Push device subscription
-router.post('/subscribe', async (req, res) => {
+// POST /api/push/subscribe - Register or update a Web Push device subscription (with optional auth)
+router.post('/subscribe', optionalAuth, async (req, res) => {
   try {
-    const { endpoint, keys, userAgent } = req.body;
+    const { endpoint, keys, userAgent, prayerNotifEnabled = true, location } = req.body;
 
     if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
       return res.status(400).json({ error: 'Invalid push subscription payload (missing endpoint or keys)' });
     }
 
-    const userId = req.user.userId;
-    const dbUser = await User.findById(userId);
-    const tenantId = req.tenant ? req.tenant._id : (dbUser?.tenantId || req.user.tenantId || null);
+    const userId = req.user?.userId || null;
+    let tenantId = null;
+    if (req.tenant) {
+      tenantId = req.tenant._id;
+    } else if (userId) {
+      const dbUser = await User.findById(userId);
+      tenantId = dbUser?.tenantId || req.user?.tenantId || null;
+    }
+
+    const updateDoc = {
+      endpoint,
+      keys: {
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      },
+      userAgent: userAgent || req.headers['user-agent'] || '',
+      enabled: true,
+      prayerNotifEnabled: prayerNotifEnabled !== false,
+      failureCount: 0,
+      lastSuccessAt: new Date(),
+    };
+
+    if (userId) updateDoc.userId = userId;
+    if (tenantId) updateDoc.tenantId = tenantId;
+    if (location && typeof location === 'object') {
+      updateDoc.location = {
+        lat: Number(location.lat) || 11.2588,
+        lon: Number(location.lon) || 75.7804,
+        city: String(location.city || 'Kozhikode').trim(),
+      };
+    }
 
     const subscription = await PushSubscription.findOneAndUpdate(
       { endpoint },
-      {
-        userId,
-        tenantId,
-        endpoint,
-        keys: {
-          p256dh: keys.p256dh,
-          auth: keys.auth,
-        },
-        userAgent: userAgent || req.headers['user-agent'] || '',
-        enabled: true,
-        failureCount: 0,
-        lastSuccessAt: new Date(),
-      },
+      { $set: updateDoc },
       { upsert: true, new: true }
     );
 
     res.status(201).json({
       message: 'Push notification subscription saved successfully',
       subscriptionId: subscription._id,
+      prayerNotifEnabled: subscription.prayerNotifEnabled,
     });
   } catch (err) {
     console.error('[PUSH SUBSCRIBE ERROR]:', err);
@@ -83,15 +101,53 @@ router.post('/subscribe', async (req, res) => {
   }
 });
 
+// PATCH /api/push/preferences - Update prayer notification or push preference for device
+router.patch('/preferences', optionalAuth, async (req, res) => {
+  try {
+    const { endpoint, prayerNotifEnabled, enabled } = req.body;
+    if (!endpoint) {
+      return res.status(400).json({ error: 'Endpoint is required to update preferences' });
+    }
+
+    const updateFields = {};
+    if (typeof prayerNotifEnabled === 'boolean') updateFields.prayerNotifEnabled = prayerNotifEnabled;
+    if (typeof enabled === 'boolean') updateFields.enabled = enabled;
+
+    const sub = await PushSubscription.findOneAndUpdate(
+      { endpoint },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!sub) {
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    res.json({
+      message: 'Preferences updated successfully',
+      prayerNotifEnabled: sub.prayerNotifEnabled,
+      enabled: sub.enabled,
+    });
+  } catch (err) {
+    console.error('[PUSH PREFERENCES ERROR]:', err);
+    res.status(500).json({ error: 'Server error updating push preferences' });
+  }
+});
+
 // DELETE /api/push/unsubscribe - Unsubscribe/Disable device endpoint
-router.delete('/unsubscribe', async (req, res) => {
+router.delete('/unsubscribe', optionalAuth, async (req, res) => {
   try {
     const { endpoint } = req.body;
     if (!endpoint) {
       return res.status(400).json({ error: 'Endpoint is required to unsubscribe' });
     }
 
-    await PushSubscription.deleteOne({ endpoint, userId: req.user.userId });
+    const filter = { endpoint };
+    if (req.user?.userId) {
+      filter.userId = req.user.userId;
+    }
+
+    await PushSubscription.deleteOne(filter);
 
     res.json({ message: 'Push subscription removed successfully' });
   } catch (err) {
@@ -101,27 +157,38 @@ router.delete('/unsubscribe', async (req, res) => {
 });
 
 // GET /api/push/status - Check if current endpoint/user is subscribed
-router.get('/status', async (req, res) => {
+router.get('/status', optionalAuth, async (req, res) => {
   try {
     const endpoint = req.query.endpoint;
     let isSubscribed = false;
+    let prayerNotifEnabled = true;
 
     if (endpoint) {
-      const existing = await PushSubscription.findOne({ endpoint, userId: req.user.userId, enabled: true });
+      const existing = await PushSubscription.findOne({ endpoint, enabled: true });
       isSubscribed = !!existing;
-    } else {
-      const count = await PushSubscription.countDocuments({ userId: req.user.userId, enabled: true });
-      isSubscribed = count > 0;
+      if (existing) {
+        prayerNotifEnabled = existing.prayerNotifEnabled !== false;
+      }
+    } else if (req.user?.userId) {
+      const existing = await PushSubscription.findOne({ userId: req.user.userId, enabled: true });
+      isSubscribed = !!existing;
+      if (existing) {
+        prayerNotifEnabled = existing.prayerNotifEnabled !== false;
+      }
     }
 
     res.json({
       isSubscribed,
+      prayerNotifEnabled,
     });
   } catch (err) {
     console.error('[PUSH STATUS ERROR]:', err);
     res.status(500).json({ error: 'Server error checking push status' });
   }
 });
+
+// All endpoints below require authentication
+router.use(requireAuth);
 
 // GET /api/notifications/inbox - Fetch user notification inbox feed with read/unread status
 router.get('/inbox', async (req, res) => {
@@ -131,6 +198,7 @@ router.get('/inbox', async (req, res) => {
 
     const filter = {
       status: { $in: ['sent', 'partially_failed'] },
+      category: { $ne: 'prayer_time' },
     };
 
     if (tenantId) {

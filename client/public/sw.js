@@ -95,10 +95,13 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || 'ക്ലിക്ക് ചെയ്ത് കൂടുതൽ അറിയാം',
     icon: data.icon || '/appLogo.png',
-    badge: '/appLogo.png',
-    vibrate: [100, 50, 100],
+    badge: data.badge || '/appLogo.png',
+    vibrate: data.vibrate || [300, 150, 300, 150, 400],
+    tag: data.tag || undefined,
+    renotify: data.renotify ?? true,
+    requireInteraction: data.requireInteraction ?? true,
     data: {
-      url: data.url || '/dashboard',
+      url: data.url || '/',
       timestamp: Date.now(),
     },
   };

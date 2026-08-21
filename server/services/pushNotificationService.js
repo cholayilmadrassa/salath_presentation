@@ -258,3 +258,140 @@ export async function processDueNotifications() {
     console.error('[PUSH SERVICE]: Scheduled processing error:', err);
   }
 }
+
+/**
+ * Islamic prayer configuration for background server push
+ */
+const PRAYER_NAMES = [
+  { key: 'Fajr', label: 'ഫജ്ർ', en: 'Fajr' },
+  { key: 'Luhr', label: 'ളുഹ്ർ', en: 'Luhr' },
+  { key: 'Asr', label: 'അസ്ർ', en: 'Asr' },
+  { key: 'Maghrib', label: 'മഗ്‌രിബ്', en: 'Maghrib' },
+  { key: 'Isha', label: 'ഇശാഅ്', en: 'Isha' },
+];
+
+function formatTo12Hour(timeStr) {
+  if (!timeStr) return '';
+  const [hStr, mStr] = timeStr.split(':');
+  let h = parseInt(hStr, 10);
+  const m = mStr ? mStr.slice(0, 2) : '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12;
+  return `${h}:${m} ${ampm}`;
+}
+
+let serverPrayerTimesCache = {
+  date: null,
+  timings: null,
+};
+
+const triggeredPrayersForToday = new Set();
+let lastTriggeredDate = '';
+
+export async function fetchServerPrayerTimes(lat = 11.2588, lon = 75.7804) {
+  const now = new Date();
+  const istDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+
+  if (serverPrayerTimesCache.date === istDateStr && serverPrayerTimesCache.timings) {
+    return serverPrayerTimesCache.timings;
+  }
+
+  try {
+    const url = `https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=1`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Aladhan API HTTP ${res.status}`);
+    const json = await res.json();
+    const timings = json?.data?.timings || {};
+
+    const prayerMap = {};
+    for (const p of PRAYER_NAMES) {
+      const raw = timings[p.key] || (p.key === 'Luhr' || p.key === 'Dhuhr' ? (timings.Dhuhr || timings.Luhr) : '') || '';
+      const clean = raw.replace(/\s*\(.*\)/, '').trim();
+      if (clean.includes(':')) {
+        const parts = clean.split(':');
+        prayerMap[p.key] = `${parts[0].padStart(2, '0')}:${parts[1].slice(0, 2).padStart(2, '0')}`;
+      } else {
+        prayerMap[p.key] = clean || null;
+      }
+    }
+
+    serverPrayerTimesCache = {
+      date: istDateStr,
+      timings: prayerMap,
+    };
+    console.log(`[PRAYER WORKER]: 🕌 Cached live prayer times for ${istDateStr} (Kerala/IST):`, prayerMap);
+    return prayerMap;
+  } catch (err) {
+    console.error('[PRAYER WORKER]: Failed to fetch live prayer times:', err.message);
+    return serverPrayerTimesCache.timings || null;
+  }
+}
+
+/**
+ * Check if current time in IST matches any prayer time and broadcast Web Push to all devices
+ * Runs even when the app is fully closed and the phone is locked.
+ */
+export async function checkAndTriggerPrayerTimes() {
+  try {
+    const now = new Date();
+    const istDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+    const istTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const currentHHMM = istTimeFormatter.format(now);
+
+    // Reset cache if date changed
+    if (lastTriggeredDate !== istDateStr) {
+      triggeredPrayersForToday.clear();
+      lastTriggeredDate = istDateStr;
+    }
+
+    const timings = await fetchServerPrayerTimes();
+    if (!timings) return;
+
+    for (const { key, label, en } of PRAYER_NAMES) {
+      const pTime = timings[key];
+      const trigKey = `${istDateStr}-${key}-${pTime}`;
+
+      if (pTime && pTime === currentHHMM && !triggeredPrayersForToday.has(trigKey)) {
+        triggeredPrayersForToday.add(trigKey);
+        const formatted12h = formatTo12Hour(pTime);
+        const englishName = en || (key === 'Luhr' ? 'Luhr' : key);
+
+        console.log(`[PRAYER WORKER]: 🕌 Current time matches ${englishName} (${pTime} IST). Dispatching push to devices...`);
+
+        // Find all active subscribers who have prayer notifications enabled
+        const subscriptions = await PushSubscription.find({
+          enabled: true,
+          prayerNotifEnabled: { $ne: false },
+        });
+
+        if (subscriptions.length === 0) {
+          console.log('[PRAYER WORKER]: No active prayer push subscribers found.');
+          continue;
+        }
+
+        const payload = {
+          title: `${formatted12h} ${englishName}`,
+          body: `${label} നമസ്കാര സമയമായി 🕌 · It's time for ${englishName} prayer`,
+          url: '/?prayer=' + key,
+          icon: '/appLogo.png',
+          badge: '/appLogo.png',
+          tag: `prayer-${key}-${istDateStr}`,
+          renotify: true,
+          requireInteraction: true,
+          category: 'prayer_time',
+        };
+
+        const result = await sendPushToSubscriptions(subscriptions, payload);
+        console.log(`[PRAYER WORKER]: 🕌 Dispatched ${englishName} prayer push. Attempted: ${result.attempted}, Success: ${result.success}, Failed: ${result.failure}`);
+      }
+    }
+  } catch (err) {
+    console.error('[PRAYER WORKER]: Error during prayer time check:', err);
+  }
+}

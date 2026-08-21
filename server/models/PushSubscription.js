@@ -5,7 +5,7 @@ const pushSubscriptionSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
       index: true,
     },
     tenantId: {
@@ -27,6 +27,16 @@ const pushSubscriptionSchema = new mongoose.Schema(
     userAgent: {
       type: String,
       default: '',
+    },
+    prayerNotifEnabled: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    location: {
+      lat: { type: Number, default: 11.2588 },
+      lon: { type: Number, default: 75.7804 },
+      city: { type: String, default: 'Kozhikode' },
     },
     enabled: {
       type: Boolean,
