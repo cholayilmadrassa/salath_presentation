@@ -215,6 +215,60 @@ export default function AdminPanel() {
     }
   };
 
+  const handleToggleSubmission = async (mode, cutoffIso) => {
+    setError('');
+    setSaveSuccess('');
+    try {
+      const currentSettings = tenant?.settings || {};
+      let updatedSettings = {};
+
+      if (mode === 'open') {
+        // Resume submissions indefinitely
+        updatedSettings = {
+          ...currentSettings,
+          allowAddSwalath: true,
+          submissionCutoff: null,
+        };
+      } else if (mode === 'immediately') {
+        // Stop immediately
+        updatedSettings = {
+          ...currentSettings,
+          allowAddSwalath: false,
+          submissionCutoff: null,
+        };
+      } else if (mode === 'schedule') {
+        // Schedule cutoff
+        updatedSettings = {
+          ...currentSettings,
+          allowAddSwalath: true,
+          submissionCutoff: cutoffIso,
+        };
+      }
+
+      const res = await api('/admin/me/tenant', {
+        method: 'PATCH',
+        token,
+        body: { settings: updatedSettings },
+      });
+
+      if (res && res.tenant) {
+        setTenant(res.tenant);
+      }
+
+      if (mode === 'open') {
+        setSaveSuccess('Swalath submissions re-enabled successfully!');
+      } else if (mode === 'immediately') {
+        setSaveSuccess('Swalath submissions stopped immediately.');
+      } else if (mode === 'schedule') {
+        setSaveSuccess('Submission cutoff deadline scheduled successfully!');
+      }
+      setTimeout(() => setSaveSuccess(''), 4000);
+    } catch (err) {
+      setError(err.message || 'Failed to update submission settings');
+      throw err;
+    }
+  };
+
   const handleUpdateSwalath = async (e) => {
     e.preventDefault();
     setError('');
@@ -612,6 +666,7 @@ export default function AdminPanel() {
             error={error}
             tenant={tenant}
             onToggleMultipleAccounts={handleToggleMultipleAccounts}
+            onToggleSubmission={handleToggleSubmission}
           />
         </TabsContent>
 

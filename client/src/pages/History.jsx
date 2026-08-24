@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
 import { incrementCachedTotalSwalath } from '../utils/swalathCache.js';
+import { getSubmissionStatus } from '../utils/submissionStatus.js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -49,6 +50,7 @@ export default function HistoryPage() {
   const { token, user } = useAuth();
   const { activeTenant } = useTenant();
   const navigate = useNavigate();
+  const submissionStatus = getSubmissionStatus(activeTenant);
   const [calendarDays] = useState(getCalendarDays());
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [dayData, setDayData] = useState({ date: todayKey(), dayTotal: 0, entries: [] });
@@ -246,13 +248,19 @@ export default function HistoryPage() {
             <CardContent className="p-6 text-center space-y-2">
               <Calendar className="w-8 h-8 text-muted-foreground/40 mx-auto" />
               <p className="text-xs font-bold text-foreground">No entries recorded for this date.</p>
-              <p className="text-[11px] text-muted-foreground">Go to dashboard to record new Swalathcount!</p>
-              <Button asChild size="sm" className="mt-2">
-                <Link to="/dashboard">
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  <span>Add Swalath Count</span>
-                </Link>
-              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                {submissionStatus.isClosed
+                  ? 'ഈ തീയതിയിൽ രേഖപ്പെടുത്തിയ സ്വലാത്ത് വിവരങ്ങൾ ലഭ്യമല്ല.'
+                  : 'Go to counter to record new Swalath count!'}
+              </p>
+              {!submissionStatus.isClosed && (
+                <Button asChild size="sm" className="mt-2">
+                  <Link to="/counter">
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    <span>Add Swalath Count</span>
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (

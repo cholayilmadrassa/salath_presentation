@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
-import { Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch.jsx';
+import { Users, Clock, CalendarClock, Ban, CheckCircle2, Play, Sparkles, AlertTriangle } from 'lucide-react';
+import { getSubmissionStatus } from '../utils/submissionStatus.js';
+import StopSubmissionModal from './StopSubmissionModal.jsx';
 
 export default function AdminBrandingTab({
   brandingForm,
@@ -14,21 +19,187 @@ export default function AdminBrandingTab({
   error = '',
   tenant = null,
   onToggleMultipleAccounts = null,
+  onToggleSubmission = null,
 }) {
   const allowMultipleAccounts = tenant?.settings?.allowMultipleAccounts === true;
+  const submissionStatus = getSubmissionStatus(tenant);
+
+  const [showStopModal, setShowStopModal] = useState(false);
+
+  const handleMasterToggleClick = () => {
+    // If currently open or scheduled, clicking toggle initiates the stop flow (opens modal)
+    if (submissionStatus.isOpen) {
+      setShowStopModal(true);
+    } else {
+      // If currently closed, clicking toggle resumes/turns ON immediately
+      if (onToggleSubmission) {
+        onToggleSubmission('open', null);
+      }
+    }
+  };
+
+  const handleConfirmStop = async (mode, cutoffIso) => {
+    if (onToggleSubmission) {
+      await onToggleSubmission(mode, cutoffIso);
+    }
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 font-sans">
       {/* ── Event Settings Card ── */}
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <h2 className="text-base font-extrabold text-foreground">Event Settings</h2>
+      <Card className="border border-border shadow-xs">
+        <CardContent className="p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div>
+              <h2 className="text-base font-extrabold text-foreground">
+                Event Settings (ക്യാമ്പയിൻ ക്രമീകരണങ്ങൾ)
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Manage participant submissions and multi-account permissions.
+              </p>
+            </div>
+          </div>
 
-          {/* Allow Multiple Accounts Toggle */}
-          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/10">
+          {/* ══════════ 1. ALLOW ADDING SWALATH TOGGLE & SCHEDULE ══════════ */}
+          <div className="space-y-3 p-4 sm:p-5 rounded-2xl border border-border bg-card/60 shadow-xs">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-xs ${
+                    submissionStatus.status === 'open'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                      : submissionStatus.status === 'scheduled'
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-destructive/15 text-destructive'
+                  }`}
+                >
+                  {submissionStatus.status === 'open' ? (
+                    <CheckCircle2 className="w-5 h-5" />
+                  ) : submissionStatus.status === 'scheduled' ? (
+                    <CalendarClock className="w-5 h-5 animate-pulse" />
+                  ) : (
+                    <Ban className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-extrabold text-foreground">
+                      Allow Adding Swalath (സ്വലാത്ത് സമർപ്പണം)
+                    </p>
+                    {submissionStatus.status === 'open' && (
+                      <Badge variant="success" className="text-[10px] font-mono font-bold">
+                        OPEN
+                      </Badge>
+                    )}
+                    {submissionStatus.status === 'scheduled' && (
+                      <Badge variant="warning" className="text-[10px] font-mono font-bold">
+                        SCHEDULED
+                      </Badge>
+                    )}
+                    {submissionStatus.isClosed && (
+                      <Badge variant="destructive" className="text-[10px] font-mono font-bold">
+                        CLOSED
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                    Default is turned ON. Turn OFF to stop immediately or schedule a cutoff date and time.
+                  </p>
+                </div>
+              </div>
+
+              {/* Master Toggle Switch Button */}
+              <div className="shrink-0">
+                <Switch
+                  checked={submissionStatus.isOpen}
+                  onCheckedChange={handleMasterToggleClick}
+                  size="lg"
+                  showLabels={true}
+                  ariaLabel="Toggle allow adding swalath"
+                />
+              </div>
+            </div>
+
+            {/* Status Details / Schedule Panel */}
+            {submissionStatus.status === 'scheduled' && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2 animate-slide-down">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <span>Cutoff Scheduled: {submissionStatus.formattedCutoff}</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-300">
+                    {submissionStatus.timeRemaining.days}d {submissionStatus.timeRemaining.hours}h {submissionStatus.timeRemaining.minutes}m left
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  നിശ്ചയിച്ച സമയം വരെ ഉപയോക്താക്കൾക്ക് സ്വലാത്ത് രേഖപ്പെടുത്താം. ഹോം പേജിൽ ലൈവ് കൗണ്ട്ഡൗൺ പ്രദർശിപ്പിക്കുന്നുണ്ട്.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowStopModal(true)}
+                    className="text-xs h-8 rounded-xl font-bold border-amber-500/40"
+                  >
+                    Edit Schedule
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onToggleSubmission && onToggleSubmission('immediately', null)}
+                    className="text-xs h-8 rounded-xl font-bold"
+                  >
+                    Stop Immediately
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onToggleSubmission && onToggleSubmission('open', null)}
+                    className="text-xs h-8 rounded-xl font-bold text-primary"
+                  >
+                    Remove Cutoff (Keep Open)
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {submissionStatus.isClosed && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/25 text-xs space-y-1.5 animate-slide-down">
+                <p className="font-extrabold text-destructive flex items-center gap-1.5">
+                  <Ban className="w-4 h-4" />
+                  <span>
+                    {submissionStatus.reason === 'cutoff_reached'
+                      ? `സമയപരിധി (${submissionStatus.formattedCutoff}) പൂർത്തിയായതിനാൽ സ്വലാത്ത് സമർപ്പണം അവസാനിച്ചു.`
+                      : 'സ്വലാത്ത് സമർപ്പണം അഡ്മിൻ നിർത്തിവെച്ചിരിക്കുന്നു.'}
+                  </span>
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  ഉപയോക്താക്കൾക്ക് പുതിയ സ്വലാത്ത് രേഖപ്പെടുത്താൻ സാധിക്കില്ല. വീണ്ടും അനുവദിക്കാൻ താഴെ കാണുന്ന ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.
+                </p>
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => onToggleSubmission && onToggleSubmission('open', null)}
+                    className="text-xs h-8 rounded-xl font-bold bg-primary text-primary-foreground"
+                  >
+                    <Play className="w-3.5 h-3.5 mr-1" />
+                    <span>Re-enable Submissions (വീണ്ടും ആരംഭിക്കുക)</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ══════════ 2. ALLOW MULTIPLE ACCOUNTS TOGGLE ══════════ */}
+          <div className="flex items-center justify-between p-4 sm:p-5 rounded-2xl border border-border bg-card/60 shadow-xs">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5 shrink-0">
-                <Users className="w-4 h-4 text-primary" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mt-0.5 shrink-0 shadow-xs">
+                <Users className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-extrabold text-foreground">Allow Multiple Accounts</p>
@@ -37,29 +208,26 @@ export default function AdminBrandingTab({
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => onToggleMultipleAccounts && onToggleMultipleAccounts(!allowMultipleAccounts)}
-              className={`relative shrink-0 ml-3 w-11 h-6 rounded-full transition-colors focus:outline-none ${
-                allowMultipleAccounts ? 'bg-primary' : 'bg-muted border border-border'
-              }`}
-              aria-label="Toggle multiple accounts"
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                  allowMultipleAccounts ? 'translate-x-5' : 'translate-x-0'
-                }`}
+            <div className="shrink-0">
+              <Switch
+                checked={allowMultipleAccounts}
+                onCheckedChange={(val) => onToggleMultipleAccounts && onToggleMultipleAccounts(val)}
+                size="lg"
+                showLabels={true}
+                ariaLabel="Toggle multiple accounts"
               />
-            </button>
+            </div>
           </div>
-
-          <p className="text-[11px] text-muted-foreground px-1">
-            Status: <span className={`font-bold ${allowMultipleAccounts ? 'text-green-600' : 'text-muted-foreground'}`}>
-              {allowMultipleAccounts ? 'Enabled — Users can make multiple accounts' : 'Disabled — One account per phone number'}
-            </span>
-          </p>
         </CardContent>
       </Card>
+
+      {/* Stop Submission Modal */}
+      <StopSubmissionModal
+        open={showStopModal}
+        onOpenChange={setShowStopModal}
+        onConfirm={handleConfirmStop}
+        currentCutoff={tenant?.settings?.submissionCutoff || null}
+      />
 
       {/* ── Branding Card ── */}
       <Card>

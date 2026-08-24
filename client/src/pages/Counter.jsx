@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
 import { incrementCachedTotalSwalath } from '../utils/swalathCache.js';
+import { getSubmissionStatus } from '../utils/submissionStatus.js';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -15,13 +16,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { RotateCcw, Save, ArrowLeft, Sparkles, AlertTriangle, UserCheck, Bell } from 'lucide-react';
+import { RotateCcw, Save, ArrowLeft, Sparkles, AlertTriangle, UserCheck, Bell, Lock, Ban } from 'lucide-react';
 import { salathCountSchema } from '../schemas/validationSchemas.js';
 
 export default function Counter() {
   const { token, user, login } = useAuth();
   const { activeTenant } = useTenant();
   const navigate = useNavigate();
+
+  const submissionStatus = getSubmissionStatus(activeTenant);
 
   useEffect(() => {
     if (!token || !user) {
@@ -88,6 +91,14 @@ export default function Counter() {
   };
 
   const increment = () => {
+    if (submissionStatus.isClosed) {
+      setError(
+        submissionStatus.reason === 'cutoff_reached'
+          ? `സമയപരിധി (${submissionStatus.formattedCutoff}) പൂർത്തിയായതിനാൽ സ്വലാത്ത് സമർപ്പണം അവസാനിച്ചിരിക്കുന്നു.`
+          : 'സ്വലാത്ത് സമർപ്പണം അഡ്മിൻ നിർത്തിവെച്ചിരിക്കുന്നു. പുതിയ സ്വലാത്തുകൾ രേഖപ്പെടുത്താൻ സാധിക്കില്ല.'
+      );
+      return;
+    }
     if (isAdmin && !isRegisteredMember) {
       setError('Admins must register as a campaign member before adding Swalath counts.');
       return;
@@ -117,6 +128,10 @@ export default function Counter() {
   };
 
   const submitAsEntry = async () => {
+    if (submissionStatus.isClosed) {
+      setError('സ്വലാത്ത് സമർപ്പണ സമയപരിധി അവസാനിച്ചിരിക്കുന്നു.');
+      return;
+    }
     if (isAdmin && !isRegisteredMember) {
       setError('Admins must register as a campaign member before adding Swalath counts.');
       return;
@@ -204,37 +219,71 @@ export default function Counter() {
         </div>
 
         {/* Reset & Save Buttons */}
-        <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/20">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={openResetModal}
-            disabled={count === 0}
-            className="border border-white/20 text-white hover:bg-white/20 font-bold"
-          >
-            <RotateCcw className="w-4 h-4 mr-1.5" />
-            <span>Reset</span>
-          </Button>
+        {!submissionStatus.isClosed && (
+          <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/20">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={openResetModal}
+              disabled={count === 0}
+              className="border border-white/20 text-white hover:bg-white/20 font-bold"
+            >
+              <RotateCcw className="w-4 h-4 mr-1.5" />
+              <span>Reset</span>
+            </Button>
 
-          <Button
-            type="button"
-            variant="gold"
-            onClick={submitAsEntry}
-            disabled={loading || count === 0 || (isAdmin && !isRegisteredMember)}
-            className="font-bold"
-          >
-            <Save className="w-4 h-4 mr-1.5" />
-            <span>{loading ? 'Saving...' : 'Save Count'}</span>
-          </Button>
-        </div>
+            <Button
+              type="button"
+              variant="gold"
+              onClick={submitAsEntry}
+              disabled={loading || count === 0 || (isAdmin && !isRegisteredMember)}
+              className="font-bold"
+            >
+              <Save className="w-4 h-4 mr-1.5" />
+              <span>{loading ? 'Saving...' : 'Save Count'}</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Feedback Messages */}
+      {submissionStatus.isClosed && (
+        <Alert variant="destructive" className="shrink-0 text-xs">
+          സ്വലാത്ത് സമർപ്പണം അവസാനിച്ചിരിക്കുന്നു. പുതിയ സ്വലാത്തുകൾ രേഖപ്പെടുത്താൻ സാധിക്കില്ല.
+        </Alert>
+      )}
       {error && <Alert variant="destructive" className="shrink-0">{error}</Alert>}
       {successMsg && <Alert variant="success" className="shrink-0">{successMsg}</Alert>}
 
-      {/* Full View Light Background Tap Area or Admin Member Registration Callout */}
-      {isAdmin && !isRegisteredMember ? (
+      {/* Full View Light Background Tap Area, Closed Banner, or Admin Member Registration Callout */}
+      {submissionStatus.isClosed ? (
+        <div
+          onClick={increment}
+          className="w-full flex-1 min-h-0 rounded-2xl p-6 shadow-sm active:scale-[0.98] transition-all flex flex-col items-center justify-center text-center space-y-3.5 cursor-pointer bg-amber-500/10 border border-amber-500/30 text-foreground overflow-hidden"
+        >
+          <div className="w-20 h-20 rounded-full bg-amber-500/20 shadow-md flex items-center justify-center border-2 border-amber-500/40 text-amber-700 dark:text-amber-300 shrink-0">
+            <Ban className="w-10 h-10" />
+          </div>
+
+          <div className="space-y-1.5 max-w-sm">
+            <h2 className="text-lg sm:text-xl font-extrabold text-foreground">
+              സ്വലാത്ത് സമർപ്പണം അവസാനിച്ചു
+            </h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {submissionStatus.reason === 'cutoff_reached'
+                ? `നിശ്ചയിച്ച സമയപരിധി (${submissionStatus.formattedCutoff}) പൂർത്തിയായി. പുതിയ സ്വലാത്തുകൾ രേഖപ്പെടുത്താൻ സാധിക്കില്ല.`
+                : 'ഈ ക്യാമ്പയിനിലെ സ്വലാത്ത് സമർപ്പണം അഡ്മിൻ നിർത്തിവെച്ചിരിക്കുന്നു.'}
+            </p>
+            <p className="text-sm font-arabic font-bold text-primary pt-1" dir="rtl">
+              🌸 جزاكم اللهُ خيرًا 🌸
+            </p>
+          </div>
+
+          <Badge variant="destructive" className="px-4 py-1 text-[11px] font-bold shrink-0">
+            Submissions Closed (സമർപ്പണം അവസാനിച്ചു)
+          </Badge>
+        </div>
+      ) : isAdmin && !isRegisteredMember ? (
         <div className="w-full flex-1 min-h-0 rounded-2xl p-6 bg-amber-500/10 border border-amber-500/30 flex flex-col items-center justify-center text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 flex items-center justify-center">
             <UserCheck className="w-6 h-6" />

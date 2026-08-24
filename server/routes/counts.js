@@ -1,6 +1,7 @@
 import express from 'express';
 import Count from '../models/Count.js';
 import User from '../models/User.js';
+import Tenant from '../models/Tenant.js';
 import { auth } from '../middleware/auth.js';
 import { triggerMilestone } from '../services/pushNotificationService.js';
 
@@ -12,6 +13,37 @@ function todayKey() {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
+}
+
+async function checkSubmissionAllowed(req, dbUser) {
+  let tenant = req.tenant;
+  if (!tenant) {
+    const tenantId = req.user?.tenantId || dbUser?.tenantId;
+    if (tenantId) {
+      tenant = await Tenant.findById(tenantId).lean();
+    }
+  }
+  if (!tenant) return { allowed: true };
+
+  const settings = tenant.settings || {};
+  if (settings.allowAddSwalath === false) {
+    return {
+      allowed: false,
+      message: 'സ്വലാത്ത് രേഖപ്പെടുത്തുന്നത് അഡ്മിൻ നിർത്തിവെച്ചിരിക്കുന്നു (Swalath submission is closed).',
+    };
+  }
+
+  if (settings.submissionCutoff) {
+    const cutoff = new Date(settings.submissionCutoff).getTime();
+    if (!isNaN(cutoff) && Date.now() >= cutoff) {
+      return {
+        allowed: false,
+        message: 'സ്വലാത്ത് സമർപ്പണ സമയപരിധി അവസാനിച്ചിരിക്കുന്നു (Swalath submission deadline has ended).',
+      };
+    }
+  }
+
+  return { allowed: true };
 }
 
 async function checkUserMilestone(userId, tenantId) {
@@ -86,6 +118,15 @@ router.post('/entry', auth, async (req, res) => {
     const userId = req.user.userId || req.user.id;
     const dbUser = await User.findById(userId);
 
+    // Enforce submission window / cutoff check
+    const submissionCheck = await checkSubmissionAllowed(req, dbUser);
+    if (!submissionCheck.allowed) {
+      return res.status(403).json({
+        message: submissionCheck.message,
+        code: 'SUBMISSION_CLOSED',
+      });
+    }
+
     if (dbUser && (dbUser.role === 'tenant_admin' || dbUser.role === 'super_admin')) {
       if (!dbUser.isRegisteredMember) {
         return res.status(403).json({
@@ -128,6 +169,15 @@ router.post('/me/today', auth, async (req, res) => {
     const date = todayKey();
     const userId = req.user.userId || req.user.id;
     const dbUser = await User.findById(userId);
+
+    // Enforce submission window / cutoff check
+    const submissionCheck = await checkSubmissionAllowed(req, dbUser);
+    if (!submissionCheck.allowed) {
+      return res.status(403).json({
+        message: submissionCheck.message,
+        code: 'SUBMISSION_CLOSED',
+      });
+    }
 
     if (dbUser && (dbUser.role === 'tenant_admin' || dbUser.role === 'super_admin')) {
       if (!dbUser.isRegisteredMember) {

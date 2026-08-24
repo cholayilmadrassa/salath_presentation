@@ -3,12 +3,14 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useTenant } from '../context/TenantContext.jsx';
 import { api } from '../api.js';
 import { incrementCachedTotalSwalath } from '../utils/swalathCache.js';
+import { getSubmissionStatus } from '../utils/submissionStatus.js';
+import SubmissionCountdown from '../components/SubmissionCountdown.jsx';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
-import { Save, History, Calendar, Bell, ArrowLeft, CheckCircle2, AlertCircle, Sparkles, X } from 'lucide-react';
+import { Save, History, Calendar, Bell, ArrowLeft, CheckCircle2, AlertCircle, Sparkles, X, Ban, Lock } from 'lucide-react';
 import { salathCountSchema } from '../schemas/validationSchemas.js';
 
 function todayKey() {
@@ -30,6 +32,8 @@ export default function AddCount() {
     const [successMsg, setSuccessMsg] = useState('');
     const [loading, setLoading] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+
+    const submissionStatus = getSubmissionStatus(activeTenant);
 
     useEffect(() => {
         if (token) {
@@ -64,6 +68,11 @@ export default function AddCount() {
         e.preventDefault();
         setError('');
         setSuccessMsg('');
+
+        if (submissionStatus.isClosed) {
+            setError('സ്വലാത്ത് സമർപ്പണ സമയപരിധി അവസാനിച്ചിരിക്കുന്നു.');
+            return;
+        }
 
         if (!value || !String(value).trim()) {
             setError('Please enter a Swalath count number');
@@ -145,6 +154,14 @@ export default function AddCount() {
                 </Button>
             </div>
 
+            {/* Countdown Banner if Scheduled */}
+            {submissionStatus.isScheduled && !submissionStatus.isClosed && (
+                <SubmissionCountdown
+                    variant="compact"
+                    cutoffDate={activeTenant?.settings?.submissionCutoff}
+                />
+            )}
+
             {/* ──────── HERO HIGHLIGHT: Main Record Swalath Card ──────── */}
             <section className="text-white rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden bg-gradient-to-br from-[#296E37] via-[#468B3A] to-[#7EC242] border border-white/20 space-y-3.5">
                 {/* Ambient Blur Glows */}
@@ -155,80 +172,101 @@ export default function AddCount() {
                 <div className="flex items-center justify-between relative z-10 gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs font-extrabold text-[#F5E6B3] border border-white/15">
                         <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                        <span>സ്വലാത്ത് രേഖപ്പെടുത്തുക</span>
+                        <span>{submissionStatus.isClosed ? 'സമർപ്പണം പൂർത്തിയായി' : 'സ്വലാത്ത് രേഖപ്പെടുത്തുക'}</span>
                     </div>
 
                     {/* Integrated Simple Date Picker */}
-                    <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15">
-                        <Calendar className="w-3.5 h-3.5 text-[#D4AF37]" />
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer [color-scheme:dark]"
-                        />
-                        {!isTodaySelected && (
-                            <button
-                                type="button"
-                                onClick={() => setSelectedDate(todayKey())}
-                                className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FFF449] text-[#07351F] hover:brightness-105 transition"
-                            >
-                                Today
-                            </button>
-                        )}
-                    </div>
+                    {!submissionStatus.isClosed && (
+                        <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15">
+                            <Calendar className="w-3.5 h-3.5 text-[#D4AF37]" />
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer [color-scheme:dark]"
+                            />
+                            {!isTodaySelected && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedDate(todayKey())}
+                                    className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FFF449] text-[#07351F] hover:brightness-105 transition"
+                                >
+                                    Today
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                {/* Main Form Area */}
-                <form onSubmit={submit} className="space-y-3 relative z-10" noValidate>
-                    {error && (
-                        <div className="bg-white/95 backdrop-blur-md text-red-700 border border-white/60 rounded-xl px-3 py-2 shadow-xs flex items-center gap-2 animate-slide-down">
-                            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                            <span className="text-xs font-bold leading-snug">{error}</span>
+                {/* Main Form Area or Closed State Banner */}
+                {submissionStatus.isClosed ? (
+                    <div className="bg-white/95 backdrop-blur-md rounded-xl p-5 border border-white/80 text-center space-y-2.5 text-[#0B3D19] shadow-lg relative z-10">
+                        <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-700 flex items-center justify-center mx-auto">
+                            <Ban className="w-6 h-6 stroke-[2.5]" />
                         </div>
-                    )}
-                    {successMsg && (
-                        <div className="bg-white/95 backdrop-blur-md text-[#0B3D19] border border-white/60 rounded-xl px-3 py-2 shadow-xs flex items-center gap-2 animate-slide-down">
-                            <CheckCircle2 className="w-4 h-4 text-[#296E37] shrink-0" />
-                            <span className="text-xs font-bold">{successMsg}</span>
-                        </div>
-                    )}
-
-                    {/* Highlighted Large Count Input Container (Light) */}
-                    <div className="bg-white/95 backdrop-blur-md rounded-xl p-3.5 sm:p-4 border border-white/80 text-center space-y-1.5 shadow-lg">
-                        <label className="text-xs font-extrabold tracking-wider uppercase text-[#1B5E20] flex items-center justify-center gap-1.5">
-                            <span>Enter Swalath Count (എണ്ണം)</span>
-                        </label>
-                        <Input
-                            type="number"
-                            maxLength={6}
-                            placeholder="0"
-                            value={value}
-                            onInput={(e) => {
-                                if (e.target.value.length > 6) {
-                                    e.target.value = e.target.value.slice(0, 6);
-                                }
-                            }}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (error) setError('');
-                                if (val.length <= 6) setValue(val);
-                            }}
-                            autoFocus
-                            className="text-4xl sm:text-5xl font-black text-center tracking-tight h-15 bg-white text-[#0B3D19] placeholder:text-[#296E37]/25 rounded-xl border-0 focus-visible:ring-1 focus-visible:ring-[#296E37]/40 focus-visible:outline-none font-mono shadow-inner"
-                        />
+                        <h3 className="font-extrabold text-sm sm:text-base text-foreground">
+                            സ്വലാത്ത് രേഖപ്പെടുത്തുന്നത് അവസാനിച്ചിരിക്കുന്നു
+                        </h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            {submissionStatus.reason === 'cutoff_reached'
+                                ? `നിശ്ചയിച്ച സമയപരിധി (${submissionStatus.formattedCutoff}) പൂർത്തിയായി.`
+                                : 'ഈ ക്യാമ്പയിനിലെ സ്വലാത്ത് സമർപ്പണം അഡ്മിൻ നിർത്തിവെച്ചിരിക്കുന്നു.'}
+                        </p>
+                        <p className="text-sm font-arabic font-bold text-[#296E37] pt-1" dir="rtl">
+                            🌸 جزاكم اللهُ خيرًا 🌸
+                        </p>
                     </div>
+                ) : (
+                    <form onSubmit={submit} className="space-y-3 relative z-10" noValidate>
+                        {error && (
+                            <div className="bg-white/95 backdrop-blur-md text-red-700 border border-white/60 rounded-xl px-3 py-2 shadow-xs flex items-center gap-2 animate-slide-down">
+                                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                                <span className="text-xs font-bold leading-snug">{error}</span>
+                            </div>
+                        )}
+                        {successMsg && (
+                            <div className="bg-white/95 backdrop-blur-md text-[#0B3D19] border border-white/60 rounded-xl px-3 py-2 shadow-xs flex items-center gap-2 animate-slide-down">
+                                <CheckCircle2 className="w-4 h-4 text-[#296E37] shrink-0" />
+                                <span className="text-xs font-bold">{successMsg}</span>
+                            </div>
+                        )}
 
-                    {/* Prominent Golden Action Button */}
-                    <Button
-                        type="submit"
-                        disabled={loading || !value}
-                        className="w-full text-sm font-extrabold h-11 sm:h-12 rounded-xl shadow-lg border border-[#F5E6B3]/60 bg-[#FFF449] text-[#07351F] hover:bg-[#FFDE42] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                    >
-                        <Save className="w-4.5 h-4.5 stroke-[2.5]" />
-                        <span>{loading ? 'Saving...' : 'Save Swalath Count'}</span>
-                    </Button>
-                </form>
+                        {/* Highlighted Large Count Input Container (Light) */}
+                        <div className="bg-white/95 backdrop-blur-md rounded-xl p-3.5 sm:p-4 border border-white/80 text-center space-y-1.5 shadow-lg">
+                            <label className="text-xs font-extrabold tracking-wider uppercase text-[#1B5E20] flex items-center justify-center gap-1.5">
+                                <span>Enter Swalath Count (എണ്ണം)</span>
+                            </label>
+                            <Input
+                                type="number"
+                                maxLength={6}
+                                placeholder="0"
+                                value={value}
+                                onInput={(e) => {
+                                    if (e.target.value.length > 6) {
+                                        e.target.value = e.target.value.slice(0, 6);
+                                    }
+                                }}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (error) setError('');
+                                    if (val.length <= 6) setValue(val);
+                                }}
+                                autoFocus
+                                className="text-4xl sm:text-5xl font-black text-center tracking-tight h-15 bg-white text-[#0B3D19] placeholder:text-[#296E37]/25 rounded-xl border-0 focus-visible:ring-1 focus-visible:ring-[#296E37]/40 focus-visible:outline-none font-mono shadow-inner"
+                            />
+                        </div>
+
+                        {/* Prominent Golden Action Button */}
+                        <Button
+                            type="submit"
+                            disabled={loading || !value}
+                            className="w-full text-sm font-extrabold h-11 sm:h-12 rounded-xl shadow-lg border border-[#F5E6B3]/60 bg-[#FFF449] text-[#07351F] hover:bg-[#FFDE42] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                            <Save className="w-4.5 h-4.5 stroke-[2.5]" />
+                            <span>{loading ? 'Saving...' : 'Save Swalath Count'}</span>
+                        </Button>
+                    </form>
+                )}
 
                 {/* Dual Stats Row: Clean White Text Only */}
                 <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-white/15 relative z-10">

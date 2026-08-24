@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Button } from "@/components/ui/button";
 import {
-  Sparkles, Award, TrendingUp, Plus, Heart, Moon, LogIn, Bell,
+  Sparkles, Award, TrendingUp, Plus, Heart, Moon, LogIn, Bell, Lock, Ban, CalendarClock,
 } from "lucide-react";
 import Footer from "../components/Footer.jsx";
 import SwalathCard from "../components/SwalathCard.jsx";
@@ -14,6 +14,8 @@ import LeaderboardSection from "../components/LeaderboardSection.jsx";
 import PrayerTimesWidget from "../components/PrayerTimesWidget.jsx";
 import DigitCountTicker from "../components/DigitCountTicker.jsx";
 import SubmitSwalathModal from "../components/SubmitSwalathModal.jsx";
+import SubmissionCountdown from "../components/SubmissionCountdown.jsx";
+import { getSubmissionStatus } from "../utils/submissionStatus.js";
 import {
   getCachedTotalSwalath,
   fetchAndCacheTotalSwalath,
@@ -42,6 +44,9 @@ export default function EventHome() {
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [, setForceTick] = useState(0);
+
+  const submissionStatus = getSubmissionStatus(activeTenant);
 
   const hijri = getHijriDate();
 
@@ -178,34 +183,80 @@ export default function EventHome() {
           </div>
 
           {/* CTA Button */}
-          <Button
-            onClick={() => {
-              if (user || authUser) {
-                setShowSubmitModal(true);
-              } else {
-                navigate('/login');
-              }
-            }}
-            className="relative z-10 w-full max-w-sm mx-auto text-xs sm:text-sm font-extrabold h-11 px-4 rounded-xl shadow-md border border-[#F5E6B3]/40 bg-[#FFF449] text-[#07351F] hover:bg-[#FFDE42] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-          >
-            {user || authUser ? (
-              <>
-                <div className="w-6 h-6 rounded-lg bg-[#07351F]/15 flex items-center justify-center shrink-0">
-                  <Plus className="w-3.5 h-3.5 stroke-[3] text-[#07351F]" />
-                </div>
-                <span className="tracking-wide">Submit Swalath</span>
-              </>
-            ) : (
-              <>
-                <div className="w-6 h-6 rounded-lg bg-[#07351F]/15 flex items-center justify-center shrink-0">
-                  <LogIn className="w-3.5 h-3.5 stroke-[2.5] text-[#07351F]" />
-                </div>
-                <span className="tracking-wide">Login</span>
-              </>
-            )}
-          </Button>
+          {submissionStatus.isClosed ? (
+            <div className="relative z-10 w-full max-w-sm mx-auto">
+              <Button
+                disabled
+                className="w-full text-xs sm:text-sm font-extrabold h-11 px-4 rounded-xl shadow-md border border-white/20 bg-black/40 text-white/80 cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Lock className="w-4 h-4 stroke-[2.5]" />
+                <span>സ്വലാത്ത് സമർപ്പണം അവസാനിച്ചു</span>
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => {
+                if (user || authUser) {
+                  setShowSubmitModal(true);
+                } else {
+                  navigate('/login');
+                }
+              }}
+              className="relative z-10 w-full max-w-sm mx-auto text-xs sm:text-sm font-extrabold h-11 px-4 rounded-xl shadow-md border border-[#F5E6B3]/40 bg-[#FFF449] text-[#07351F] hover:bg-[#FFDE42] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {user || authUser ? (
+                <>
+                  <div className="w-6 h-6 rounded-lg bg-[#07351F]/15 flex items-center justify-center shrink-0">
+                    <Plus className="w-3.5 h-3.5 stroke-[3] text-[#07351F]" />
+                  </div>
+                  <span className="tracking-wide">Submit Swalath</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-6 h-6 rounded-lg bg-[#07351F]/15 flex items-center justify-center shrink-0">
+                    <LogIn className="w-3.5 h-3.5 stroke-[2.5] text-[#07351F]" />
+                  </div>
+                  <span className="tracking-wide">Login</span>
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </section>
+
+      {/* ──────── COUNTDOWN TIMER (If scheduled & active) ──────── */}
+      {submissionStatus.isScheduled && !submissionStatus.isClosed && (
+        <section className="px-4 pt-2 max-w-xl mx-auto w-full animate-slide-up">
+          <SubmissionCountdown
+            cutoffDate={activeTenant?.settings?.submissionCutoff}
+            onExpire={() => {
+              setForceTick((t) => t + 1);
+            }}
+          />
+        </section>
+      )}
+
+      {/* ──────── SUBMISSIONS CLOSED BANNER (If closed) ──────── */}
+      {submissionStatus.isClosed && (
+        <section className="px-4 pt-2 max-w-xl mx-auto w-full animate-slide-up">
+          <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2 shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto shadow-xs">
+              <Ban className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-extrabold text-foreground">
+              സ്വലാത്ത് സമർപ്പണം പൂർത്തിയായി
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto">
+              {submissionStatus.reason === 'cutoff_reached'
+                ? `നിശ്ചയിച്ച സമയപരിധി (${submissionStatus.formattedCutoff}) പൂർത്തിയായതിനാൽ പുതിയ സ്വലാത്തുകൾ രേഖപ്പെടുത്തുന്നത് അവസാനിച്ചു.`
+                : 'ഈ ക്യാമ്പയിനിലെ സ്വലാത്ത് സമർപ്പണം അവസാനിച്ചിരിക്കുന്നു. പങ്കെടുത്ത എല്ലാവർക്കും ഹൃദയം നിറഞ്ഞ നന്ദി!'}
+            </p>
+            <p className="text-sm font-arabic font-bold text-primary pt-0.5" dir="rtl">
+              🌸 جزاكم اللهُ خيرًا 🌸
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ──────── DYNAMIC ORDERED SECTIONS (Arabic Swalath, Prayer Times, Leaderboard) ──────── */}
       {(() => {

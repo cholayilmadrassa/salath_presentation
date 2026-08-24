@@ -5,11 +5,14 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 export default function AdminDashboardTab({ totalAmount = 0, topUsers = [], chartData = [] }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
+      {/* Total Amount Card */}
       <Card>
         <CardContent className="p-6">
-          <h2 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Total SwalathCollected</h2>
-          <p className="text-4xl font-extrabold text-primary mt-1">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+            Total Swalath Collected
+          </h2>
+          <p className="text-4xl font-extrabold text-primary mt-1 font-mono">
             {Number(totalAmount).toLocaleString('en-IN')}
           </p>
         </CardContent>
@@ -27,7 +30,7 @@ export default function AdminDashboardTab({ totalAmount = 0, topUsers = [], char
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-muted-foreground">Rank #{idx + 1}</span>
-                  <Badge variant="success" className="text-[10px]">
+                  <Badge variant="success" className="text-[10px] font-mono">
                     {Number(u.total).toLocaleString('en-IN')}
                   </Badge>
                 </div>
