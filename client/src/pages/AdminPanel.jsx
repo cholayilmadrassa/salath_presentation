@@ -269,6 +269,56 @@ export default function AdminPanel() {
     }
   };
 
+  const handleTogglePublishWinners = async (publish) => {
+    setError('');
+    setSaveSuccess('');
+    try {
+      const currentSettings = tenant?.settings || {};
+      const updatedSettings = {
+        ...currentSettings,
+        publishWinners: publish,
+      };
+
+      const res = await api('/admin/me/tenant', {
+        method: 'PATCH',
+        token,
+        body: { settings: updatedSettings },
+      });
+
+      if (res && res.tenant) {
+        setTenant(res.tenant);
+      }
+
+      if (publish) {
+        setSaveSuccess('Winners published successfully! They are now live on the Home Dashboard.');
+      } else {
+        setSaveSuccess('Winners unpublished. Standard leaderboard view restored.');
+      }
+      setTimeout(() => setSaveSuccess(''), 4000);
+    } catch (err) {
+      setError(err.message || 'Failed to update publish winners setting');
+      throw err;
+    }
+  };
+
+  const handleToggleShowNextTopRanks = async (value) => {
+    setError('');
+    setSaveSuccess('');
+    try {
+      const currentSettings = tenant?.settings || {};
+      const res = await api('/admin/me/tenant', {
+        method: 'PATCH',
+        token,
+        body: { settings: { ...currentSettings, showNextTopRanks: value } },
+      });
+      if (res && res.tenant) setTenant(res.tenant);
+      setSaveSuccess(value ? 'Next top ranks enabled on Home!' : 'Next top ranks hidden from Home.');
+      setTimeout(() => setSaveSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to update setting');
+    }
+  };
+
   const handleUpdateSwalath = async (e) => {
     e.preventDefault();
     setError('');
@@ -667,6 +717,8 @@ export default function AdminPanel() {
             tenant={tenant}
             onToggleMultipleAccounts={handleToggleMultipleAccounts}
             onToggleSubmission={handleToggleSubmission}
+            onTogglePublishWinners={handleTogglePublishWinners}
+            onToggleShowNextTopRanks={handleToggleShowNextTopRanks}
           />
         </TabsContent>
 

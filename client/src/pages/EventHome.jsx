@@ -11,6 +11,7 @@ import {
 import Footer from "../components/Footer.jsx";
 import SwalathCard from "../components/SwalathCard.jsx";
 import LeaderboardSection from "../components/LeaderboardSection.jsx";
+import WinnersCelebrationSection from "../components/WinnersCelebrationSection.jsx";
 import PrayerTimesWidget from "../components/PrayerTimesWidget.jsx";
 import DigitCountTicker from "../components/DigitCountTicker.jsx";
 import SubmitSwalathModal from "../components/SubmitSwalathModal.jsx";
@@ -72,9 +73,11 @@ export default function EventHome() {
         setTotalCountLoading(true);
       }
 
-      // 2. Fetch Leaderboard for today
+      // 2. Fetch Leaderboard (or overall winners if published)
       setLeaderLoading(true);
-      api("/counts/leaderboard/today?limit=5")
+      const isWinnersMode = activeTenant?.settings?.publishWinners === true;
+      const endpoint = isWinnersMode ? "/counts/leaderboard/all?limit=10" : "/counts/leaderboard/today?limit=5";
+      api(endpoint)
         .then((res) => setLeaders(res || []))
         .catch((e) => setLeaderError(e.message))
         .finally(() => setLeaderLoading(false));
@@ -89,7 +92,7 @@ export default function EventHome() {
         .catch(() => {})
         .finally(() => setTotalCountLoading(false));
     }
-  }, [activeTenant, token]);
+  }, [activeTenant, token, activeTenant?.settings?.publishWinners]);
 
   // Listen to optimistic / cross-tab total count updates
   useEffect(() => {
@@ -236,8 +239,8 @@ export default function EventHome() {
         </section>
       )}
 
-      {/* ──────── SUBMISSIONS CLOSED BANNER (If closed) ──────── */}
-      {submissionStatus.isClosed && (
+      {/* ──────── SUBMISSIONS CLOSED BANNER (If closed and winners not published) ──────── */}
+      {submissionStatus.isClosed && !activeTenant?.settings?.publishWinners && (
         <section className="px-4 pt-2 max-w-xl mx-auto w-full animate-slide-up">
           <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2 shadow-xs">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto shadow-xs">
@@ -288,9 +291,19 @@ export default function EventHome() {
           }
 
           if (sectionId === 'leaderboard' && activeTenant?.settings?.showLeaderboard !== false) {
+            const isWinnersMode = activeTenant?.settings?.publishWinners === true;
             return (
               <div key="leaderboard" className="max-w-xl mx-auto px-4 pt-3 w-full animate-slide-up">
-                <LeaderboardSection leaders={leaders} loading={leaderLoading} error={leaderError} />
+                {isWinnersMode ? (
+                  <WinnersCelebrationSection
+                    winners={leaders}
+                    loading={leaderLoading}
+                    error={leaderError}
+                    allowNextTopRanks={activeTenant?.settings?.showNextTopRanks !== false}
+                  />
+                ) : (
+                  <LeaderboardSection leaders={leaders} loading={leaderLoading} error={leaderError} />
+                )}
               </div>
             );
           }

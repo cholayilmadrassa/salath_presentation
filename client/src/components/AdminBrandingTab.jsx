@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch.jsx';
-import { Users, Clock, CalendarClock, Ban, CheckCircle2, Play, Sparkles, AlertTriangle } from 'lucide-react';
+import { Users, Clock, CalendarClock, Ban, CheckCircle2, Play, Sparkles, AlertTriangle, Trophy } from 'lucide-react';
 import { getSubmissionStatus } from '../utils/submissionStatus.js';
 import StopSubmissionModal from './StopSubmissionModal.jsx';
+import PublishWinnersModal from './PublishWinnersModal.jsx';
 
 export default function AdminBrandingTab({
   brandingForm,
@@ -20,11 +21,16 @@ export default function AdminBrandingTab({
   tenant = null,
   onToggleMultipleAccounts = null,
   onToggleSubmission = null,
+  onTogglePublishWinners = null,
+  onToggleShowNextTopRanks = null,
 }) {
   const allowMultipleAccounts = tenant?.settings?.allowMultipleAccounts === true;
+  const publishWinners = tenant?.settings?.publishWinners === true;
+  const showNextTopRanks = tenant?.settings?.showNextTopRanks !== false;
   const submissionStatus = getSubmissionStatus(tenant);
 
   const [showStopModal, setShowStopModal] = useState(false);
+  const [showPublishWinnersModal, setShowPublishWinnersModal] = useState(false);
 
   const handleMasterToggleClick = () => {
     // If currently open or scheduled, clicking toggle initiates the stop flow (opens modal)
@@ -41,6 +47,16 @@ export default function AdminBrandingTab({
   const handleConfirmStop = async (mode, cutoffIso) => {
     if (onToggleSubmission) {
       await onToggleSubmission(mode, cutoffIso);
+    }
+  };
+
+  const handlePublishWinnersSwitch = (checked) => {
+    if (checked) {
+      setShowPublishWinnersModal(true);
+    } else {
+      if (onTogglePublishWinners) {
+        onTogglePublishWinners(false, false);
+      }
     }
   };
 
@@ -195,6 +211,71 @@ export default function AdminBrandingTab({
             )}
           </div>
 
+          {/* ══════════ PUBLISH WINNERS TOGGLE (Only after submissions stopped) ══════════ */}
+          {submissionStatus.isClosed && (
+            <div className="flex flex-col p-4 sm:p-5 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-card to-card shadow-xs gap-3 animate-slide-up">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mt-0.5 shrink-0 shadow-xs">
+                    <Trophy className="w-5 h-5 text-[#D4AF37]" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-extrabold text-foreground">
+                        Publish Winners (വിജയികളെ പ്രഖ്യാപിക്കുക)
+                      </p>
+                      {publishWinners ? (
+                        <Badge variant="success" className="text-[10px] font-mono font-bold">
+                          PUBLISHED 🏆
+                        </Badge>
+                      ) : (
+                        <Badge variant="muted" className="text-[10px] font-mono font-bold">
+                          UNPUBLISHED
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      ഹോം ഡാഷ്‌ബോർഡിൽ daily leaderboard-ന് പകരം കാമ്പയിനിലെ മുൻനിര വിജയികളെയും മെഡലുകളെയും ഔദ്യോഗികമായി പ്രദർശിപ്പിക്കുക.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-3">
+                  <Switch
+                    checked={publishWinners}
+                    onCheckedChange={handlePublishWinnersSwitch}
+                    size="lg"
+                    showLabels={true}
+                    ariaLabel="Toggle publish winners"
+                  />
+                </div>
+              </div>
+
+              {/* Sub-toggle: Show Next Top Ranks (4-10) */}
+              {publishWinners && (
+                <div className="pt-3 border-t border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-slide-down">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-extrabold text-foreground">
+                      Show Next Top Ranks (മറ്റ് മുൻനിര സ്ഥാനങ്ങൾ കാണിക്കുക)
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      4 മുതൽ 10 വരെയുള്ള സ്ഥാനക്കാരെ ഹോം പേജിൽ ടോഗിൾ ചെയ്ത് കാണാൻ ഉപയോക്താക്കളെ അനുവദിക്കുക.
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <Switch
+                      checked={showNextTopRanks}
+                      onCheckedChange={(val) => onToggleShowNextTopRanks && onToggleShowNextTopRanks(val)}
+                      size="md"
+                      showLabels={true}
+                      ariaLabel="Toggle show next top ranks"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ══════════ 2. ALLOW MULTIPLE ACCOUNTS TOGGLE ══════════ */}
           <div className="flex items-center justify-between p-4 sm:p-5 rounded-2xl border border-border bg-card/60 shadow-xs">
             <div className="flex items-start gap-3">
@@ -227,6 +308,17 @@ export default function AdminBrandingTab({
         onOpenChange={setShowStopModal}
         onConfirm={handleConfirmStop}
         currentCutoff={tenant?.settings?.submissionCutoff || null}
+      />
+
+      {/* Publish Winners Modal */}
+      <PublishWinnersModal
+        open={showPublishWinnersModal}
+        onOpenChange={setShowPublishWinnersModal}
+        onConfirm={async (publish) => {
+          if (onTogglePublishWinners) {
+            await onTogglePublishWinners(publish);
+          }
+        }}
       />
 
       {/* ── Branding Card ── */}

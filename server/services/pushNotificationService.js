@@ -3,6 +3,7 @@ import PushSubscription from '../models/PushSubscription.js';
 import NotificationHistory from '../models/NotificationHistory.js';
 import Count from '../models/Count.js';
 import User from '../models/User.js';
+import Tenant from '../models/Tenant.js';
 import { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } from '../config.js';
 
 const formattedSubject = (VAPID_SUBJECT && (VAPID_SUBJECT.startsWith('mailto:') || VAPID_SUBJECT.startsWith('http')))
@@ -92,10 +93,36 @@ export async function sendPushToSubscriptions(subscriptions, payload) {
 }
 
 /**
+ * Check if a tenant has stopped receiving Swalath counts
+ */
+export async function isTenantSubmissionStopped(tenantId) {
+  if (!tenantId) return false;
+  try {
+    const tenant = await Tenant.findById(tenantId).lean();
+    if (!tenant) return false;
+    const settings = tenant.settings || {};
+    if (settings.allowAddSwalath === false) return true;
+    if (settings.submissionCutoff) {
+      const cutoff = new Date(settings.submissionCutoff).getTime();
+      if (!isNaN(cutoff) && Date.now() >= cutoff) return true;
+    }
+    return false;
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
  * Send push notification to a specific user
  */
 export async function sendToUser(userId, payload, category = 'admin_broadcast') {
   if (!userId) return { attempted: 0, success: 0, failure: 0 };
+
+  const dbUser = await User.findById(userId).select('tenantId').lean();
+  if (dbUser?.tenantId && (await isTenantSubmissionStopped(dbUser.tenantId))) {
+    console.log(`[PUSH USER BLOCKED]: Adding swalath is stopped for user ${userId}'s tenant. Notification skipped.`);
+    return { attempted: 0, success: 0, failure: 0 };
+  }
 
   const subscriptions = await PushSubscription.find({ userId, enabled: true });
   return sendPushToSubscriptions(subscriptions, payload);
@@ -106,6 +133,12 @@ export async function sendToUser(userId, payload, category = 'admin_broadcast') 
  */
 export async function sendToTenant(tenantId, payload, category = 'admin_broadcast') {
   if (!tenantId) return sendBroadcast(payload, category);
+
+  // If adding swalath is stopped for this tenant, DO NOT send any notification
+  if (await isTenantSubmissionStopped(tenantId)) {
+    console.log(`[PUSH TENANT BLOCKED]: Adding swalath is stopped for tenant ${tenantId}. Notification skipped.`);
+    return { attempted: 0, success: 0, failure: 0 };
+  }
 
   const tenantUsers = await User.find({ tenantId }).select('_id');
   const tenantUserIds = tenantUsers.map((u) => u._id);
@@ -127,8 +160,30 @@ export async function sendToTenant(tenantId, payload, category = 'admin_broadcas
  * Send push notification to all platform users
  */
 export async function sendBroadcast(payload, category = 'admin_broadcast') {
-  const subscriptions = await PushSubscription.find({ enabled: true });
-  console.log(`[PUSH BROADCAST]: Found ${subscriptions.length} active subscription(s) in DB.`);
+  // Exclude subscriptions of tenants whose submissions are stopped
+  const allTenants = await Tenant.find({}).lean();
+  const stoppedTenantIds = allTenants
+    .filter((t) => {
+      const s = t.settings || {};
+      if (s.allowAddSwalath === false) return true;
+      if (s.submissionCutoff && Date.now() >= new Date(s.submissionCutoff).getTime()) return true;
+      return false;
+    })
+    .map((t) => t._id.toString());
+
+  let filter = { enabled: true };
+  if (stoppedTenantIds.length > 0) {
+    const stoppedUsers = await User.find({ tenantId: { $in: stoppedTenantIds } }).select('_id').lean();
+    const stoppedUserIds = stoppedUsers.map((u) => u._id);
+    filter = {
+      enabled: true,
+      tenantId: { $nin: stoppedTenantIds },
+      userId: { $nin: stoppedUserIds },
+    };
+  }
+
+  const subscriptions = await PushSubscription.find(filter);
+  console.log(`[PUSH BROADCAST]: Found ${subscriptions.length} active subscription(s) in active campaigns.`);
   return sendPushToSubscriptions(subscriptions, payload);
 }
 
@@ -190,6 +245,43 @@ export async function triggerDailyReminders() {
       return;
     }
 
+    // 3. Exclude users whose tenant has closed submissions or published winners
+    const allTenants = await Tenant.find({}).lean();
+    const closedTenantIds = new Set();
+    const now = Date.now();
+    for (const t of allTenants) {
+      const settings = t.settings || {};
+      const isManualClosed = settings.allowAddSwalath === false;
+      const isWinnersPublished = settings.publishWinners === true;
+      let isCutoffExpired = false;
+      if (settings.submissionCutoff) {
+        const cutoff = new Date(settings.submissionCutoff).getTime();
+        if (!isNaN(cutoff) && now >= cutoff) {
+          isCutoffExpired = true;
+        }
+      }
+      if (isManualClosed || isWinnersPublished || isCutoffExpired) {
+        closedTenantIds.add(t._id.toString());
+      }
+    }
+
+    let finalUserIds = targetUserIds;
+    if (closedTenantIds.size > 0 && targetUserIds.length > 0) {
+      const usersWithTenant = await User.find({ _id: { $in: targetUserIds } }).select('_id tenantId').lean();
+      const openUserSet = new Set();
+      for (const u of usersWithTenant) {
+        if (!u.tenantId || !closedTenantIds.has(u.tenantId.toString())) {
+          openUserSet.add(u._id.toString());
+        }
+      }
+      finalUserIds = targetUserIds.filter((uid) => openUserSet.has(uid));
+    }
+
+    if (finalUserIds.length === 0) {
+      console.log('[DAILY REMINDER]: No pending users from active campaigns today.');
+      return;
+    }
+
     const payload = {
       title: 'സ്വലാത്ത് ഓർമ്മപ്പെടുത്തൽ',
       body: 'ഇന്നത്തെ സ്വലാത്ത് അപ്ഡേറ്റ് ചെയ്തോ?',
@@ -199,7 +291,7 @@ export async function triggerDailyReminders() {
     };
 
     let totalSent = 0;
-    for (const uid of targetUserIds) {
+    for (const uid of finalUserIds) {
       const res = await sendToUser(uid, payload, 'reminder');
       totalSent += res.success;
     }

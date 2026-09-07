@@ -322,14 +322,15 @@ router.get('/leaderboard/all', async (req, res) => {
     const filter = {};
     if (req.tenant) filter.tenantId = req.tenant._id;
 
-    const allCounts = await Count.find(filter).populate('user', 'name');
+    const allCounts = await Count.find(filter).populate('user', 'name place');
     const allMap = {};
     allCounts.forEach((item) => {
       if (item.user) {
         const uid = item.user._id ? item.user._id.toString() : String(item.user);
         const uname = item.user.name || 'അംഗം';
+        const uplace = item.user.place || '';
         if (!allMap[uid]) {
-          allMap[uid] = { userId: uid, name: uname, value: 0 };
+          allMap[uid] = { userId: uid, name: uname, place: uplace, value: 0 };
         }
         allMap[uid].value += Number(item.value) || 0;
       }

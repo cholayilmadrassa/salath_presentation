@@ -1,7 +1,7 @@
 import express from 'express';
 import NotificationHistory from '../models/NotificationHistory.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { sendBroadcast, sendToTenant, triggerDailyReminders, processDueNotifications } from '../services/pushNotificationService.js';
+import { sendBroadcast, sendToTenant, triggerDailyReminders, processDueNotifications, isTenantSubmissionStopped } from '../services/pushNotificationService.js';
 
 const router = express.Router();
 
@@ -63,6 +63,14 @@ router.post('/', async (req, res) => {
       }
     } else if (targetType === 'tenant') {
       targetTenantId = tenantId || null;
+    }
+
+    // Reject notifications if adding swalath is stopped
+    if (targetTenantId && (await isTenantSubmissionStopped(targetTenantId))) {
+      return res.status(403).json({
+        error: 'Adding swalath is stopped for this event. Notifications are disabled.',
+        code: 'SUBMISSIONS_STOPPED',
+      });
     }
 
     // Handle Scheduled Notification
