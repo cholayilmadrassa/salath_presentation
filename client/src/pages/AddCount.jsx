@@ -231,9 +231,9 @@ export default function AddCount() {
                             </div>
                         )}
 
-                        {/* Highlighted Large Count Input Container (Light) */}
-                        <div className="bg-white/95 backdrop-blur-md rounded-xl p-3.5 sm:p-4 border border-white/80 text-center space-y-1.5 shadow-lg">
-                            <label className="text-xs font-extrabold tracking-wider uppercase text-[#1B5E20] flex items-center justify-center gap-1.5">
+                        {/* Highlighted Large Count Input Container (Dark Green) */}
+          <div className="bg-black/25 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-1.5 relative z-10 mb-4 text-center">
+                            <label className="text-xs font-extrabold tracking-wider uppercase text-[#E6F4ED] flex items-center justify-center gap-1.5">
                                 <span>Enter Swalath Count (എണ്ണം)</span>
                             </label>
                             <Input
@@ -252,7 +252,7 @@ export default function AddCount() {
                                     if (val.length <= 6) setValue(val);
                                 }}
                                 autoFocus
-                                className="text-4xl sm:text-5xl font-black text-center tracking-tight h-15 bg-white text-[#0B3D19] placeholder:text-[#296E37]/25 rounded-xl border-0 focus-visible:ring-1 focus-visible:ring-[#296E37]/40 focus-visible:outline-none font-mono shadow-inner"
+                                className="text-4xl sm:text-5xl font-black text-center tracking-tight h-15 bg-transparent text-white placeholder:text-white/25 rounded-xlfocus-visible:ring-1 focus-visible:ring-[#D4AF37]/60 focus-visible:outline-none font-mono shadow-inner"
                             />
                         </div>
 

@@ -17,12 +17,6 @@ import DigitCountTicker from "../components/DigitCountTicker.jsx";
 import SubmitSwalathModal from "../components/SubmitSwalathModal.jsx";
 import SubmissionCountdown from "../components/SubmissionCountdown.jsx";
 import { getSubmissionStatus } from "../utils/submissionStatus.js";
-import {
-  getCachedTotalSwalath,
-  fetchAndCacheTotalSwalath,
-  getTenantCacheKey,
-  CACHE_EVENT_NAME,
-} from "../utils/swalathCache.js";
 
 function formatTitleCase(str) {
   if (!str) return '';
@@ -34,10 +28,9 @@ export default function EventHome() {
   const { user: authUser, token } = useAuth();
   const navigate = useNavigate();
 
-  // Instant cache read for zero-loading counter
-  const cachedTotal = getCachedTotalSwalath(activeTenant);
-  const [totalEventCount, setTotalEventCount] = useState(() => cachedTotal?.total ?? 0);
-  const [totalCountLoading, setTotalCountLoading] = useState(() => cachedTotal === null);
+  // Logged-in member's own overall count
+  const [myTotal, setMyTotal] = useState(0);
+  const [myTotalLoading, setMyTotalLoading] = useState(true);
 
   const [leaders, setLeaders] = useState([]);
   const [leaderLoading, setLeaderLoading] = useState(true);
@@ -61,19 +54,19 @@ export default function EventHome() {
           if (res && typeof res.unreadCount === 'number') setUnreadCount(res.unreadCount);
         })
         .catch(() => {});
+
+      setMyTotalLoading(true);
+      api('/counts/me', { token })
+        .then((items) => {
+          const sum = (items || []).reduce((acc, it) => acc + (Number(it.value) || 0), 0);
+          setMyTotal(sum);
+        })
+        .catch(() => {})
+        .finally(() => setMyTotalLoading(false));
     }
 
     if (activeTenant) {
-      // 1. Immediately hydrate from tenant cache
-      const cached = getCachedTotalSwalath(activeTenant);
-      if (cached !== null) {
-        setTotalEventCount(cached.total);
-        setTotalCountLoading(false);
-      } else {
-        setTotalCountLoading(true);
-      }
-
-      // 2. Fetch Leaderboard (or overall winners if published)
+      // Fetch Leaderboard (or overall winners if published)
       setLeaderLoading(true);
       const isWinnersMode = activeTenant?.settings?.publishWinners === true;
       const endpoint = isWinnersMode ? "/counts/leaderboard/all?limit=10" : "/counts/leaderboard/today?limit=5";
@@ -81,31 +74,8 @@ export default function EventHome() {
         .then((res) => setLeaders(res || []))
         .catch((e) => setLeaderError(e.message))
         .finally(() => setLeaderLoading(false));
-
-      // 3. Background fetch fresh total count and update state/cache
-      fetchAndCacheTotalSwalath(activeTenant)
-        .then((fresh) => {
-          if (fresh && typeof fresh.total === 'number') {
-            setTotalEventCount(fresh.total);
-          }
-        })
-        .catch(() => {})
-        .finally(() => setTotalCountLoading(false));
     }
   }, [activeTenant, token, activeTenant?.settings?.publishWinners]);
-
-  // Listen to optimistic / cross-tab total count updates
-  useEffect(() => {
-    const tenantKey = getTenantCacheKey(activeTenant);
-    const handleCacheUpdate = (e) => {
-      if (e.detail?.tenantKey === tenantKey && typeof e.detail?.total === 'number') {
-        setTotalEventCount(e.detail.total);
-        setTotalCountLoading(false);
-      }
-    };
-    window.addEventListener(CACHE_EVENT_NAME, handleCacheUpdate);
-    return () => window.removeEventListener(CACHE_EVENT_NAME, handleCacheUpdate);
-  }, [activeTenant]);
 
   if (!activeTenant) return null;
 
@@ -123,7 +93,7 @@ export default function EventHome() {
             />
             <div>
               <h2 className="font-extrabold text-sm leading-tight text-foreground">
-                {user ? user.name : 'Welcome!'}
+                {formatTitleCase(activeTenant?.branding?.title || activeTenant?.name) || 'Swalath Portal'}
               </h2>
               <span className="text-[10px] font-semibold flex items-center gap-1 text-muted-foreground">
                 <Moon className="w-3 h-3 text-primary" />
@@ -155,35 +125,33 @@ export default function EventHome() {
           <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full blur-3xl pointer-events-none animate-pulse-glow bg-[#D4AF37]/20" />
           <div className="absolute -bottom-16 -left-16 w-52 h-52 rounded-full blur-3xl pointer-events-none animate-pulse-glow bg-primary/20" style={{ animationDelay: '1s' }} />
 
-          {/* Tagline pill */}
-          <div className="flex w-fit relative z-10 mb-4 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
-            <span className="text-xs font-bold text-[#E6F4ED] tracking-wide">ഖൽബിലുണ്ട് എന്റെ നബി</span>
-          </div>
-
+      
           {/* Title & tagline */}
           <div className="space-y-1.5 relative z-10 mb-4 text-center">
             <h1 className="text-[22px] sm:text-3xl font-extrabold leading-tight text-white tracking-tight">
-              {formatTitleCase(activeTenant?.branding?.title || activeTenant?.name) || 'സ്വലാത്തിലൂടെ ഹബീബിലണയാം'}
+              {(authUser || user)?.name ? formatTitleCase((authUser || user).name) : 'സ്വലാത്തിലൂടെ ഹബീബിലണയാം'}
             </h1>
             <p className="text-xs font-medium leading-relaxed text-[#E6F4ED]">
               {activeTenant?.branding?.tagline || 'ദിനേനയുള്ള സ്വലാത്തുകൾ കൃത്യമായി രേഖപ്പെടുത്തൂ'}
             </p>
           </div>
 
-          {/* Total count */}
-          <div className="bg-black/25 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-1.5 relative z-10 mb-4 text-center">
-            <div className="flex items-center justify-center gap-1.5">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#D4AF37]/25">
-                <Award className="w-4 h-4 text-[#D4AF37]" />
+          {/* My total count (logged-in members only) */}
+          {token && (
+            <div className="bg-black/25 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-1.5 relative z-10 mb-4 text-center">
+              <div className="flex items-center justify-center gap-1.5">
+                <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#D4AF37]/25">
+                  <Award className="w-4 h-4 text-[#D4AF37]" />
+                </div>
+                <span className="text-xs font-extrabold tracking-wider text-[#E6F4ED]">My Total Swalath</span>
               </div>
-              <span className="text-xs font-extrabold tracking-wider text-[#E6F4ED]">Total Swalath</span>
+              <DigitCountTicker value={myTotal} isLoading={myTotalLoading} />
+              <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-[#D4AF37]">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Verified Activity</span>
+              </div>
             </div>
-            <DigitCountTicker value={totalEventCount} isLoading={totalCountLoading} />
-            <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-[#D4AF37]">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Verified Activity</span>
-            </div>
-          </div>
+          )}
 
           {/* CTA Button */}
           {submissionStatus.isClosed ? (
@@ -356,6 +324,7 @@ export default function EventHome() {
       <SubmitSwalathModal
         open={showSubmitModal}
         onOpenChange={setShowSubmitModal}
+        onSuccess={(num) => setMyTotal((prev) => prev + num)}
       />
 
       <Footer />

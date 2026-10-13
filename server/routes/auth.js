@@ -183,15 +183,22 @@ router.post('/register', async (req, res) => {
     }
 
     // ── Single account mode (default) ──
-    const cleanEmail = email ? email.toLowerCase().trim() : `${cleanPhone || Date.now()}@member.salath`;
+    let cleanEmail = email ? email.toLowerCase().trim() : `${cleanPhone || Date.now()}@member.salath`;
     const cleanPassword = password || `pass_${cleanPhone || '123456'}`;
 
+    // Only reuse an existing member account; admins registering with the same
+    // mobile get a separate member account
     let existingUser = await User.findOne({
+      role: 'member',
       $or: [
         { email: cleanEmail },
         ...(cleanPhone ? [{ phone: cleanPhone, tenantId: targetTenant._id }] : []),
       ],
     });
+
+    if (!existingUser && await User.exists({ email: cleanEmail })) {
+      cleanEmail = await generateUniqueEmail(name, cleanPhone, targetTenant.slug);
+    }
 
     if (existingUser) {
       if (!existingUser.tenantId) existingUser.tenantId = targetTenant._id;
@@ -535,8 +542,9 @@ router.post('/login', async (req, res) => {
     }
 
     // Filter by tenant more precisely
+    // Only member accounts; admin accounts log in through the admin login
     const tenantMembers = allMatchingUsers.filter(
-      u => (u.role === 'member' || u.isRegisteredMember || u.role === 'user') && u.tenantId &&
+      u => u.role === 'member' && u.tenantId &&
            u.tenantId.toString() === targetTenant._id.toString()
     );
 

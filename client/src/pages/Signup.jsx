@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTenant } from "../context/TenantContext.jsx";
 import { api } from "../api.js";
@@ -17,13 +17,15 @@ import { signupSchema } from "../schemas/validationSchemas.js";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const { activeTenant } = useTenant();
 
   const [approvedEvents, setApprovedEvents] = useState([]);
   const [selectedTenantSlug, setSelectedTenantSlug] = useState("");
   const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
+  // Prefill mobile number passed from the login page
+  const [mobile, setMobile] = useState(() => (location.state?.phone || "").slice(0, 10));
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

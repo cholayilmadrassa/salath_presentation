@@ -20,7 +20,6 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import AdminChangePassword from './pages/AdminChangePassword.jsx';
 import NotFound from './pages/NotFound.jsx';
 import { WifiOff } from 'lucide-react';
-import { isPrayerNotifEnabled, initPrayerTimeNotifications } from './utils/prayerTimeNotifier.js';
 
 import './styles.css';
 
@@ -211,15 +210,6 @@ function AppContent() {
   const isPlatformLanding = location.pathname === '/' && !activeTenant;
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin');
   const needsBottomPadding = !isPlatformLanding && !isAdminRoute;
-
-  // Auto-initialize prayer time notifications on app startup if previously enabled
-  useEffect(() => {
-    if (isPrayerNotifEnabled() && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      initPrayerTimeNotifications(false).catch((err) => {
-        console.log('[Prayer Notif Auto-start]:', err?.message);
-      });
-    }
-  }, []);
 
   return (
     <div className={`min-h-screen ${needsBottomPadding ? 'pb-16 md:pb-0' : ''} bg-background text-foreground font-ml`}>

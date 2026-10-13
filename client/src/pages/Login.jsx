@@ -304,7 +304,7 @@ export default function Login() {
               </div>
               <p className="text-muted-foreground leading-relaxed">{error}</p>
               <Button asChild size="sm" className="w-full mt-1">
-                <Link to="/signup">
+                <Link to="/signup" state={{ phone: form.phone.replace(/\D/g, '') }}>
                   <UserPlus className="w-4 h-4 mr-1.5" />
                   <span>Register for this Event Portal</span>
                 </Link>
@@ -345,6 +345,7 @@ export default function Login() {
             <p className="font-normal text-muted-foreground">Don't have an account for this event?</p>
             <Link
               to="/signup"
+              state={{ phone: form.phone.replace(/\D/g, '') }}
               className="inline-block font-semibold text-primary hover:underline"
             >
               Register Member

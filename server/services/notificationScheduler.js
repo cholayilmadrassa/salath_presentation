@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { processDueNotifications, triggerDailyReminders, checkAndTriggerPrayerTimes, fetchServerPrayerTimes } from './pushNotificationService.js';
+import { processDueNotifications, triggerDailyReminders } from './pushNotificationService.js';
 
 let isInitialized = false;
 
@@ -7,25 +7,17 @@ export function initNotificationScheduler() {
   if (isInitialized) return;
   isInitialized = true;
 
-  console.log('[SCHEDULER]: Initializing Web Push background jobs & Prayer Time monitors...');
+  console.log('[SCHEDULER]: Initializing Web Push background jobs...');
 
-  // Run immediate check on startup for pending due notifications and pre-warm prayer times
+  // Run immediate check on startup for pending due notifications
   processDueNotifications().catch((err) => console.error('[SCHEDULER]: Startup check error:', err));
-  fetchServerPrayerTimes().catch((err) => console.error('[SCHEDULER]: Prayer cache pre-warm error:', err));
-  checkAndTriggerPrayerTimes().catch((err) => console.error('[SCHEDULER]: Initial prayer time check error:', err));
 
-  // 1. Process due scheduled admin notifications & check prayer times every 1 minute
+  // 1. Process due scheduled admin notifications every 1 minute
   cron.schedule('* * * * *', async () => {
     try {
       await processDueNotifications();
     } catch (err) {
       console.error('[SCHEDULER]: Scheduled notification worker error:', err);
-    }
-
-    try {
-      await checkAndTriggerPrayerTimes();
-    } catch (err) {
-      console.error('[SCHEDULER]: Prayer time worker error:', err);
     }
   });
 

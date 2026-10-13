@@ -11,6 +11,29 @@ import { Download, Smartphone, Share, Bell, CheckCircle2, AlertCircle } from 'lu
 import { useAuth } from '../context/AuthContext.jsx';
 import { subscribeUserToPush } from '../utils/pushManager.js';
 
+const LAST_SHOWN_KEY = 'pwa_prompt_last_shown';
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function wasShownToday() {
+  try {
+    return localStorage.getItem(LAST_SHOWN_KEY) === todayKey();
+  } catch {
+    return false;
+  }
+}
+
+function markShownToday() {
+  try {
+    localStorage.setItem(LAST_SHOWN_KEY, todayKey());
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export default function InstallPrompt() {
   const { token } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState(window.deferredInstallPrompt || null);
@@ -35,18 +58,10 @@ export default function InstallPrompt() {
   };
 
   useEffect(() => {
-    const { standalone, granted } = checkStatus();
-    const isCompleted = localStorage.getItem('app_setup_completed') === 'true';
-    const isDismissed = sessionStorage.getItem('pwa_prompt_dismissed') === 'true';
+    const { standalone } = checkStatus();
 
-    // If both installed & notifications enabled, mark as completed
-    if (standalone && granted) {
-      localStorage.setItem('app_setup_completed', 'true');
-      return;
-    }
-
-    // Do not show if setup is marked completed or dismissed in this session
-    if (isCompleted || isDismissed) {
+    // Already installed, or already shown today: don't show
+    if (standalone || wasShownToday()) {
       return;
     }
 
@@ -66,9 +81,10 @@ export default function InstallPrompt() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('pwa-install-available', handleAvailable);
 
-    // Show popup after 1.5s delay if not installed OR notifications not enabled
+    // Show popup after 1.5s delay, once per day while the app is not installed
     const timer = setTimeout(() => {
       setShowPrompt(true);
+      markShownToday();
     }, 1500);
 
     return () => {
@@ -80,7 +96,6 @@ export default function InstallPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    sessionStorage.setItem('pwa_prompt_dismissed', 'true');
   };
 
   const handleInstallClick = async () => {
@@ -97,7 +112,6 @@ export default function InstallPrompt() {
       if (outcome === 'accepted') {
         setIsStandalone(true);
         if (notifGranted) {
-          localStorage.setItem('app_setup_completed', 'true');
           setShowPrompt(false);
         }
       }
@@ -120,7 +134,6 @@ export default function InstallPrompt() {
       }
       setNotifGranted(typeof Notification !== 'undefined' && Notification.permission === 'granted');
       if (isStandalone) {
-        localStorage.setItem('app_setup_completed', 'true');
         setShowPrompt(false);
       }
     } catch (err) {
@@ -226,10 +239,7 @@ export default function InstallPrompt() {
               Later
             </button>
             <Button
-              onClick={() => {
-                localStorage.setItem('app_setup_completed', 'true');
-                setShowPrompt(false);
-              }}
+              onClick={() => setShowPrompt(false)}
               className="text-xs font-extrabold px-5"
             >
               Got It
